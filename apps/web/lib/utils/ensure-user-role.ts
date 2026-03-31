@@ -3,34 +3,36 @@
  * Usado no onboarding quando o usuário é PENDING - cadastra apenas ao concluir.
  */
 
-import { db } from "@/lib/db";
+import {
+  type ProvisionUserAccessResult,
+  updateUserRoleAndProvisionAccess,
+} from "@gymrats/auth";
 
 export type EnsureRoleResult =
   | { ok: true; studentId?: string; gymId?: string; personalId?: string }
   | { ok: false; error: string };
 
+function toEnsureRoleSuccess(
+  result: ProvisionUserAccessResult,
+): EnsureRoleResult {
+  return {
+    ok: true,
+    studentId: result.studentId,
+    gymId: result.gymId,
+    personalId: result.personalId,
+  };
+}
+
 export async function ensureStudentRole(
   userId: string,
 ): Promise<EnsureRoleResult> {
   try {
-    await db.user.update({
-      where: { id: userId },
-      data: { role: "STUDENT" },
+    const result = await updateUserRoleAndProvisionAccess({
+      userId,
+      role: "STUDENT",
     });
-
-    let student = await db.student.findUnique({
-      where: { userId },
-    });
-
-    if (!student) {
-      student = await db.student.create({
-        data: { userId },
-      });
-    }
-
-    return { ok: true, studentId: student.id };
+    return toEnsureRoleSuccess(result);
   } catch (error) {
-    console.error("[ensureStudentRole] Erro:", error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao criar perfil",
@@ -44,30 +46,14 @@ export async function ensureGymRole(
   userEmail: string,
 ): Promise<EnsureRoleResult> {
   try {
-    const updatedUser = await db.user.update({
-      where: { id: userId },
-      data: { role: "GYM" },
+    const result = await updateUserRoleAndProvisionAccess({
+      userId,
+      role: "GYM",
+      userName,
+      userEmail,
     });
-
-    let gym = await db.gym.findFirst({
-      where: { userId },
-    });
-
-    if (!gym) {
-      gym = await db.gym.create({
-        data: {
-          userId,
-          name: updatedUser.name || userName,
-          address: "",
-          phone: "",
-          email: updatedUser.email || userEmail,
-        },
-      });
-    }
-
-    return { ok: true, gymId: gym.id };
+    return toEnsureRoleSuccess(result);
   } catch (error) {
-    console.error("[ensureGymRole] Erro:", error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao criar perfil",
@@ -81,28 +67,14 @@ export async function ensurePersonalRole(
   userEmail: string,
 ): Promise<EnsureRoleResult> {
   try {
-    const updatedUser = await db.user.update({
-      where: { id: userId },
-      data: { role: "PERSONAL" },
+    const result = await updateUserRoleAndProvisionAccess({
+      userId,
+      role: "PERSONAL",
+      userName,
+      userEmail,
     });
-
-    let personal = await db.personal.findUnique({
-      where: { userId },
-    });
-
-    if (!personal) {
-      personal = await db.personal.create({
-        data: {
-          userId,
-          name: updatedUser.name || userName,
-          email: updatedUser.email || userEmail,
-        },
-      });
-    }
-
-    return { ok: true, personalId: personal.id };
+    return toEnsureRoleSuccess(result);
   } catch (error) {
-    console.error("[ensurePersonalRole] Erro:", error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao criar perfil",

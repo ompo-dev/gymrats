@@ -9,7 +9,6 @@ import {
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
-import { createGymWithdraw } from "@/app/gym/actions";
 import {
   DuoAlert,
   DuoButton,
@@ -18,6 +17,7 @@ import {
   DuoStatCard,
   DuoStatsGrid,
 } from "@/components/duo";
+import { useGym } from "@/hooks/use-gym";
 import { useToast } from "@/hooks/use-toast";
 import type { FinancialSummary, Payment } from "@/lib/types";
 import {
@@ -50,11 +50,8 @@ interface FinancialOverviewTabProps {
   balanceReais?: number;
   balanceCents?: number;
   withdraws?: WithdrawItem[];
-  /** Quando true, saque é simulado (só persiste no DB). Remover para produção. */
   fakeWithdraw?: boolean;
-  /** Quando false, oculta botão Sacar, texto de modo dev e modal (ex.: landing page). */
   showWithdraw?: boolean;
-  /** Quando true, mostra o botão Sacar mas o clique não faz nada (ex.: amostra na landing). */
   disableWithdraw?: boolean;
 }
 
@@ -70,11 +67,10 @@ export function FinancialOverviewTab({
   disableWithdraw = false,
 }: FinancialOverviewTabProps) {
   const { toast } = useToast();
+  const actions = useGym("actions");
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-
-  const formatCurrency = formatCurrencyBR;
 
   const handleWithdraw = async () => {
     const reais = parseCurrencyBR(withdrawAmount);
@@ -87,25 +83,26 @@ export function FinancialOverviewTab({
       toast({ variant: "destructive", title: "Saldo insuficiente" });
       return;
     }
+
     setIsWithdrawing(true);
     try {
-      const result = await createGymWithdraw({
+      await actions.createWithdraw({
         amountCents,
         fake: fakeWithdraw,
       });
-      if (result.success) {
-        toast({
-          title: fakeWithdraw ? "Saque simulado" : "Saque solicitado",
-          description: fakeWithdraw
-            ? "Em modo dev o valor foi registrado localmente. Em produção o PIX será processado."
-            : `R$ ${reais.toFixed(2)} enviado para sua chave PIX.`,
-        });
-        setWithdrawModalOpen(false);
-        setWithdrawAmount("");
-        window.location.reload();
-      } else {
-        toast({ variant: "destructive", title: result.error });
-      }
+      toast({
+        title: fakeWithdraw ? "Saque simulado" : "Saque solicitado",
+        description: fakeWithdraw
+          ? "Em modo dev o valor foi registrado localmente. Em produção o PIX será processado."
+          : `R$ ${reais.toFixed(2)} enviado para sua chave PIX.`,
+      });
+      setWithdrawModalOpen(false);
+      setWithdrawAmount("");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Erro ao criar saque",
+      });
     } finally {
       setIsWithdrawing(false);
     }
@@ -113,7 +110,6 @@ export function FinancialOverviewTab({
 
   return (
     <div className="space-y-6">
-      {/* Alertas de Assinatura da Academia */}
       {subscription?.status === "past_due" && (
         <DuoAlert variant="danger" title="Assinatura Atrasada">
           A assinatura da Nutrifit para esta academia está atrasada. Regularize
@@ -128,16 +124,14 @@ export function FinancialOverviewTab({
         </DuoAlert>
       )}
 
-      {/* Alertas de Pagamentos de Alunos */}
       {(financialSummary.overduePayments ?? 0) > 0 && (
         <DuoAlert variant="danger" title="Mensalidades Atrasadas">
-          {(payments ?? []).filter((p) => p.status === "overdue").length}{" "}
+          {payments.filter((payment) => payment.status === "overdue").length}{" "}
           pagamento(s) atrasado(s) de alunos, totalizando{" "}
-          {formatCurrency(financialSummary.overduePayments)}.
+          {formatCurrencyBR(financialSummary.overduePayments)}.
         </DuoAlert>
       )}
 
-      {/* Saldo disponível + Sacar */}
       <DuoCard.Root variant="default" padding="md">
         <DuoCard.Header>
           <div className="flex items-center gap-2">
@@ -162,7 +156,7 @@ export function FinancialOverviewTab({
           )}
         </DuoCard.Header>
         <div className="text-2xl font-bold text-duo-green">
-          {formatCurrency(balanceReais)}
+          {formatCurrencyBR(balanceReais)}
         </div>
         {showWithdraw && balanceCents < 350 && (
           <p className="text-xs text-duo-gray-dark">
@@ -177,13 +171,14 @@ export function FinancialOverviewTab({
       </DuoCard.Root>
 
       {showWithdraw && !disableWithdraw && withdrawModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={(e) =>
-            e.target === e.currentTarget && setWithdrawModalOpen(false)
-          }
-        >
-          <DuoCard.Root className="w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Fechar modal de saque"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setWithdrawModalOpen(false)}
+          />
+          <DuoCard.Root className="relative z-10 w-full max-w-sm">
             <DuoCard.Header>
               <h3 className="font-bold">Sacar</h3>
             </DuoCard.Header>
@@ -194,12 +189,12 @@ export function FinancialOverviewTab({
                 inputMode="decimal"
                 placeholder="0,00"
                 value={withdrawAmount}
-                onChange={(e) =>
-                  setWithdrawAmount(formatCurrencyInput(e.target.value))
+                onChange={(event) =>
+                  setWithdrawAmount(formatCurrencyInput(event.target.value))
                 }
               />
               <p className="text-xs text-duo-gray-dark">
-                Disponível: {formatCurrency(balanceReais)} • Mín. R$ 3,50
+                Disponível: {formatCurrencyBR(balanceReais)} • Mín. R$ 3,50
               </p>
               <div className="flex gap-2">
                 <DuoButton
@@ -222,31 +217,31 @@ export function FinancialOverviewTab({
         </div>
       )}
 
-      {/* Histórico de saques */}
-      {(withdraws ?? []).length > 0 && (
+      {withdraws.length > 0 && (
         <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
             <h2 className="font-bold text-[var(--duo-fg)]">Saques</h2>
           </DuoCard.Header>
           <div className="space-y-2">
-            {(withdraws ?? []).map((w) => (
+            {withdraws.map((withdraw) => (
               <div
-                key={w.id}
+                key={withdraw.id}
                 className="flex items-center justify-between rounded-lg border border-duo-border p-3"
               >
                 <div>
                   <p className="font-bold text-duo-text">
-                    {formatCurrency(w.amount)}
+                    {formatCurrencyBR(withdraw.amount)}
                   </p>
                   <p className="text-xs text-duo-gray-dark">
-                    {formatDatePtBr(w.createdAt)} •{" "}
-                    {w.status === "complete" || w.status === "completed"
+                    {formatDatePtBr(withdraw.createdAt)} •{" "}
+                    {withdraw.status === "complete" ||
+                    withdraw.status === "completed"
                       ? "Concluído"
-                      : w.status}
+                      : withdraw.status}
                   </p>
                 </div>
                 <span className="text-xs text-duo-gray-dark">
-                  {w.pixKeyType} •••{String(w.pixKey).slice(-4)}
+                  {withdraw.pixKeyType} •••{String(withdraw.pixKey).slice(-4)}
                 </span>
               </div>
             ))}
@@ -257,27 +252,27 @@ export function FinancialOverviewTab({
       <DuoStatsGrid.Root columns={2} className="gap-3">
         <DuoStatCard.Simple
           icon={TrendingUp}
-          value={formatCurrency(financialSummary.totalRevenue)}
+          value={formatCurrencyBR(financialSummary.totalRevenue)}
           label="Receita Total"
           badge={`+${financialSummary.revenueGrowth}%`}
           iconColor="var(--duo-primary)"
         />
         <DuoStatCard.Simple
           icon={TrendingDown}
-          value={formatCurrency(financialSummary.totalExpenses)}
+          value={formatCurrencyBR(financialSummary.totalExpenses)}
           label="Despesas"
           badge="Mensal"
           iconColor="var(--duo-danger)"
         />
         <DuoStatCard.Simple
           icon={DollarSign}
-          value={formatCurrency(financialSummary.netProfit)}
+          value={formatCurrencyBR(financialSummary.netProfit)}
           label="Lucro Líquido"
           iconColor="var(--duo-secondary)"
         />
         <DuoStatCard.Simple
           icon={CreditCard}
-          value={formatCurrency(financialSummary.monthlyRecurring)}
+          value={formatCurrencyBR(financialSummary.monthlyRecurring)}
           label="Recorrente Mensal"
           badge="MRR"
           iconColor="#A560E8"
@@ -300,7 +295,7 @@ export function FinancialOverviewTab({
             <div className="flex items-center justify-between">
               <span className="text-sm text-duo-gray-dark">Ticket Médio</span>
               <span className="text-sm font-bold text-duo-text">
-                {formatCurrency(financialSummary.averageTicket)}
+                {formatCurrencyBR(financialSummary.averageTicket)}
               </span>
             </div>
           </DuoCard.Root>
@@ -318,7 +313,7 @@ export function FinancialOverviewTab({
                 Pagamentos Pendentes
               </span>
               <span className="text-sm font-bold text-duo-yellow">
-                {formatCurrency(financialSummary.pendingPayments)}
+                {formatCurrencyBR(financialSummary.pendingPayments)}
               </span>
             </div>
           </DuoCard.Root>

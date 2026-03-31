@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { DuoButton, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
 import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
@@ -31,6 +31,8 @@ import type {
   StudentData,
   WeeklyPlanData,
 } from "@/lib/types";
+
+type FinancialOverviewTabProps = ComponentProps<typeof FinancialOverviewTab>;
 
 // --- Mocks (dados para exibir os componentes reais na landing) ---
 
@@ -143,7 +145,7 @@ const MOCK_STUDENT_DATA: StudentData = {
   },
 };
 
-const MOCK_FINANCIAL_SUMMARY = {
+const MOCK_FINANCIAL_SUMMARY: FinancialOverviewTabProps["financialSummary"] = {
   totalRevenue: 42850,
   revenueGrowth: 15,
   totalExpenses: 12400,
@@ -196,7 +198,7 @@ const MOCK_EQUIPMENT: Equipment[] = [
   },
 ];
 
-const MOCK_PAYMENTS = [
+const MOCK_PAYMENTS: NonNullable<FinancialOverviewTabProps["payments"]> = [
   {
     id: "p1",
     studentId: "s1",
@@ -563,10 +565,10 @@ export function GymLandingPage() {
                   <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-[var(--duo-secondary)]" />
                 </div>
                 <FinancialOverviewTab
-                  financialSummary={MOCK_FINANCIAL_SUMMARY as any}
+                  financialSummary={MOCK_FINANCIAL_SUMMARY}
                   balanceReais={2450.75}
                   balanceCents={245075}
-                  payments={MOCK_PAYMENTS as any}
+                  payments={MOCK_PAYMENTS}
                   disableWithdraw
                 />
               </div>
@@ -641,9 +643,19 @@ export function GymLandingPage() {
                 student={MOCK_STUDENT_DATA}
                 dailyNutrition={MOCK_DAILY_NUTRITION}
                 nutritionDate={new Date().toISOString().slice(0, 10)}
+                isCurrentDate
                 isLoadingNutrition={false}
                 onNutritionDateChange={() => {}}
                 onFetchNutrition={() => {}}
+                onMealComplete={() => {}}
+                onAddMeal={async () => {}}
+                onAddFood={async () => {}}
+                onApplyNutrition={async () => {}}
+                onUpdateTargetWater={async () => {}}
+                onRemoveMeal={async () => {}}
+                onRemoveFood={async () => {}}
+                onToggleWaterGlass={async () => {}}
+                onOpenLibrary={() => {}}
               />
             )}
             {activeTab === "progress" && (

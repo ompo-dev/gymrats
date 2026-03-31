@@ -3,6 +3,7 @@
  * Extraído para reduzir tamanho do store principal.
  */
 
+import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
 import { apiClient } from "@/lib/api/client";
 import type { Meal } from "@/lib/types";
 import type {
@@ -10,7 +11,8 @@ import type {
   StudentDataSection,
   WeightHistoryItem,
 } from "@/lib/types/student-unified";
-import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import { normalizeDailyNutrition } from "@/lib/utils/nutrition/nutrition-plan";
+import { normalizeStudentSectionData } from "@/lib/utils/student/normalize-student-data";
 
 type SetStateFn = (
   fn: (s: { data: StudentData }) => { data: StudentData },
@@ -47,12 +49,15 @@ export const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
   units: "/api/workouts/units",
   weeklyPlan: "/api/workouts/weekly-plan",
   libraryPlans: "/api/workouts/library",
+  activeNutritionPlan: "/api/nutrition/active",
+  nutritionLibraryPlans: "/api/nutrition/library",
   workoutHistory: "/api/workouts/history",
   personalRecords: "/api/students/personal-records",
   subscription: "/api/subscriptions/current",
   memberships: "/api/memberships",
   payments: "/api/payments",
   paymentMethods: "/api/payment-methods",
+  referral: "/api/students/referrals",
   dayPasses: "/api/students/day-passes",
   friends: "/api/students/friends",
   gymLocations: "/api/gyms/locations",
@@ -67,15 +72,12 @@ const loadingPromises = new Map<
 
 function transformSectionResponse(
   section: StudentDataSection,
-  data: Record<string, string | number | boolean | object | null>,
+  data: Record<string, unknown>,
 ): Partial<StudentData> {
-  const d = data as Record<string, import("@/lib/types/api-error").JsonValue>;
+  const d = data as Record<string, unknown>;
   switch (section) {
     case "user": {
-      const userData = (d.user || d) as Record<
-        string,
-        import("@/lib/types/api-error").JsonValue
-      >;
+      const userData = (d.user || d) as Record<string, unknown>;
       const username =
         (userData.username as string) ||
         (userData.email
@@ -89,7 +91,9 @@ function transformSectionResponse(
           username,
           memberSince:
             (userData.memberSince as string) ||
-            formatMemberSince(userData.createdAt as Date),
+            formatMemberSince(
+              userData.createdAt as Date | string | null | undefined,
+            ),
           avatar: (userData.avatar || userData.image) as string | undefined,
           role: (userData.role as "STUDENT" | "ADMIN" | "GYM") || "STUDENT",
           isAdmin: userData.role === "ADMIN" || (userData.isAdmin as boolean),
@@ -97,34 +101,80 @@ function transformSectionResponse(
       };
     }
     case "student":
-      return { student: d as StudentData["student"] };
+      return { student: d as unknown as StudentData["student"] };
     case "profile":
-      return { profile: (d.profile || d) as StudentData["profile"] };
+      return { profile: (d.profile || d) as unknown as StudentData["profile"] };
     case "progress":
-      return { progress: d as StudentData["progress"] };
+      return { progress: d as unknown as StudentData["progress"] };
     case "weightHistory":
-      if (Array.isArray(d)) return { weightHistory: d };
+      if (Array.isArray(d)) {
+        return { weightHistory: d as unknown as WeightHistoryItem[] };
+      }
       if (d.history && Array.isArray(d.history))
-        return { weightHistory: d.history };
-      return { weightHistory: (d.weightHistory as WeightHistoryItem[]) || [] };
+        return { weightHistory: d.history as unknown as WeightHistoryItem[] };
+      return {
+        weightHistory:
+          (d.weightHistory as unknown as WeightHistoryItem[] | undefined) || [],
+      };
     case "units":
-      return { units: Array.isArray(d) ? d : d.units || [] };
+      return {
+        units: Array.isArray(d)
+          ? (d as unknown as StudentData["units"])
+          : (d.units as unknown as StudentData["units"]) || [],
+      };
     case "weeklyPlan":
-      return { weeklyPlan: d?.weeklyPlan ?? null };
+      return {
+        weeklyPlan:
+          (d.weeklyPlan as unknown as StudentData["weeklyPlan"] | undefined) ??
+          null,
+      };
     case "libraryPlans":
       return {
-        libraryPlans: Array.isArray(d) ? d : (d.libraryPlans || d.data || []) as StudentData["libraryPlans"],
+        libraryPlans: Array.isArray(d)
+          ? (d as unknown as StudentData["libraryPlans"])
+          : (((d.libraryPlans as unknown) ||
+              (d.data as unknown) ||
+              []) as StudentData["libraryPlans"]),
       };
     case "workoutHistory":
-      if (Array.isArray(d)) return { workoutHistory: d };
+      if (Array.isArray(d)) {
+        return {
+          workoutHistory: d as unknown as StudentData["workoutHistory"],
+        };
+      }
       if (d.history && Array.isArray(d.history))
-        return { workoutHistory: d.history };
-      return { workoutHistory: d.workoutHistory || [] };
+        return {
+          workoutHistory: d.history as unknown as StudentData["workoutHistory"],
+        };
+      return {
+        workoutHistory:
+          (d.workoutHistory as unknown as StudentData["workoutHistory"]) || [],
+      };
     case "personalRecords":
       return {
         personalRecords: (d.records ||
           d.personalRecords ||
           []) as StudentData["personalRecords"],
+      };
+    case "activeNutritionPlan":
+      return {
+        activeNutritionPlan: ((d.data as unknown) ||
+          (d.activeNutritionPlan as unknown) ||
+          null) as StudentData["activeNutritionPlan"],
+      };
+    case "nutritionLibraryPlans":
+      return {
+        nutritionLibraryPlans: Array.isArray(d)
+          ? (d as unknown as StudentData["nutritionLibraryPlans"])
+          : (((d.nutritionLibraryPlans as unknown) ||
+              (d.data as unknown) ||
+              []) as StudentData["nutritionLibraryPlans"]),
+      };
+    case "dailyNutrition":
+      return {
+        dailyNutrition: normalizeDailyNutrition(
+          d as Partial<StudentData["dailyNutrition"]>,
+        ),
       };
     case "subscription": {
       if (d && typeof d === "object" && "success" in d) {
@@ -136,32 +186,56 @@ function transformSectionResponse(
         const isFirstPayment = payload.isFirstPayment ?? true;
         return {
           subscription: sub
-            ? ({ ...sub, isFirstPayment } as StudentData["subscription"])
+            ? ({
+                ...sub,
+                isFirstPayment,
+              } as unknown as StudentData["subscription"])
             : null,
         };
       }
-      return { subscription: (d as StudentData["subscription"]) || null };
+      return {
+        subscription: (d as unknown as StudentData["subscription"]) || null,
+      };
     }
     case "memberships":
       return {
-        memberships: Array.isArray(d) ? d : d.memberships || [],
+        memberships: Array.isArray(d)
+          ? (d as unknown as StudentData["memberships"])
+          : (d.memberships as unknown as StudentData["memberships"]) || [],
       };
     case "payments":
-      return { payments: Array.isArray(d) ? d : d.payments || [] };
+      return {
+        payments: Array.isArray(d)
+          ? (d as unknown as StudentData["payments"])
+          : (d.payments as unknown as StudentData["payments"]) || [],
+      };
     case "paymentMethods":
       return {
-        paymentMethods: Array.isArray(d) ? d : d.paymentMethods || [],
+        paymentMethods: Array.isArray(d)
+          ? (d as unknown as StudentData["paymentMethods"])
+          : (d.paymentMethods as unknown as StudentData["paymentMethods"]) ||
+            [],
+      };
+    case "referral":
+      return {
+        referral: (d.referral || d) as unknown as StudentData["referral"],
       };
     case "dayPasses":
-      return { dayPasses: (d.dayPasses || []) as StudentData["dayPasses"] };
+      return {
+        dayPasses: ((d.dayPasses as unknown) || []) as StudentData["dayPasses"],
+      };
     case "friends":
-      return { friends: d as StudentData["friends"] };
+      return { friends: d as unknown as StudentData["friends"] };
     case "gymLocations":
       return {
-        gymLocations: Array.isArray(d) ? d : d.gymLocations || d.gyms || [],
+        gymLocations: Array.isArray(d)
+          ? (d as unknown as StudentData["gymLocations"])
+          : (((d.gymLocations as unknown) ||
+              (d.gyms as unknown) ||
+              []) as StudentData["gymLocations"]),
       };
     default:
-      return { [section]: d } as Partial<StudentData>;
+      return { [section]: d } as unknown as Partial<StudentData>;
   }
 }
 
@@ -195,59 +269,109 @@ export function deduplicateMeals(meals: Meal[]): Meal[] {
   return unique;
 }
 
-function updateStoreWithSection(
+export function updateStoreWithSection(
   set: SetStateFn,
   sectionData: Partial<StudentData>,
 ): void {
+  const normalizedSectionData = normalizeStudentSectionData(sectionData);
+
   set((state) => {
     const newState = { ...state.data };
-    if (sectionData.user)
-      newState.user = { ...newState.user, ...sectionData.user };
-    if (sectionData.student)
-      newState.student = { ...newState.student, ...sectionData.student };
-    if (sectionData.progress)
-      newState.progress = { ...newState.progress, ...sectionData.progress };
-    if (sectionData.profile)
-      newState.profile = { ...newState.profile, ...sectionData.profile };
-    if (sectionData.weightHistory) {
-      newState.weightHistory = sectionData.weightHistory;
-      if (sectionData.weightHistory.length > 0) {
-        newState.weightGain = calculateWeightGain(sectionData.weightHistory);
-        if (!newState.profile?.weight && sectionData.weightHistory[0]) {
+    if (normalizedSectionData.user)
+      newState.user = { ...newState.user, ...normalizedSectionData.user };
+    if (normalizedSectionData.student)
+      newState.student = {
+        ...newState.student,
+        ...normalizedSectionData.student,
+      };
+    if (normalizedSectionData.progress)
+      newState.progress = {
+        ...newState.progress,
+        ...normalizedSectionData.progress,
+      };
+    if (normalizedSectionData.profile)
+      newState.profile = {
+        ...newState.profile,
+        ...normalizedSectionData.profile,
+      };
+    if (normalizedSectionData.weightHistory) {
+      newState.weightHistory = normalizedSectionData.weightHistory;
+      if (normalizedSectionData.weightHistory.length > 0) {
+        newState.weightGain =
+          normalizedSectionData.weightGain ??
+          calculateWeightGain(normalizedSectionData.weightHistory);
+        if (
+          !newState.profile?.weight &&
+          normalizedSectionData.weightHistory[0]
+        ) {
           newState.profile = {
             ...newState.profile,
-            weight: sectionData.weightHistory[0].weight,
+            weight: normalizedSectionData.weightHistory[0].weight,
           };
         }
       }
     }
-    if (sectionData.units !== undefined) newState.units = sectionData.units;
-    if (sectionData.weeklyPlan !== undefined)
-      newState.weeklyPlan = sectionData.weeklyPlan;
-    if (sectionData.libraryPlans !== undefined)
-      newState.libraryPlans = sectionData.libraryPlans;
-    if (sectionData.workoutHistory !== undefined)
-      newState.workoutHistory = sectionData.workoutHistory;
-    if (sectionData.personalRecords !== undefined)
-      newState.personalRecords = sectionData.personalRecords;
-    if (sectionData.subscription !== undefined)
-      newState.subscription = sectionData.subscription;
-    if (sectionData.memberships !== undefined)
-      newState.memberships = sectionData.memberships;
-    if (sectionData.payments !== undefined)
-      newState.payments = sectionData.payments;
-    if (sectionData.paymentMethods !== undefined)
-      newState.paymentMethods = sectionData.paymentMethods;
-    if (sectionData.dayPasses !== undefined)
-      newState.dayPasses = sectionData.dayPasses;
-    if (sectionData.friends !== undefined)
-      newState.friends = sectionData.friends;
-    if (sectionData.gymLocations !== undefined)
-      newState.gymLocations = sectionData.gymLocations;
-    if (sectionData.dailyNutrition !== undefined)
-      newState.dailyNutrition = sectionData.dailyNutrition;
+    if (normalizedSectionData.units !== undefined)
+      newState.units = normalizedSectionData.units;
+    if (normalizedSectionData.weeklyPlan !== undefined)
+      newState.weeklyPlan = normalizedSectionData.weeklyPlan;
+    if (normalizedSectionData.libraryPlans !== undefined)
+      newState.libraryPlans = normalizedSectionData.libraryPlans;
+    if (normalizedSectionData.workoutHistory !== undefined)
+      newState.workoutHistory = normalizedSectionData.workoutHistory;
+    if (normalizedSectionData.personalRecords !== undefined)
+      newState.personalRecords = normalizedSectionData.personalRecords;
+    if (normalizedSectionData.activeNutritionPlan !== undefined)
+      newState.activeNutritionPlan = normalizedSectionData.activeNutritionPlan;
+    if (normalizedSectionData.nutritionLibraryPlans !== undefined)
+      newState.nutritionLibraryPlans =
+        normalizedSectionData.nutritionLibraryPlans;
+    if (normalizedSectionData.subscription !== undefined)
+      newState.subscription = normalizedSectionData.subscription;
+    if (normalizedSectionData.memberships !== undefined)
+      newState.memberships = normalizedSectionData.memberships;
+    if (normalizedSectionData.payments !== undefined)
+      newState.payments = normalizedSectionData.payments;
+    if (normalizedSectionData.paymentMethods !== undefined)
+      newState.paymentMethods = normalizedSectionData.paymentMethods;
+    if (normalizedSectionData.referral !== undefined)
+      newState.referral = normalizedSectionData.referral;
+    if (normalizedSectionData.dayPasses !== undefined)
+      newState.dayPasses = normalizedSectionData.dayPasses;
+    if (normalizedSectionData.friends !== undefined)
+      newState.friends = normalizedSectionData.friends;
+    if (normalizedSectionData.gymLocations !== undefined)
+      newState.gymLocations = normalizedSectionData.gymLocations;
+    if (normalizedSectionData.dailyNutrition !== undefined)
+      newState.dailyNutrition = normalizedSectionData.dailyNutrition;
     return { data: newState };
   });
+}
+
+export function hydrateStudentBootstrapData(
+  set: SetStateFn,
+  sectionData: Partial<StudentData>,
+): void {
+  updateStoreWithSection(set, sectionData);
+  set((state) => ({
+    data: {
+      ...state.data,
+      metadata: {
+        ...state.data.metadata,
+        isLoading: false,
+        isInitialized: true,
+        lastSync: new Date(),
+        errors: {},
+      },
+    },
+  }));
+}
+
+async function loadStudentBootstrap(
+  sections: StudentDataSection[],
+): Promise<Partial<StudentData>> {
+  const response = await getStudentBootstrapRequest(sections);
+  return normalizeStudentSectionData(response.data ?? {});
 }
 
 export async function loadSection(
@@ -267,10 +391,16 @@ export async function loadSection(
   const loadPromise = (async () => {
     try {
       if (!route) return {};
+      const requestUrl = forceRefresh
+        ? `${route}${route.includes("?") ? "&" : "?"}fresh=1`
+        : route;
       const response = await apiClient
-        .get<Record<string, string | number | boolean | object | null>>(route, {
-          timeout: 30000,
-        })
+        .get<Record<string, string | number | boolean | object | null>>(
+          requestUrl,
+          {
+            timeout: 30000,
+          },
+        )
         .catch(
           (err: {
             _isHandled?: boolean;
@@ -300,63 +430,15 @@ export async function loadSection(
 export async function loadSectionsIncremental(
   set: SetStateFn,
   sections: StudentDataSection[],
-  skipNutrition = false,
+  _skipNutrition = false,
 ): Promise<void> {
-  const sectionPromises = sections.map(async (section) => {
-    try {
-      const sectionData = await loadSection(section);
-      if (sectionData && Object.keys(sectionData).length > 0) {
-        updateStoreWithSection(set, sectionData);
-      }
-      return sectionData;
-    } catch {
-      return {};
-    }
-  });
-  await Promise.all(sectionPromises);
-  if (!skipNutrition && sections.includes("dailyNutrition")) {
-    try {
-      const res = await apiClient.get<{
-        date: string;
-        meals: Meal[];
-        totalCalories?: number;
-        totalProtein?: number;
-        totalCarbs?: number;
-        totalFats?: number;
-        waterIntake?: number;
-        targetCalories?: number;
-        targetProtein?: number;
-        targetCarbs?: number;
-        targetFats?: number;
-        targetWater?: number;
-      }>("/api/nutrition/daily", { timeout: 30000 });
-      const d = res.data;
-      let normalizedDate: string;
-      try {
-        normalizedDate = getBrazilNutritionDateKey(d.date);
-      } catch {
-        normalizedDate = getBrazilNutritionDateKey();
-      }
-      const uniqueMeals = deduplicateMeals(d.meals || []);
-      updateStoreWithSection(set, {
-        dailyNutrition: {
-          date: normalizedDate,
-          meals: uniqueMeals,
-          totalCalories: d.totalCalories ?? 0,
-          totalProtein: d.totalProtein ?? 0,
-          totalCarbs: d.totalCarbs ?? 0,
-          totalFats: d.totalFats ?? 0,
-          waterIntake: d.waterIntake ?? 0,
-          targetCalories: d.targetCalories ?? 2000,
-          targetProtein: d.targetProtein ?? 150,
-          targetCarbs: d.targetCarbs ?? 250,
-          targetFats: d.targetFats ?? 65,
-          targetWater: d.targetWater ?? 3000,
-        },
-      });
-    } catch {
-      // ignore
-    }
+  if (sections.length === 0) {
+    return;
+  }
+
+  const bootstrapData = await loadStudentBootstrap(sections);
+  if (Object.keys(bootstrapData).length > 0) {
+    updateStoreWithSection(set, bootstrapData);
   }
 }
 
@@ -367,6 +449,8 @@ const ALL_SECTIONS: StudentDataSection[] = [
   "units",
   "weeklyPlan",
   "libraryPlans",
+  "activeNutritionPlan",
+  "nutritionLibraryPlans",
   "profile",
   "weightHistory",
   "workoutHistory",
@@ -375,6 +459,7 @@ const ALL_SECTIONS: StudentDataSection[] = [
   "memberships",
   "payments",
   "paymentMethods",
+  "referral",
   "dayPasses",
   "friends",
   "gymLocations",

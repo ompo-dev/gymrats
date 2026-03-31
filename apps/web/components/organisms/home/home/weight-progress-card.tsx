@@ -38,11 +38,17 @@ function WeightProgressCardSimple({
   };
 
   const WeightIcon = getWeightIcon();
-
-  // Pegar últimos 7 pontos para mostrar tendência
-  const recentWeights = weightHistory.slice(0, 7).reverse();
-  const maxWeight = Math.max(...recentWeights.map((w) => w.weight));
-  const minWeight = Math.min(...recentWeights.map((w) => w.weight));
+  const recentWeights = Array.isArray(weightHistory)
+    ? weightHistory.slice(0, 7).reverse()
+    : [];
+  const maxWeight =
+    recentWeights.length > 0
+      ? Math.max(...recentWeights.map((w) => w.weight))
+      : currentWeight;
+  const minWeight =
+    recentWeights.length > 0
+      ? Math.min(...recentWeights.map((w) => w.weight))
+      : currentWeight;
   const range = maxWeight - minWeight || 1;
 
   return (
@@ -54,7 +60,7 @@ function WeightProgressCardSimple({
             style={{ color: "var(--duo-secondary)" }}
             aria-hidden
           />
-          <h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
+          <h2 className="font-bold text-[var(--duo-fg)]">Evolucao de Peso</h2>
         </div>
       </DuoCard.Header>
       <div className="space-y-3">
@@ -79,7 +85,7 @@ function WeightProgressCardSimple({
         {recentWeights.length > 1 && (
           <div className="space-y-2">
             <div className="text-xs font-bold text-duo-gray-dark">
-              Últimos 7 registros
+              Ultimos 7 registros
             </div>
             <div className="flex h-16 items-end gap-1">
               {recentWeights.map((entry, index) => {

@@ -1,7 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import {
   Check,
   ChevronRight,
@@ -13,19 +11,20 @@ import {
   Star,
 } from "lucide-react";
 import { motion } from "motion/react";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
 import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { useUserGeolocation } from "@/hooks/use-user-geolocation";
-import { useGymMapStore, type GymMapFilter } from "@/hooks/use-gym-map-state";
+import { type GymMapFilter, useGymMapStore } from "@/hooks/use-gym-map-state";
 import { useStudent } from "@/hooks/use-student";
+import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import type { DayPass, GymLocation, StudentGymMembership } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const MapContainerComponent = dynamic(
-  () =>
-    import("./map-container").then((m) => m.MapContainerComponent),
+  () => import("./map-container").then((m) => m.MapContainerComponent),
   {
     ssr: false,
     loading: () => (
@@ -59,6 +58,27 @@ export function GymMapWithLeaflet({
   onChangePlan,
   onViewGymProfile,
 }: GymMapWithLeafletProps) {
+  const handleSponsoredAdActivate = (gym: GymLocation) => {
+    const activeAd = gym.activeCampaigns?.[0];
+    if (!activeAd) return;
+
+    if (activeAd.linkedPlanId && onJoinPlan) {
+      onJoinPlan(
+        gym.id,
+        activeAd.linkedPlanId,
+        activeAd.linkedCouponId || undefined,
+      );
+      return;
+    }
+
+    if (onViewGymProfile) {
+      onViewGymProfile(
+        gym.id,
+        activeAd.linkedPlanId || undefined,
+        activeAd.linkedCouponId || undefined,
+      );
+    }
+  };
   const { position, requestPermission } = useUserGeolocation();
   const { loadGymLocationsWithPosition } = useStudent("loaders");
   const {
@@ -108,7 +128,7 @@ export function GymMapWithLeaflet({
   );
 
   const selectedGym = selectedGymId
-    ? sortedGyms.find((g) => g.id === selectedGymId) ?? null
+    ? (sortedGyms.find((g) => g.id === selectedGymId) ?? null)
     : null;
 
   const filterOptions = [
@@ -128,10 +148,7 @@ export function GymMapWithLeaflet({
     trial: "Trial",
   };
 
-  const centerTuple: [number, number] = [
-    mapCenter.lat,
-    mapCenter.lng,
-  ];
+  const centerTuple: [number, number] = [mapCenter.lat, mapCenter.lng];
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -161,9 +178,7 @@ export function GymMapWithLeaflet({
           <DuoSelect.Simple
             options={filterOptions}
             value={filter}
-            onChange={(value) =>
-              setFilter(value as GymMapFilter)
-            }
+            onChange={(value) => setFilter(value as GymMapFilter)}
             placeholder="Filtro"
           />
         </DuoCard.Root>
@@ -221,23 +236,12 @@ export function GymMapWithLeaflet({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.4 }}
                 >
-                  <div
+                  <button
+                    type="button"
                     className="border-2 rounded-2xl p-4 overflow-hidden relative group bg-duo-bg shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
                     style={{ borderColor: activeAd.primaryColor }}
                     onClick={() => {
-                      if (activeAd.linkedPlanId && onJoinPlan) {
-                        onJoinPlan(
-                          gym.id,
-                          activeAd.linkedPlanId,
-                          activeAd.linkedCouponId || undefined,
-                        );
-                      } else if (onViewGymProfile) {
-                        onViewGymProfile(
-                          gym.id,
-                          activeAd.linkedPlanId || undefined,
-                          activeAd.linkedCouponId || undefined,
-                        );
-                      }
+                      handleSponsoredAdActivate(gym);
                     }}
                   >
                     <div
@@ -262,15 +266,18 @@ export function GymMapWithLeaflet({
                       {activeAd.description}
                     </p>
                     <div className="mt-4 pt-3 border-t border-duo-border flex justify-end">
-                      <DuoButton
-                        size="sm"
-                        className="flex items-center gap-2 transition-transform group-hover:scale-105"
-                        style={{ backgroundColor: activeAd.primaryColor, color: "var(--duo-bg)", borderColor: activeAd.primaryColor }}
+                      <div
+                        className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-transform group-hover:scale-105"
+                        style={{
+                          backgroundColor: activeAd.primaryColor,
+                          color: "var(--duo-bg)",
+                          borderColor: activeAd.primaryColor,
+                        }}
                       >
                         Assinar Agora <ChevronRight className="w-4 h-4" />
-                      </DuoButton>
+                      </div>
                     </div>
-                  </div>
+                  </button>
                 </motion.div>
               );
             })}
@@ -292,7 +299,11 @@ export function GymMapWithLeaflet({
                     onClick={() =>
                       setSelectedGym(selectedGym?.id === gym.id ? null : gym.id)
                     }
-                    badge={gym.openNow ? { label: "ABERTA", variant: "green" } : undefined}
+                    badge={
+                      gym.openNow
+                        ? { label: "ABERTA", variant: "green" }
+                        : undefined
+                    }
                     rating={gym.rating}
                     totalReviews={gym.totalReviews}
                     distance={gym.distance}

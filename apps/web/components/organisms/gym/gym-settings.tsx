@@ -1,44 +1,17 @@
 "use client";
 
-import {
-  Building2,
-  Clock,
-  CreditCard,
-  FileText,
-  Loader2,
-  Mail,
-  MapPin,
-  Phone,
-} from "lucide-react";
-import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { GymSettingsScreen, GYM_SETTINGS_WEEKDAYS, type GymSettingsDaySchedule, type GymSettingsInfoState } from "@/components/screens/gym";
+import { useGym } from "@/hooks/use-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
-import { cn } from "@/lib/utils";
-import {
-  GymSettingsAccountCard,
-  GymSettingsHeader,
-  GymSettingsTeamCard,
-} from "./gym-settings/index";
+import { useAuthStore } from "@/stores/auth-store";
+import { GymSettingsTeamCard } from "./gym-settings/gym-settings-team-card";
 import { MembershipPlansPage } from "./membership-plans-page";
-
-const WEEKDAYS = [
-  { id: "monday", label: "Segunda" },
-  { id: "tuesday", label: "Terça" },
-  { id: "wednesday", label: "Quarta" },
-  { id: "thursday", label: "Quinta" },
-  { id: "friday", label: "Sexta" },
-  { id: "saturday", label: "Sábado" },
-  { id: "sunday", label: "Domingo" },
-] as const;
 
 const DEFAULT_OPEN = "06:00";
 const DEFAULT_CLOSE = "22:00";
-
-type DaySchedule = { open: string; close: string; enabled: boolean };
 
 interface GymSettingsPageProps {
   profile: GymProfile;
@@ -46,25 +19,43 @@ interface GymSettingsPageProps {
   userInfo?: { isAdmin: boolean; role: string | null };
 }
 
+function createGymSettingsInfoState(profile: GymProfile): GymSettingsInfoState {
+  return {
+    address: profile.address ?? "",
+    phone: profile.phone ?? "",
+    cnpj: profile.cnpj ?? "",
+    pixKeyType: profile.pixKeyType ?? "",
+    pixKey: profile.pixKey ?? "",
+  };
+}
+
+function areGymSettingsInfoStatesEqual(
+  current: GymSettingsInfoState,
+  next: GymSettingsInfoState,
+) {
+  return (
+    current.address === next.address &&
+    current.phone === next.phone &&
+    current.cnpj === next.cnpj &&
+    current.pixKeyType === next.pixKeyType &&
+    current.pixKey === next.pixKey
+  );
+}
+
 export function GymSettingsPage({
   profile: initialProfile,
   plans = [],
-  userInfo = { isAdmin: false, role: null },
 }: GymSettingsPageProps) {
   const router = useRouter();
+  const actions = useGym("actions");
   const [profile, setProfile] = useState(initialProfile);
-  const [address, setAddress] = useState(initialProfile.address ?? "");
-  const [phone, setPhone] = useState(initialProfile.phone ?? "");
-  const [cnpj, setCnpj] = useState(initialProfile.cnpj ?? "");
-  const [pixKeyType, setPixKeyType] = useState<string>(
-    initialProfile.pixKeyType ?? "",
+  const [info, setInfo] = useState<GymSettingsInfoState>(() =>
+    createGymSettingsInfoState(initialProfile),
   );
-  const [pixKey, setPixKey] = useState(initialProfile.pixKey ?? "");
 
-  // Horários por dia (ex: sexta 18h, outros 22h)
-  const parseInitialSchedules = useCallback((): Record<string, DaySchedule> => {
-    const oh = initialProfile.openingHours;
-    const days = oh?.days ?? [
+  const parseInitialSchedules = useCallback((): Record<string, GymSettingsDaySchedule> => {
+    const openingHours = initialProfile.openingHours;
+    const enabledDays = openingHours?.days ?? [
       "monday",
       "tuesday",
       "wednesday",
@@ -72,41 +63,49 @@ export function GymSettingsPage({
       "friday",
       "saturday",
     ];
-    const defaultOpen = oh?.open ?? DEFAULT_OPEN;
-    const defaultClose = oh?.close ?? DEFAULT_CLOSE;
-    const byDay = oh?.byDay ?? {};
-    const result: Record<string, DaySchedule> = {};
-    for (const d of WEEKDAYS) {
-      const override = byDay[d.id];
-      result[d.id] = {
+    const defaultOpen = openingHours?.open ?? DEFAULT_OPEN;
+    const defaultClose = openingHours?.close ?? DEFAULT_CLOSE;
+    const byDay = openingHours?.byDay ?? {};
+    const schedules: Record<string, GymSettingsDaySchedule> = {};
+
+    for (const day of GYM_SETTINGS_WEEKDAYS) {
+      const override = byDay[day.id];
+      schedules[day.id] = {
         open: override?.open ?? defaultOpen,
         close: override?.close ?? defaultClose,
-        enabled: days.includes(d.id),
+        enabled: enabledDays.includes(day.id),
       };
     }
-    return result;
+
+    return schedules;
   }, [initialProfile.openingHours]);
-  const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>(
+
+  const [daySchedules, setDaySchedules] = useState<Record<string, GymSettingsDaySchedule>>(
     parseInitialSchedules,
   );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  // Sincroniza quando troca de academia (profile vem de outra gym) ou após refresh
   useEffect(() => {
-    setProfile(initialProfile);
-    setAddress(initialProfile.address ?? "");
-    setPhone(initialProfile.phone ?? "");
-    setCnpj(initialProfile.cnpj ?? "");
-    setPixKeyType(initialProfile.pixKeyType ?? "");
-    setPixKey(initialProfile.pixKey ?? "");
-    setDaySchedules(parseInitialSchedules());
-  }, [initialProfile.id, parseInitialSchedules]);
+    const nextInfo = createGymSettingsInfoState(initialProfile);
+    const nextSchedules = parseInitialSchedules();
+
+    setProfile((current) =>
+      current.id === initialProfile.id ? current : initialProfile,
+    );
+    setInfo((current) =>
+      areGymSettingsInfoStatesEqual(current, nextInfo) ? current : nextInfo,
+    );
+    setDaySchedules((current) => {
+      const currentKey = JSON.stringify(current);
+      const nextKey = JSON.stringify(nextSchedules);
+      return currentKey === nextKey ? current : nextSchedules;
+    });
+  }, [initialProfile, parseInitialSchedules]);
 
   const {
     isAdmin: serverIsAdmin,
     role: serverRole,
-    isLoading: _sessionLoading,
   } = useUserSession();
 
   const isAdmin = serverIsAdmin || serverRole === "ADMIN";
@@ -114,12 +113,12 @@ export function GymSettingsPage({
 
   const updateDaySchedule = (
     dayId: string,
-    field: keyof DaySchedule,
+    field: keyof GymSettingsDaySchedule,
     value: string | boolean,
   ) => {
-    setDaySchedules((prev) => ({
-      ...prev,
-      [dayId]: { ...prev[dayId], [field]: value },
+    setDaySchedules((current) => ({
+      ...current,
+      [dayId]: { ...current[dayId], [field]: value },
     }));
   };
 
@@ -128,36 +127,52 @@ export function GymSettingsPage({
   ): Record<string, import("@/lib/types/api-error").JsonValue> => {
     const payload: Record<string, import("@/lib/types/api-error").JsonValue> =
       {};
+
     if (section === "info") {
-      if (address !== (profile.address ?? "")) {
-        payload.address = address.trim() || null;
+      if (info.address !== (profile.address ?? "")) {
+        payload.address = info.address.trim() || null;
       }
-      if (phone !== (profile.phone ?? "")) {
-        payload.phone = phone.trim() || null;
+
+      if (info.phone !== (profile.phone ?? "")) {
+        payload.phone = info.phone.trim() || null;
       }
-      if (cnpj !== (profile.cnpj ?? "")) {
-        payload.cnpj = cnpj.trim() || null;
+
+      if (info.cnpj !== (profile.cnpj ?? "")) {
+        payload.cnpj = info.cnpj.trim() || null;
       }
-      const VALID_PIX_TYPES = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
-      const hasValidPixType = VALID_PIX_TYPES.includes(pixKeyType);
-      const pixKeyTrimmed = pixKey.trim();
-      const prevPix = profile.pixKey ?? "";
-      const prevPixType = profile.pixKeyType ?? "";
-      if (pixKeyTrimmed !== prevPix || pixKeyType !== prevPixType) {
+
+      const validPixTypes = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
+      const hasValidPixType = validPixTypes.includes(info.pixKeyType);
+      const pixKeyTrimmed = info.pixKey.trim();
+      const previousPixKey = profile.pixKey ?? "";
+      const previousPixType = profile.pixKeyType ?? "";
+
+      if (
+        pixKeyTrimmed !== previousPixKey ||
+        info.pixKeyType !== previousPixType
+      ) {
         payload.pixKey =
           hasValidPixType && pixKeyTrimmed ? pixKeyTrimmed : null;
         payload.pixKeyType =
-          hasValidPixType && pixKeyTrimmed ? pixKeyType : null;
+          hasValidPixType && pixKeyTrimmed ? info.pixKeyType : null;
       }
     }
+
     if (section === "schedules") {
       const openDays = Object.entries(daySchedules)
-        .filter(([, s]) => s.enabled)
+        .filter(([, schedule]) => schedule.enabled)
         .map(([id]) => id);
       const byDay: Record<string, { open: string; close: string }> = {};
-      for (const [id, s] of Object.entries(daySchedules)) {
-        if (s.enabled) byDay[id] = { open: s.open, close: s.close };
+
+      for (const [id, schedule] of Object.entries(daySchedules)) {
+        if (schedule.enabled) {
+          byDay[id] = {
+            open: schedule.open,
+            close: schedule.close,
+          };
+        }
       }
+
       payload.openingHours = {
         days: openDays,
         byDay: Object.keys(byDay).length > 0 ? byDay : null,
@@ -165,39 +180,43 @@ export function GymSettingsPage({
         close: DEFAULT_CLOSE,
       };
     }
+
     return payload;
   };
 
   const handleSaveInfo = async () => {
     setSaveError("");
-    const VALID_PIX_TYPES = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
-    const hasValidPixType = VALID_PIX_TYPES.includes(pixKeyType);
-    const pixKeyTrimmed = pixKey.trim();
+
+    const validPixTypes = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
+    const hasValidPixType = validPixTypes.includes(info.pixKeyType);
+    const pixKeyTrimmed = info.pixKey.trim();
+
     if (pixKeyTrimmed && !hasValidPixType) {
       setSaveError("Selecione um tipo de chave PIX válido (CPF, CNPJ, etc.)");
       return;
     }
+
     if (hasValidPixType && !pixKeyTrimmed) {
       setSaveError("Informe o valor da chave PIX");
       return;
     }
+
     const payload = buildPayload("info");
-    if (Object.keys(payload).length === 0) return;
+
+    if (Object.keys(payload).length === 0) {
+      return;
+    }
+
     setSaving(true);
+
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const { data } = await apiClient.patch<{ profile: GymProfile }>(
-        "/api/gyms/profile",
-        payload,
-      );
-      if (data.profile) setProfile(data.profile);
+      await actions.updateProfile(payload);
       setSaveError("");
-      router.refresh();
-    } catch (err) {
-      const msg =
-        err && typeof err === "object" && "response" in err
+    } catch (error) {
+      const responseData =
+        error && typeof error === "object" && "response" in error
           ? (
-              err as {
+              error as {
                 response?: {
                   data?: {
                     details?: Record<
@@ -210,9 +229,9 @@ export function GymSettingsPage({
             ).response?.data
           : null;
       const details =
-        msg && typeof msg === "object" && "details" in msg
+        responseData && typeof responseData === "object" && "details" in responseData
           ? (
-              msg as {
+              responseData as {
                 details?: Record<
                   string,
                   string | number | boolean | object | null
@@ -220,14 +239,14 @@ export function GymSettingsPage({
               }
             ).details
           : null;
-      const errMsg =
+      const errorMessage =
         Array.isArray(details) && details.length > 0
           ? ((details[0] as { message?: string }).message ??
             "Erro de validação")
-          : err instanceof Error
-            ? err.message
+          : error instanceof Error
+            ? error.message
             : "Erro ao salvar. Tente novamente.";
-      setSaveError(errMsg);
+      setSaveError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -236,22 +255,21 @@ export function GymSettingsPage({
   const handleSaveSchedules = async () => {
     setSaveError("");
     const payload = buildPayload("schedules");
-    if (Object.keys(payload).length === 0) return;
+
+    if (Object.keys(payload).length === 0) {
+      return;
+    }
+
     setSaving(true);
+
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const { data } = await apiClient.patch<{ profile: GymProfile }>(
-        "/api/gyms/profile",
-        payload,
-      );
-      if (data.profile) setProfile(data.profile);
+      await actions.updateProfile(payload);
       setSaveError("");
-      router.refresh();
-    } catch (err) {
-      const msg =
-        err && typeof err === "object" && "response" in err
+    } catch (error) {
+      const responseData =
+        error && typeof error === "object" && "response" in error
           ? (
-              err as {
+              error as {
                 response?: {
                   data?: {
                     details?: Record<
@@ -264,9 +282,9 @@ export function GymSettingsPage({
             ).response?.data
           : null;
       const details =
-        msg && typeof msg === "object" && "details" in msg
+        responseData && typeof responseData === "object" && "details" in responseData
           ? (
-              msg as {
+              responseData as {
                 details?: Record<
                   string,
                   string | number | boolean | object | null
@@ -274,51 +292,57 @@ export function GymSettingsPage({
               }
             ).details
           : null;
-      const errMsg =
+      const errorMessage =
         Array.isArray(details) && details.length > 0
           ? ((details[0] as { message?: string }).message ??
             "Erro de validação")
-          : err instanceof Error
-            ? err.message
+          : error instanceof Error
+            ? error.message
             : "Erro ao salvar. Tente novamente.";
-      setSaveError(errMsg);
+      setSaveError(errorMessage);
     } finally {
       setSaving(false);
     }
   };
 
-  const hasInfoChanges =
-    address !== (profile.address ?? "") ||
-    phone !== (profile.phone ?? "") ||
-    cnpj !== (profile.cnpj ?? "") ||
-    pixKey !== (profile.pixKey ?? "") ||
-    pixKeyType !== (profile.pixKeyType ?? "");
+  const baselineInfo = createGymSettingsInfoState(profile);
+  const hasInfoChanges = !areGymSettingsInfoStatesEqual(info, baselineInfo);
 
   const hasScheduleChanges = (() => {
-    const oh = profile.openingHours;
-    const prevDays = (oh?.days ?? []).sort();
-    const currDays = Object.entries(daySchedules)
-      .filter(([, s]) => s.enabled)
+    const openingHours = profile.openingHours;
+    const previousDays = (openingHours?.days ?? []).sort();
+    const currentDays = Object.entries(daySchedules)
+      .filter(([, schedule]) => schedule.enabled)
       .map(([id]) => id)
       .sort();
-    if (JSON.stringify(prevDays) !== JSON.stringify(currDays)) return true;
-    const prevByDay = oh?.byDay ?? {};
-    for (const [id, s] of Object.entries(daySchedules)) {
-      if (!s.enabled) continue;
-      const prev = prevByDay[id] ?? {
-        open: oh?.open ?? DEFAULT_OPEN,
-        close: oh?.close ?? DEFAULT_CLOSE,
-      };
-      if (prev.open !== s.open || prev.close !== s.close) return true;
+
+    if (JSON.stringify(previousDays) !== JSON.stringify(currentDays)) {
+      return true;
     }
+
+    const previousByDay = openingHours?.byDay ?? {};
+
+    for (const [id, schedule] of Object.entries(daySchedules)) {
+      if (!schedule.enabled) {
+        continue;
+      }
+
+      const previous = previousByDay[id] ?? {
+        open: openingHours?.open ?? DEFAULT_OPEN,
+        close: openingHours?.close ?? DEFAULT_CLOSE,
+      };
+
+      if (previous.open !== schedule.open || previous.close !== schedule.close) {
+        return true;
+      }
+    }
+
     return false;
   })();
 
   const handleLogout = async () => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post("/api/auth/sign-out");
-
+      await useAuthStore.getState().signOut();
       router.push("/welcome");
       router.refresh();
     } catch (error) {
@@ -331,330 +355,31 @@ export function GymSettingsPage({
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <GymSettingsHeader />
-
-      <SlideIn delay={0.1}>
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Building2
-                className="h-5 w-5 shrink-0 text-duo-secondary"
-                aria-hidden
-              />
-              <h2 className="font-bold text-duo-fg">{profile.name}</h2>
-            </div>
-          </DuoCard.Header>
-          <p className="mb-4 text-sm font-medium text-duo-fg">
-            Plano {profile.plan}
-          </p>
-          <div className="space-y-3">
-            {[
-              {
-                title: "Endereço",
-                description: "Opcional",
-                iconBg: "bg-duo-green/10",
-                Icon: MapPin,
-                iconClass: "text-duo-green",
-                content: (
-                  <DuoInput.Simple
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Opcional"
-                    className="mt-2"
-                  />
-                ),
-              },
-              {
-                title: "Telefone",
-                description: "Opcional",
-                iconBg: "bg-duo-blue/10",
-                Icon: Phone,
-                iconClass: "text-duo-blue",
-                content: (
-                  <DuoInput.Simple
-                    id="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Opcional"
-                    className="mt-2"
-                  />
-                ),
-              },
-              {
-                title: "Email",
-                description: "Não pode ser alterado aqui",
-                iconBg: "bg-duo-bg-elevated",
-                Icon: Mail,
-                iconClass: "text-duo-fg-muted",
-                content: (
-                  <p className="mt-2 text-sm font-medium text-duo-fg">
-                    {profile.email}
-                  </p>
-                ),
-              },
-              {
-                title: "CNPJ",
-                description: "Opcional",
-                iconBg: "bg-duo-purple/10",
-                Icon: FileText,
-                iconClass: "text-duo-purple",
-                content: (
-                  <DuoInput.Simple
-                    id="cnpj"
-                    value={cnpj}
-                    onChange={(e) => setCnpj(e.target.value)}
-                    placeholder="Opcional"
-                    className="mt-2"
-                  />
-                ),
-              },
-              {
-                title: "Chave PIX para Recebimentos",
-                description:
-                  "Os pagamentos dos alunos serão transferidos para esta chave",
-                iconBg: "bg-duo-yellow/10",
-                Icon: CreditCard,
-                iconClass: "text-duo-yellow",
-                content: (
-                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                    <DuoSelect.Simple
-                      options={[
-                        { value: "CPF", label: "CPF" },
-                        { value: "CNPJ", label: "CNPJ" },
-                        { value: "PHONE", label: "Telefone" },
-                        { value: "EMAIL", label: "E-mail" },
-                        { value: "RANDOM", label: "Chave aleatória" },
-                      ]}
-                      value={pixKeyType || undefined}
-                      onChange={setPixKeyType}
-                      placeholder="Tipo de chave"
-                      className="min-w-[180px] sm:min-w-0 sm:flex-1"
-                    />
-                    <DuoInput.Simple
-                      value={pixKey}
-                      onChange={(e) => setPixKey(e.target.value)}
-                      placeholder={
-                        pixKeyType === "CPF"
-                          ? "000.000.000-00"
-                          : pixKeyType === "CNPJ"
-                            ? "00.000.000/0001-00"
-                            : pixKeyType === "PHONE"
-                              ? "(00) 00000-0000"
-                              : pixKeyType === "EMAIL"
-                                ? "email@exemplo.com"
-                                : pixKeyType === "RANDOM"
-                                  ? "Chave aleatória (e-mail)"
-                                  : "Selecione o tipo primeiro"
-                      }
-                      className="flex-1"
-                    />
-                  </div>
-                ),
-              },
-            ].map((field, index) => (
-              <motion.div
-                key={field.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-              >
-                <DuoCard.Root
-                  variant="default"
-                  size="default"
-                  className="border-2 border-duo-border"
-                >
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl p-3",
-                          field.iconBg,
-                        )}
-                      >
-                        <field.Icon
-                          className={cn("h-5 w-5", field.iconClass)}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-duo-fg">
-                          {field.title}
-                        </div>
-                        <div className="text-xs text-duo-fg-muted">
-                          {field.description}
-                        </div>
-                      </div>
-                    </div>
-                    <div>{field.content}</div>
-                  </div>
-                </DuoCard.Root>
-              </motion.div>
-            ))}
-            {hasInfoChanges && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.4 }}
-              >
-                <DuoButton
-                  onClick={handleSaveInfo}
-                  disabled={saving}
-                  className="w-full"
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Salvar alterações"
-                  )}
-                </DuoButton>
-              </motion.div>
-            )}
-            {saveError && (
-              <p className="text-sm font-medium text-red-600">{saveError}</p>
-            )}
-          </div>
-        </DuoCard.Root>
-      </SlideIn>
-
-      <SlideIn delay={0.2}>
-        <DuoCard.Root variant="blue" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Clock
-                className="h-5 w-5 shrink-0 text-duo-secondary"
-                aria-hidden
-              />
-              <h2 className="font-bold text-duo-fg">
-                Horários e Dias de Funcionamento
-              </h2>
-            </div>
-          </DuoCard.Header>
-          <p className="mb-4 text-sm text-duo-fg-muted">
-            Marque os dias em que a academia abre e defina o horário de cada um
-          </p>
-          <div className="space-y-2">
-            {WEEKDAYS.map((day, index) => {
-              const s = daySchedules[day.id];
-              if (!s) return null;
-              return (
-                <motion.div
-                  key={day.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03, duration: 0.3 }}
-                  className={cn(
-                    "rounded-xl border-2 p-3 transition-all",
-                    s.enabled
-                      ? "border-duo-secondary/40 bg-duo-secondary/5"
-                      : "border-duo-border bg-duo-bg-elevated/50",
-                  )}
-                >
-                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-                    <label
-                      className={cn(
-                        "flex cursor-pointer shrink-0",
-                        s.enabled
-                          ? "flex-col items-start gap-1"
-                          : "items-center gap-2",
-                      )}
-                    >
-                      {s.enabled && (
-                        <span className="text-sm font-bold text-duo-fg">
-                          {day.label}
-                        </span>
-                      )}
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          checked={s.enabled}
-                          onChange={(e) =>
-                            updateDaySchedule(
-                              day.id,
-                              "enabled",
-                              e.target.checked,
-                            )
-                          }
-                          className="peer sr-only"
-                        />
-                        <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
-                        <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
-                      </div>
-                      {!s.enabled && (
-                        <span className="text-sm font-bold text-duo-fg">
-                          {day.label}
-                        </span>
-                      )}
-                    </label>
-                    {s.enabled && (
-                      <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-4">
-                        <DuoInput.Simple
-                          type="time"
-                          value={s.open}
-                          onChange={(e) =>
-                            updateDaySchedule(day.id, "open", e.target.value)
-                          }
-                          className="w-24 min-w-0"
-                          inputClassName="h-8 px-2 py-1 text-sm"
-                        />
-                        <span className="text-duo-fg-muted shrink-0">–</span>
-                        <DuoInput.Simple
-                          type="time"
-                          value={s.close}
-                          onChange={(e) =>
-                            updateDaySchedule(day.id, "close", e.target.value)
-                          }
-                          className="w-24 min-w-0"
-                          inputClassName="h-8 px-2 py-1 text-sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-          {hasScheduleChanges && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-              className="mt-4"
-            >
-              <DuoButton
-                onClick={handleSaveSchedules}
-                disabled={saving}
-                className="w-full"
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Salvar horários"
-                )}
-              </DuoButton>
-            </motion.div>
-          )}
-          {saveError && (
-            <p className="mt-3 text-sm font-medium text-red-600">{saveError}</p>
-          )}
-        </DuoCard.Root>
-      </SlideIn>
-
-      <SlideIn delay={0.3}>
-        <MembershipPlansPage plans={plans} />
-      </SlideIn>
-
-      <SlideIn delay={0.4}>
-        <GymSettingsTeamCard />
-      </SlideIn>
-
-      <SlideIn delay={0.5}>
-        <GymSettingsAccountCard
-          isAdmin={isAdmin || (serverRole as string) === "GYM"}
-          onSwitchToStudent={handleSwitchToStudent}
-          onLogout={handleLogout}
-        />
-      </SlideIn>
-    </div>
+    <GymSettingsScreen
+      profile={{
+        name: profile.name,
+        plan: profile.plan,
+        email: profile.email,
+      }}
+      info={info}
+      daySchedules={daySchedules}
+      hasInfoChanges={hasInfoChanges}
+      hasScheduleChanges={hasScheduleChanges}
+      saving={saving}
+      saveError={saveError}
+      canSwitchToStudent={canSwitchToStudent}
+      onInfoChange={(field, value) =>
+        setInfo((current) =>
+          current[field] === value ? current : { ...current, [field]: value },
+        )
+      }
+      onDayScheduleChange={updateDaySchedule}
+      onSaveInfo={handleSaveInfo}
+      onSaveSchedules={handleSaveSchedules}
+      onLogout={handleLogout}
+      onSwitchToStudent={handleSwitchToStudent}
+      plansSlot={<MembershipPlansPage plans={plans} />}
+      teamSlot={<GymSettingsTeamCard />}
+    />
   );
 }

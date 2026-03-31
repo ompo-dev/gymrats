@@ -34,7 +34,7 @@ async function applyMigration() {
           CONSTRAINT "personal_membership_plans_pkey" PRIMARY KEY ("id")
       )`,
       `ALTER TABLE "personal_membership_plans" DROP CONSTRAINT IF EXISTS "personal_membership_plans_personalId_fkey"`,
-      `ALTER TABLE "personal_membership_plans" ADD CONSTRAINT "personal_membership_plans_personalId_fkey" FOREIGN KEY ("personalId") REFERENCES "personals"("id") ON DELETE CASCADE ON UPDATE CASCADE`
+      `ALTER TABLE "personal_membership_plans" ADD CONSTRAINT "personal_membership_plans_personalId_fkey" FOREIGN KEY ("personalId") REFERENCES "personals"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     ];
 
     console.log(`Executando ${commands.length} comando(s) SQL...\n`);

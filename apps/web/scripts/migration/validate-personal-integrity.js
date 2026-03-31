@@ -21,9 +21,11 @@ async function validate() {
       where: { status: "active" },
     });
     const assignmentsCount = await prisma.studentPersonalAssignment.count();
-    const activeAssignmentsCount = await prisma.studentPersonalAssignment.count({
-      where: { status: "active" },
-    });
+    const activeAssignmentsCount = await prisma.studentPersonalAssignment.count(
+      {
+        where: { status: "active" },
+      },
+    );
     const subscriptionsCount = await prisma.personalSubscription.count();
     const pendingSubsCount = await prisma.personalSubscription.count({
       where: { status: "pending_payment" },

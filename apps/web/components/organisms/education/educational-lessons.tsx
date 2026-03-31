@@ -16,7 +16,7 @@ import { LessonFilters } from "./components/lesson-filters";
 import { LessonList } from "./components/lesson-list";
 import { LessonQuiz } from "./components/lesson-quiz";
 
-interface EducationalLessonsProps {
+export interface EducationalLessonsProps {
   lessonId?: string | null;
   onLessonSelect?: (id: string) => void;
   onBack?: () => void;

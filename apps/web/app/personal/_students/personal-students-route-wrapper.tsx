@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { PersonalStudentsPageContent } from "./page-content";
+import type { StudentData } from "@/lib/types";
 import type { PersonalAffiliation, PersonalStudentAssignment } from "../types";
+import { PersonalStudentsPageContent } from "./page-content";
 
 export function PersonalStudentsRouteWrapper({
   students,
@@ -12,16 +11,10 @@ export function PersonalStudentsRouteWrapper({
   students: PersonalStudentAssignment[];
   affiliations: PersonalAffiliation[];
 }) {
-  const router = useRouter();
-  const onRefresh = useCallback(async () => {
-    router.refresh();
-  }, [router]);
-
   return (
     <PersonalStudentsPageContent
-      students={students}
+      students={students as unknown as StudentData[]}
       affiliations={affiliations}
-      onRefresh={onRefresh}
     />
   );
 }

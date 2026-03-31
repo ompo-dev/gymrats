@@ -2,6 +2,7 @@
  * Helpers de carregamento para gym-unified-store.
  */
 
+import { getGymBootstrapRequest } from "@/lib/api/bootstrap";
 import { apiClient } from "@/lib/api/client";
 import type {
   GymDataSection,
@@ -9,6 +10,7 @@ import type {
   GymUnifiedData,
 } from "@/lib/types/gym-unified";
 import { normalizeGymDates } from "@/lib/utils/date-safe";
+import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
 export const SECTION_ROUTES: Record<GymDataSection, string> = {
   profile: "/api/gyms/profile",
@@ -20,8 +22,19 @@ export const SECTION_ROUTES: Record<GymDataSection, string> = {
   membershipPlans: "/api/gyms/plans",
   payments: "/api/gyms/payments",
   expenses: "/api/gyms/expenses",
+  coupons: "/api/gyms/coupons",
+  campaigns: "/api/gyms/boost-campaigns",
+  balanceWithdraws: "/api/gyms/withdraws",
   subscription: "/api/gym-subscriptions/current",
 };
+
+function withFreshParam(route: string, force = false) {
+  if (!force) {
+    return route;
+  }
+
+  return `${route}${route.includes("?") ? "&" : "?"}fresh=1`;
+}
 
 const loadingSections = new Set<GymDataSection>();
 const loadingPromises = new Map<
@@ -154,9 +167,9 @@ export function transformSectionResponse(
       break;
     case "equipment":
       result = {
-        equipment:
-          ((data.equipment as unknown as GymUnifiedData["equipment"]) ||
-            []) as GymUnifiedData["equipment"],
+        equipment: normalizeEquipmentList(
+          data.equipment as unknown as GymUnifiedData["equipment"],
+        ) as GymUnifiedData["equipment"],
       };
       break;
     case "financialSummary":
@@ -213,6 +226,43 @@ export function transformSectionResponse(
           (data.expenses as unknown as GymUnifiedData["expenses"]) || [],
       };
       break;
+    case "coupons":
+      result = {
+        coupons: (data.coupons as unknown as GymUnifiedData["coupons"]) || [],
+      };
+      break;
+    case "campaigns":
+      result = {
+        campaigns:
+          (data.campaigns as unknown as GymUnifiedData["campaigns"]) || [],
+      };
+      break;
+    case "balanceWithdraws": {
+      const rawWithdraws = Array.isArray(data.withdraws)
+        ? (data.withdraws as Array<
+            Record<string, import("@/lib/types/api-error").JsonValue>
+          >)
+        : [];
+      result = {
+        balanceWithdraws: {
+          balanceReais: Number(data.balanceReais ?? 0),
+          balanceCents: Number(data.balanceCents ?? 0),
+          withdraws: rawWithdraws.map((withdraw) => ({
+            id: String(withdraw.id ?? ""),
+            amount: Number(withdraw.amount ?? 0),
+            pixKey: String(withdraw.pixKey ?? ""),
+            pixKeyType: String(withdraw.pixKeyType ?? ""),
+            externalId: String(withdraw.externalId ?? ""),
+            status: String(withdraw.status ?? ""),
+            createdAt: withdraw.createdAt as unknown as Date,
+            completedAt:
+              (withdraw.completedAt as unknown as Date | null | undefined) ??
+              null,
+          })),
+        },
+      };
+      break;
+    }
     case "subscription":
       result = {
         subscription:
@@ -231,7 +281,12 @@ export type SetStateFn = (
 
 export async function loadSection(
   section: GymDataSection,
+  force = false,
 ): Promise<Partial<GymUnifiedData>> {
+  if (force) {
+    loadingSections.delete(section);
+    loadingPromises.delete(section);
+  }
   if (loadingSections.has(section) && loadingPromises.has(section)) {
     return loadingPromises.get(section)!;
   }
@@ -241,7 +296,7 @@ export async function loadSection(
   // caso o usuário mude de academia enquanto a request está em andamento.
   const expectedGeneration = currentFetchGeneration;
 
-  const route = SECTION_ROUTES[section];
+  const route = withFreshParam(SECTION_ROUTES[section], force);
   const promise = (async () => {
     try {
       const response = await apiClient.get(route, { timeout: 30000 });
@@ -278,6 +333,21 @@ export async function loadSection(
   return promise;
 }
 
+async function loadGymBootstrap(
+  sections: GymDataSection[],
+): Promise<Partial<GymUnifiedData>> {
+  const response = await getGymBootstrapRequest(sections);
+  const normalizedData = normalizeGymDates(
+    response.data ?? {},
+  ) as Partial<GymUnifiedData>;
+
+  if ("equipment" in normalizedData) {
+    normalizedData.equipment = normalizeEquipmentList(normalizedData.equipment);
+  }
+
+  return normalizedData;
+}
+
 export function updateStoreWithSection(
   set: SetStateFn,
   sectionData: Partial<GymUnifiedData>,
@@ -306,15 +376,14 @@ export async function loadSectionsIncremental(
   set: SetStateFn,
   sections: GymDataSection[],
 ) {
-  await Promise.all(
-    sections.map(async (section) => {
-      const start = Date.now();
-      const sectionData = await loadSection(section);
-      if (Object.keys(sectionData).length > 0) {
-        updateStoreWithSection(set, sectionData, Date.now() - start, section);
-      }
-    }),
-  );
+  if (sections.length === 0) {
+    return;
+  }
+
+  const bootstrapData = await loadGymBootstrap(sections);
+  if (Object.keys(bootstrapData).length > 0) {
+    updateStoreWithSection(set, bootstrapData);
+  }
 }
 
 export function addPendingAction(

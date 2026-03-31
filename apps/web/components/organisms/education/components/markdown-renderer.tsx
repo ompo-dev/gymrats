@@ -139,9 +139,9 @@ export function MarkdownRenderer({ content }: { content: string }) {
     const parts: React.ReactNode[] = [];
     const regex = /\*\*([^*]+)\*\*/g;
     let lastIndex = 0;
-    let match;
+    let match: RegExpExecArray | null = regex.exec(text);
 
-    while ((match = regex.exec(text)) !== null) {
+    while (match !== null) {
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
@@ -151,6 +151,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
         </strong>,
       );
       lastIndex = regex.lastIndex;
+      match = regex.exec(text);
     }
 
     if (lastIndex < text.length) {

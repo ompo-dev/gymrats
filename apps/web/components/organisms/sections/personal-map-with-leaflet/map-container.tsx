@@ -2,20 +2,31 @@
 
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import type { PersonalLocation } from "@/lib/types";
+import type { StudentPersonalListItem } from "@/lib/types/student-discovery";
 import { UserLocationMarker } from "../gym-map-with-leaflet/user-location-marker";
 import { PersonalMarker } from "./personal-marker";
-import type { PersonalLocation } from "@/lib/types";
 
-const DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333];
-const DEFAULT_ZOOM = 13;
+const _DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333];
+const _DEFAULT_ZOOM = 13;
+
+type PersonalMapLocation = StudentPersonalListItem & {
+  address?: string;
+  coordinates?: PersonalLocation["coordinates"];
+  activeCampaigns?: PersonalLocation["activeCampaigns"];
+};
 
 interface PersonalMapContainerProps {
   center: [number, number];
   zoom: number;
   userPosition: { lat: number; lng: number } | null;
-  personals: PersonalLocation[];
+  personals: Array<
+    PersonalMapLocation & {
+      coordinates: NonNullable<PersonalLocation["coordinates"]>;
+    }
+  >;
   selectedPersonalId: string | null;
-  onPersonalClick: (personal: PersonalLocation) => void;
+  onPersonalClick: (personal: PersonalMapLocation) => void;
 }
 
 export function PersonalMapContainerComponent({
@@ -38,19 +49,14 @@ export function PersonalMapContainerComponent({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <UserLocationMarker position={userPosition} />
-      {personals
-        .filter(
-          (p) =>
-            p.coordinates.lat !== 0 && p.coordinates.lng !== 0,
-        )
-        .map((personal) => (
-          <PersonalMarker
-            key={personal.id}
-            personal={personal}
-            isSelected={selectedPersonalId === personal.id}
-            onClick={() => onPersonalClick(personal)}
-          />
-        ))}
+      {personals.map((personal) => (
+        <PersonalMarker
+          key={personal.id}
+          personal={personal}
+          isSelected={selectedPersonalId === personal.id}
+          onClick={() => onPersonalClick(personal)}
+        />
+      ))}
     </MapContainer>
   );
 }

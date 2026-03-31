@@ -37,10 +37,14 @@ export function UnitDetailsForm({
   return (
     <div className="space-y-4 bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border">
       <div>
-        <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
+        <label
+          htmlFor="unit-details-title"
+          className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block"
+        >
           Nome do Plano
         </label>
         <input
+          id="unit-details-title"
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
@@ -51,10 +55,14 @@ export function UnitDetailsForm({
         />
       </div>
       <div>
-        <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
+        <label
+          htmlFor="unit-details-description"
+          className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block"
+        >
           Descrição
         </label>
         <textarea
+          id="unit-details-description"
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
           onFocus={onDescriptionFocus}

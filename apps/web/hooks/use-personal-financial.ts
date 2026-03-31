@@ -1,26 +1,19 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { parseAsString, useQueryState } from "nuqs";
+import { useInvalidatePersonalBootstrap } from "@/hooks/use-bootstrap-refresh";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
-export type PersonalFinancialSubTab = "overview" | "subscription";
-
 export function usePersonalFinancial() {
-  const { subscription, students, affiliations, actions, loaders } =
-    usePersonal(
-      "subscription",
-      "students",
-      "affiliations",
-      "actions",
-      "loaders",
-    );
-  const { toast } = useToast();
-  const [subTab, setSubTab] = useQueryState(
-    "subTab",
-    parseAsString.withDefault("overview"),
+  const { subscription, students, affiliations, actions } = usePersonal(
+    "subscription",
+    "students",
+    "affiliations",
+    "actions",
   );
+  const refreshFinancial = useInvalidatePersonalBootstrap();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [pixModal, setPixModal] = useState<{
@@ -44,7 +37,10 @@ export function usePersonalFinancial() {
   }, [affiliations.length, students]);
 
   const handleSubscribe = useCallback(
-    async (plan: "standard" | "pro_ai", billingPeriod: "monthly" | "annual") => {
+    async (
+      plan: "standard" | "pro_ai",
+      billingPeriod: "monthly" | "annual",
+    ) => {
       setIsSubmitting(true);
       try {
         const result = await actions.createPersonalSubscription({
@@ -65,6 +61,7 @@ export function usePersonalFinancial() {
             description: "Seu plano foi registrado.",
           });
         }
+        await refreshFinancial();
       } catch (err) {
         const msg =
           err && typeof err === "object" && "response" in err
@@ -82,7 +79,7 @@ export function usePersonalFinancial() {
         setIsSubmitting(false);
       }
     },
-    [actions, toast],
+    [actions, refreshFinancial, toast],
   );
 
   const handleCancelConfirm = useCallback(async () => {
@@ -93,6 +90,7 @@ export function usePersonalFinancial() {
         title: "Assinatura cancelada",
         description: "Sua assinatura foi cancelada com sucesso.",
       });
+      await refreshFinancial();
       setCancelDialogOpen(false);
     } catch (err) {
       const msg =
@@ -110,18 +108,16 @@ export function usePersonalFinancial() {
     } finally {
       setIsCanceling(false);
     }
-  }, [actions, toast]);
+  }, [actions, refreshFinancial, toast]);
 
-  const handlePixConfirmed = useCallback(() => {
+  const handlePixConfirmed = useCallback(async () => {
     setPixModal(null);
-    loaders.loadSection("subscription");
-  }, [loaders]);
+    await refreshFinancial();
+  }, [refreshFinancial]);
 
   return {
     subscription,
     stats,
-    subTab,
-    setSubTab,
     isSubmitting,
     isCanceling,
     pixModal,
@@ -131,6 +127,6 @@ export function usePersonalFinancial() {
     handleSubscribe,
     handleCancelConfirm,
     handlePixConfirmed,
-    loadSection: loaders.loadSection,
+    refreshFinancial,
   };
 }

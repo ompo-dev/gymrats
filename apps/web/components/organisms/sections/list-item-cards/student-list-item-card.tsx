@@ -29,7 +29,8 @@ export function StudentListItemCard({
       size="sm"
       onClick={onClick}
       className={cn(
-        !isClickable && "cursor-default hover:scale-100 hover:border-duo-border hover:shadow-none",
+        !isClickable &&
+          "cursor-default hover:scale-100 hover:border-duo-border hover:shadow-none",
         isClickable &&
           "cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.98]",
         className,
@@ -50,7 +51,7 @@ export function StudentListItemCard({
           )}
         </div>
         {trailingAction && (
-          <div className="shrink-0" onClick={(e) => e?.stopPropagation?.()}>
+          <div className="shrink-0" onClickCapture={(e) => e.stopPropagation()}>
             {trailingAction}
           </div>
         )}

@@ -1,0 +1,34 @@
+import { getAuthContext } from "@/lib/context/auth-context-factory";
+import { log } from "@/lib/observability";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
+
+export type { GymContext } from "@/lib/context/auth-context-factory";
+
+type GymContextResult =
+  | {
+      ctx: import("@/lib/context/auth-context-factory").GymContext;
+      errorResponse?: undefined;
+    }
+  | { ctx?: undefined; errorResponse: NextResponse };
+
+export async function getGymContext(
+  request?: Pick<NextRequest, "headers"> | Request | null,
+): Promise<GymContextResult> {
+  try {
+    const result = await getAuthContext(
+      { type: "gym" },
+      request?.headers ?? null,
+    );
+    return result;
+  } catch (error) {
+    log.error("[getGymContext] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      errorResponse: NextResponse.json(
+        { error: "Erro ao processar autenticação" },
+        { status: 500 },
+      ),
+    };
+  }
+}

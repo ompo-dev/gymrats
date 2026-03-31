@@ -28,12 +28,18 @@ export function Step2({ formData, setFormData }: PersonalStepProps) {
 
         <div className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
+            <label
+              htmlFor="personal-onboarding-bio"
+              className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted"
+            >
               Bio
             </label>
             <textarea
+              id="personal-onboarding-bio"
               value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, bio: e.target.value })
+              }
               className="min-h-24 w-full rounded-xl border-2 border-duo-border bg-duo-bg-card px-4 py-3 text-base text-duo-fg outline-none focus:border-duo-primary"
               placeholder="Especialidades, experiência e metodologia."
             />
@@ -51,14 +57,19 @@ export function Step2({ formData, setFormData }: PersonalStepProps) {
                   })
                 }
               />
-              <span className="text-sm text-duo-fg">Atendimento presencial</span>
+              <span className="text-sm text-duo-fg">
+                Atendimento presencial
+              </span>
             </label>
             <label className="flex items-center gap-2 rounded-lg border border-duo-border p-3">
               <input
                 type="checkbox"
                 checked={formData.atendimentoRemoto}
                 onChange={(e) =>
-                  setFormData({ ...formData, atendimentoRemoto: e.target.checked })
+                  setFormData({
+                    ...formData,
+                    atendimentoRemoto: e.target.checked,
+                  })
                 }
               />
               <span className="text-sm text-duo-fg">Atendimento remoto</span>

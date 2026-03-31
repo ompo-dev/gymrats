@@ -12,17 +12,18 @@ export interface DietTabProps {
   student: StudentData;
   dailyNutrition: DailyNutrition | null;
   nutritionDate: string;
+  isCurrentDate: boolean;
   isLoadingNutrition: boolean;
   onNutritionDateChange: (date: string) => void;
   onFetchNutrition: (date?: string) => void;
   onMealComplete: (mealId: string) => void;
   onAddMeal: (
     meals: Array<{ name: string; type: Meal["type"]; time?: string }>,
-  ) => void;
+  ) => void | Promise<void>;
   onAddFood: (
     foods: Array<{ food: FoodItem; servings: number }>,
     mealIds: string[],
-  ) => void;
+  ) => void | Promise<void>;
   onApplyNutrition: (data: {
     meals: Meal[];
     totals: {
@@ -33,9 +34,10 @@ export interface DietTabProps {
     };
   }) => void | Promise<void>;
   onUpdateTargetWater: (targetWater: number) => void | Promise<void>;
-  onRemoveMeal: (mealId: string) => void;
-  onRemoveFood: (mealId: string, foodId: string) => void;
-  onToggleWaterGlass: (index: number) => void;
+  onRemoveMeal: (mealId: string) => void | Promise<void>;
+  onRemoveFood: (mealId: string, foodId: string) => void | Promise<void>;
+  onToggleWaterGlass: (index: number) => void | Promise<void>;
+  onOpenLibrary: () => void;
   chatStreamUrl?: string;
 }
 
@@ -43,6 +45,7 @@ export function DietTab({
   student,
   dailyNutrition,
   nutritionDate,
+  isCurrentDate,
   isLoadingNutrition,
   onNutritionDateChange,
   onFetchNutrition,
@@ -54,6 +57,7 @@ export function DietTab({
   onRemoveMeal,
   onRemoveFood,
   onToggleWaterGlass,
+  onOpenLibrary,
   chatStreamUrl,
 }: DietTabProps) {
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
@@ -61,10 +65,12 @@ export function DietTab({
   const [showFoodSearch, setShowFoodSearch] = useState(false);
   const [targetWaterInput, setTargetWaterInput] = useState("3000");
   const [isSavingTargetWater, setIsSavingTargetWater] = useState(false);
+
   const targetCal = student.profile?.targetCalories ?? 2000;
   const targetProtein = student.profile?.targetProtein ?? 150;
   const targetCarbs = student.profile?.targetCarbs ?? 250;
   const targetFats = student.profile?.targetFats ?? 65;
+  const isReadOnly = !isCurrentDate;
   const nutrition = dailyNutrition ?? {
     date: nutritionDate,
     meals: [],
@@ -81,12 +87,16 @@ export function DietTab({
   };
 
   useEffect(() => {
-    setTargetWaterInput(String(nutrition.targetWater ?? 3000));
+    const nextValue = String(nutrition.targetWater ?? 3000);
+    setTargetWaterInput((current) =>
+      current === nextValue ? current : nextValue,
+    );
   }, [nutrition.targetWater]);
 
   const handleSaveTargetWater = async () => {
     const parsed = Number(targetWaterInput);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    if (!Number.isFinite(parsed) || parsed <= 0 || isReadOnly) return;
+
     setIsSavingTargetWater(true);
     try {
       await onUpdateTargetWater(parsed);
@@ -98,93 +108,92 @@ export function DietTab({
   return (
     <>
       <DuoCard.Root variant="default" padding="md">
-      <DuoCard.Header>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Apple
-              className="h-5 w-5 shrink-0"
-              style={{ color: "var(--duo-secondary)" }}
-              aria-hidden
-            />
-            <h2 className="font-bold text-duo-fg">Nutrição e Dieta do Aluno</h2>
-          </div>
-          <input
-            type="date"
-            value={nutritionDate}
-            onChange={(e) => {
-              onNutritionDateChange(e.target.value);
-              onFetchNutrition(e.target.value);
-            }}
-            className="rounded-lg border border-duo-border bg-duo-bg px-3 py-1.5 text-sm font-bold text-duo-text"
-          />
-        </div>
-      </DuoCard.Header>
-      {isLoadingNutrition ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
-        </div>
-      ) : nutrition ? (
-        <>
-          <DuoCard.Root variant="default" padding="md" className="mb-4">
-            <DuoCard.Header>
-              <div className="flex items-center gap-2">
-                <Droplets className="h-5 w-5 text-duo-blue" />
-                <h2 className="font-bold text-duo-fg">Meta diária de água</h2>
-              </div>
-            </DuoCard.Header>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <DuoInput.Simple
-                label="Total em ml"
-                type="number"
-                value={targetWaterInput}
-                min={0}
-                step={50}
-                onChange={(event) => setTargetWaterInput(event.target.value)}
+        <DuoCard.Header>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Apple
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
               />
-              <DuoButton
-                className="sm:w-40"
-                onClick={handleSaveTargetWater}
-                disabled={isSavingTargetWater}
-              >
-                {isSavingTargetWater ? "Salvando..." : "Salvar"}
-              </DuoButton>
+              <h2 className="font-bold text-duo-fg">
+                Nutricao e Dieta do Aluno
+              </h2>
             </div>
-            <p className="mt-2 text-xs text-duo-fg-muted">
-              A academia define a meta; o aluno registra a água consumida.
-            </p>
-          </DuoCard.Root>
+            <input
+              type="date"
+              value={nutritionDate}
+              onChange={(e) => {
+                onNutritionDateChange(e.target.value);
+                onFetchNutrition(e.target.value);
+              }}
+              className="rounded-lg border border-duo-border bg-duo-bg px-3 py-1.5 text-sm font-bold text-duo-text"
+            />
+          </div>
+        </DuoCard.Header>
 
-          <NutritionTracker.Simple
-            nutrition={nutrition}
-            onMealComplete={onMealComplete}
-            onAddMeal={() => setShowAddMeal(true)}
-            onAddFoodToMeal={(mealId?: string) => {
-              if (mealId) {
-                setSelectedMealId(mealId);
-              } else {
-                setSelectedMealId(null);
-              }
-              setShowFoodSearch(true);
-            }}
-            onDeleteMeal={onRemoveMeal}
-            onDeleteFood={onRemoveFood}
-            onToggleWaterGlass={onToggleWaterGlass}
-            waterReadOnly
-          />
-        </>
-      ) : (
-        <div className="py-12 text-center">
-          <Apple className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
-          <p className="font-bold text-duo-gray-dark">
-            Nenhum registro de nutrição para esta data
-          </p>
-          <p className="mt-1 text-sm text-duo-gray-dark">
-            As metas do perfil: {targetCal} kcal, {targetProtein}g Proteína,{" "}
-            {targetCarbs}g Carboidratos, {targetFats}g Gorduras.
-          </p>
-        </div>
-      )}
+        {isLoadingNutrition ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
+          </div>
+        ) : (
+          <>
+            <DuoCard.Root variant="default" padding="md" className="mb-4">
+              <DuoCard.Header>
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-5 w-5 text-duo-blue" />
+                  <h2 className="font-bold text-duo-fg">Meta diaria de agua</h2>
+                </div>
+              </DuoCard.Header>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <DuoInput.Simple
+                  label="Total em ml"
+                  type="number"
+                  value={targetWaterInput}
+                  min={0}
+                  step={50}
+                  disabled={isReadOnly}
+                  onChange={(event) => setTargetWaterInput(event.target.value)}
+                />
+                <DuoButton
+                  className="sm:w-40"
+                  onClick={handleSaveTargetWater}
+                  disabled={isSavingTargetWater || isReadOnly}
+                >
+                  {isSavingTargetWater ? "Salvando..." : "Salvar"}
+                </DuoButton>
+              </div>
+              <p className="mt-2 text-xs text-duo-fg-muted">
+                {isReadOnly
+                  ? "Datas anteriores ficam congeladas como historico. A meta e os checks sao somente leitura."
+                  : "A academia define a meta; o aluno registra a agua consumida."}
+              </p>
+            </DuoCard.Root>
 
+            {isReadOnly && (
+              <p className="mb-4 text-xs font-medium text-duo-fg-muted">
+                Voce esta visualizando um snapshot historico. Refeicoes,
+                alimentos e trocas de plano so podem ser editados na data atual.
+              </p>
+            )}
+
+            <NutritionTracker.Simple
+              nutrition={nutrition}
+              onMealComplete={onMealComplete}
+              onAddMeal={() => setShowAddMeal(true)}
+              onOpenLibrary={onOpenLibrary}
+              onAddFoodToMeal={(mealId?: string) => {
+                setSelectedMealId(mealId ?? null);
+                setShowFoodSearch(true);
+              }}
+              onDeleteMeal={onRemoveMeal}
+              onDeleteFood={onRemoveFood}
+              onToggleWaterGlass={onToggleWaterGlass}
+              readOnly={isReadOnly}
+              waterReadOnly
+            />
+          </>
+        )}
       </DuoCard.Root>
 
       {showAddMeal && (
@@ -210,6 +219,7 @@ export function DietTab({
           onSelectMeal={(mealId) => setSelectedMealId(mealId)}
           onApplyNutrition={onApplyNutrition}
           chatStreamUrl={chatStreamUrl}
+          contextMode="external"
         />
       )}
     </>

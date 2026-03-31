@@ -196,7 +196,7 @@
 - O que faz: implementa o módulo `subscription.ts` da camada `utils`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `@/lib/api/abacatepay`, `@/lib/api/abacatepay`, `@/lib/db`, `./subscription-helpers`, `./subscription-helpers`
+- Importa principalmente: `@gymrats/api/abacatepay`, `@gymrats/api/abacatepay`, `@/lib/db`, `./subscription-helpers`, `./subscription-helpers`
 - Expõe: `hasPremiumAccess`, `canUseFeature`, `createStudentSubscriptionBilling`, `createGymSubscriptionBilling`, `isPremiumPlan`, `hasActivePremiumStatus`, `getBillingPeriodFromPlan`
 - Comunica com: Banco de dados (Prisma), HTTP interno/externo
 - Onde é usado/importado: `app/api/auth/session/route.ts`, `app/api/nutrition/chat-stream/route.ts`, `app/api/nutrition/chat/route.ts`, `app/api/workouts/chat-stream/route.ts`, `app/api/workouts/chat/route.ts`, `lib/api/handlers/gym-subscriptions.handler.ts`, `lib/api/handlers/subscriptions.handler.ts`, `server/handlers/gym-subscriptions.ts`, `server/handlers/nutrition-ai.ts`, `server/handlers/workouts-ai.ts`

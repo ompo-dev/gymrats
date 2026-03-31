@@ -1,28 +1,28 @@
 "use client";
 
 import {
+  CheckCircle,
   Copy,
   DollarSign,
-  Wallet,
   RefreshCw,
   Send,
-  CheckCircle,
+  Wallet,
 } from "lucide-react";
 import {
-  DuoCard,
-  DuoStatCard,
-  DuoStatsGrid,
   DuoButton,
+  DuoCard,
   DuoInput,
   DuoSelect,
+  DuoStatCard,
+  DuoStatsGrid,
 } from "@/components/duo";
-import type { ReferralData } from "../hooks/use-student-referral";
-import { useStudentReferral } from "../hooks/use-student-referral";
 import {
   formatCurrencyBR,
   formatCurrencyInput,
   parseCurrencyBR,
 } from "@/lib/utils/currency";
+import type { ReferralData } from "../hooks/use-student-referral";
+import { useStudentReferral } from "../hooks/use-student-referral";
 
 interface ReferralCodeSectionProps {
   referralCode: string;
@@ -172,9 +172,7 @@ function WithdrawSection({
   const balance = data?.balanceReais ?? 0;
   const amountNum = parseCurrencyBR(withdrawAmount);
   const isValid =
-    !Number.isNaN(amountNum) &&
-    amountNum >= 3.5 &&
-    amountNum <= balance;
+    !Number.isNaN(amountNum) && amountNum >= 3.5 && amountNum <= balance;
 
   return (
     <DuoCard.Root variant="default" padding="md">

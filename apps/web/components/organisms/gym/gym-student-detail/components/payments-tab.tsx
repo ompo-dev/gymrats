@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Building2,
-  ChevronDown,
-  ChevronRight,
-  DollarSign,
-} from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, DollarSign } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MembershipCard } from "@/app/student/_payments/components/membership-card";
 import { DuoButton, DuoCard } from "@/components/duo";
@@ -21,9 +16,9 @@ export function PaymentsTab({
   onTogglePaymentStatus: _onTogglePaymentStatus,
 }: PaymentsTabProps) {
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
-  const [expandedMembershipId, setExpandedMembershipId] = useState<string | null>(
-    null,
-  );
+  const [expandedMembershipId, setExpandedMembershipId] = useState<
+    string | null
+  >(null);
   const membershipsByPlan = useMemo(
     () =>
       payments.reduce<
@@ -45,7 +40,9 @@ export function PaymentsTab({
           planName: payment.planName,
           planType: "monthly",
           startDate: payment.date ? new Date(payment.date) : new Date(),
-          nextBillingDate: payment.dueDate ? new Date(payment.dueDate) : undefined,
+          nextBillingDate: payment.dueDate
+            ? new Date(payment.dueDate)
+            : undefined,
           amount: payment.amount,
           status:
             payment.status === "paid"

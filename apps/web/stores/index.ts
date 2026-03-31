@@ -1,16 +1,19 @@
 // Central export for all stores
+export { useAssistantTransportStore } from "./assistant-transport-store";
 export { useAuthStore } from "./auth-store";
+export { useBoostCampaignsStore } from "./boost-campaigns-store";
+export { useCatalogSearchStore } from "./catalog-search-store";
+export { useDiscoveryProfilesStore } from "./discovery-profiles-store";
 export { useEducationStore } from "./education-store";
 export { useGymStore } from "./gym-store";
 export { useGymUnifiedStore } from "./gym-unified-store";
 export { useGymsDataStore } from "./gyms-list-store";
-// DEPRECATED - Usar useStudent() hook em vez disso
-// @deprecated Use useStudent() from "@/hooks/use-student" instead
-// export { useStudentStore } from "./student-store"; // REMOVIDO
-export { useNutritionStore } from "./nutrition-store"; // STUB TEMPORÁRIO - será removido após limpar cache
-// Store unificado para student (substitui student-store, nutrition-store, subscription-store)
+export { useLibraryPlanStore } from "./library-plan-store";
+export { useNutritionStore } from "./nutrition-store";
+export { usePaymentsStore } from "./payments-store";
+export { useStudentDetailStore } from "./student-detail-store";
+export { useStudentDiscoveryStore } from "./student-discovery-store";
 export { useStudentUnifiedStore } from "./student-unified-store";
-// Subscription store mantido apenas para Gym (student usa useStudent('subscription'))
 export { useSubscriptionStore } from "./subscription-store";
 export {
   duolingoPresets,

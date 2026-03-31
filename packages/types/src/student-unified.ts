@@ -11,6 +11,7 @@ import type {
   ExerciseLog,
   FoodItem,
   GymLocation,
+  NutritionPlanData,
   PaymentMethod,
   PersonalRecord,
   StudentGymMembership,
@@ -133,6 +134,63 @@ export interface SubscriptionData {
   enterpriseGymName?: string;
 }
 
+export interface StudentReferralWithdraw {
+  id: string;
+  amount: number;
+  status: string;
+  createdAt: Date | string;
+  completedAt: Date | string | null;
+}
+
+export interface StudentReferralData {
+  referralCode: string;
+  pixKey: string | null;
+  pixKeyType: string | null;
+  balanceReais: number;
+  balanceCents: number;
+  totalEarnedCents: number;
+  withdraws: StudentReferralWithdraw[];
+}
+
+export interface AppliedCouponSummary {
+  code: string;
+  discountString: string;
+}
+
+export interface StudentPixPaymentPayload {
+  paymentId: string;
+  brCode: string;
+  brCodeBase64: string;
+  amount: number;
+  expiresAt?: string;
+  pixId?: string;
+  planName?: string;
+  originalPrice?: number;
+  appliedCoupon?: AppliedCouponSummary;
+  canApplyReferral?: boolean;
+}
+
+export interface StudentJoinGymResult
+  extends Partial<StudentPixPaymentPayload> {
+  success?: boolean;
+  membershipId?: string;
+}
+
+export interface StudentPaymentPlanOption {
+  id: string;
+  name: string;
+  type: string;
+  price: number;
+  duration: number;
+  benefits?: string[];
+}
+
+export interface StudentReferralApplyResult
+  extends Partial<StudentPixPaymentPayload> {
+  error?: string;
+  referralCodeInvalid?: boolean;
+}
+
 // ============================================
 // ACTIVE WORKOUT
 // ============================================
@@ -179,19 +237,27 @@ export interface PendingAction {
   retries: number;
 }
 
+export interface StudentResourceSnapshot {
+  status: "idle" | "loading" | "ready" | "error";
+  lastStartedAt: Date | null;
+  lastFetchedAt: Date | null;
+  error: string | null;
+}
+
 export interface StudentMetadata {
   lastSync: Date | null;
   isLoading: boolean;
   isInitialized: boolean;
   errors: Record<string, string | null>;
   pendingActions: PendingAction[]; // Ações pendentes de sincronização
+  resources: Record<string, StudentResourceSnapshot>;
 }
 
 // ============================================
 // STUDENT DATA COMPLETO
 // ============================================
 
-export interface StudentData {
+export interface StudentUnifiedData {
   // === USER INFO ===
   user: UserInfo;
 
@@ -216,6 +282,8 @@ export interface StudentData {
   personalRecords: PersonalRecord[]; // Recordes pessoais
 
   // === NUTRITION ===
+  activeNutritionPlan: NutritionPlanData | null;
+  nutritionLibraryPlans: NutritionPlanData[];
   dailyNutrition: DailyNutrition; // Nutrição do dia atual
   foodDatabase: FoodItem[]; // Base de dados de alimentos (cache local)
 
@@ -230,6 +298,7 @@ export interface StudentData {
   // === PAYMENTS ===
   payments: StudentPayment[]; // Histórico de pagamentos
   paymentMethods: PaymentMethod[]; // Métodos de pagamento salvos
+  referral: StudentReferralData | null;
 
   // === SOCIAL ===
   friends: FriendsData;
@@ -245,7 +314,7 @@ export interface StudentData {
 // DADOS INICIAIS
 // ============================================
 
-export const initialStudentData: StudentData = {
+export const initialStudentData: StudentUnifiedData = {
   user: {
     id: "",
     name: "",
@@ -279,6 +348,8 @@ export const initialStudentData: StudentData = {
   libraryPlans: [],
   workoutHistory: [],
   personalRecords: [],
+  activeNutritionPlan: null,
+  nutritionLibraryPlans: [],
   dailyNutrition: {
     date: new Date().toISOString().split("T")[0],
     meals: [],
@@ -300,6 +371,7 @@ export const initialStudentData: StudentData = {
   dayPasses: [],
   payments: [],
   paymentMethods: [],
+  referral: null,
   friends: {
     count: 0,
     list: [],
@@ -311,6 +383,7 @@ export const initialStudentData: StudentData = {
     isInitialized: false,
     errors: {},
     pendingActions: [],
+    resources: {},
   },
 };
 
@@ -329,11 +402,14 @@ export type StudentDataSection =
   | "libraryPlans"
   | "workoutHistory"
   | "personalRecords"
+  | "activeNutritionPlan"
+  | "nutritionLibraryPlans"
   | "dailyNutrition"
   | "subscription"
   | "memberships"
   | "payments"
   | "paymentMethods"
+  | "referral"
   | "dayPasses"
   | "friends"
   | "gymLocations";
@@ -352,3 +428,5 @@ export interface WorkoutCompletionData {
     heartRate?: number;
   };
 }
+
+export type StudentData = StudentUnifiedData;

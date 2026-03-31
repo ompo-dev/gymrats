@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { apiClient } from "@/lib/api/client";
 import type {
   MuscleGroup,
   PlanSlotData,
@@ -12,15 +11,17 @@ import type {
   WorkoutExercise,
   WorkoutSession,
 } from "@/lib/types";
+import { useLibraryPlanStore } from "@/stores/library-plan-store";
+import { useStudentDetailStore } from "@/stores/student-detail-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 export const DAY_NAMES = [
   "Segunda",
-  "Terça",
+  "Terca",
   "Quarta",
   "Quinta",
   "Sexta",
-  "Sábado",
+  "Sabado",
   "Domingo",
 ] as const;
 
@@ -52,48 +53,41 @@ export function useEditUnitModal({
     close: closeEditUnit,
     paramValue: unitId,
   } = useModalStateWithParam("editUnit", "unitId");
+
   const isGymMode = apiMode === "gym";
   const actions = useStudent("actions");
-  const storeWeeklyPlan = useStudent("weeklyPlan");
+  const storeWeeklyPlan = useStudent(
+    "weeklyPlan",
+  ) as unknown as WeeklyPlanData | null;
   const storeLoaders = useStudent("loaders");
+
   const storeLibraryPlan = useStudentUnifiedStore((state) =>
     isLibraryMode && weeklyPlanOverride?.id
-      ? state.data.libraryPlans?.find((p) => p.id === weeklyPlanOverride.id) ?? null
+      ? (state.data.libraryPlans?.find(
+          (plan) => plan.id === weeklyPlanOverride.id,
+        ) ?? null)
       : null,
   );
-  const weeklyPlan =
-    isGymMode
-      ? weeklyPlanOverride
-      : isLibraryMode
-        ? (storeLibraryPlan ?? weeklyPlanOverride)
-        : storeWeeklyPlan;
-  const loadWeeklyPlan = isGymMode || isLibraryMode
-    ? loadWeeklyPlanOverride
-    : storeLoaders.loadWeeklyPlan;
-  const loadLibraryPlans = storeLoaders.loadLibraryPlans;
-  
-  let weeklyPlanUrl = "/api/workouts/weekly-plan";
-  if (isGymMode && studentId) {
-    weeklyPlanUrl = `/api/gym/students/${studentId}/weekly-plan`;
-  } else if (isLibraryMode && weeklyPlan?.id) {
-    weeklyPlanUrl = `/api/workouts/library/${weeklyPlan.id}`;
-  }
-  const workoutsManageUrl =
-    isGymMode && studentId
-      ? `/api/gym/students/${studentId}/workouts/manage`
-      : "/api/workouts/manage";
-  const exercisesUrl =
-    isGymMode && studentId
-      ? `/api/gym/students/${studentId}/workouts/exercises`
-      : "/api/workouts/exercises";
+
+  const weeklyPlan: WeeklyPlanData | null = isGymMode
+    ? (weeklyPlanOverride ?? null)
+    : isLibraryMode
+      ? ((storeLibraryPlan ??
+          weeklyPlanOverride) as unknown as WeeklyPlanData | null)
+      : storeWeeklyPlan;
+
+  const loadWeeklyPlan =
+    isGymMode || isLibraryMode
+      ? loadWeeklyPlanOverride
+      : storeLoaders.loadWeeklyPlan;
 
   const isOpen = isWeeklyPlanMode ? (isOpenProp ?? false) : isOpenEditUnit;
   const close = isWeeklyPlanMode ? (onCloseProp ?? (() => {})) : closeEditUnit;
 
-  const planSlots = useMemo((): PlanSlotData[] => {
+  const planSlots = useMemo<PlanSlotData[]>(() => {
     if (!weeklyPlan?.slots) return [];
     return Array.isArray(weeklyPlan.slots)
-      ? (weeklyPlan.slots as unknown as PlanSlotData[])
+      ? (weeklyPlan.slots as PlanSlotData[])
       : [];
   }, [weeklyPlan?.slots]);
 
@@ -119,104 +113,107 @@ export function useEditUnitModal({
   const [weeklyPlanSlotsKey, setWeeklyPlanSlotsKey] = useState(0);
 
   const unit = useStudentUnifiedStore(
-    (state) => state.data.units.find((u) => u.id === unitId) || null,
+    (state) =>
+      state.data.units.find((currentUnit) => currentUnit.id === unitId) || null,
   );
 
   const sortedWorkouts = useMemo(() => {
-    if (!unit?.workouts || unit.workouts.length === 0) return [];
+    if (!unit?.workouts?.length) return [];
     return [...unit.workouts].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [unit?.workouts]);
 
   useEffect(() => {
-    const currentIds = workoutItems.map((w) => w.id).join(",");
-    const newIds = sortedWorkouts.map((w) => w.id).join(",");
+    const currentIds = workoutItems.map((workout) => workout.id).join(",");
+    const nextIds = sortedWorkouts.map((workout) => workout.id).join(",");
+
     if (
-      currentIds !== newIds ||
+      currentIds !== nextIds ||
       workoutItems.length !== sortedWorkouts.length
     ) {
       setWorkoutItems(sortedWorkouts);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedWorkouts, workoutItems.length, workoutItems.map]);
+  }, [sortedWorkouts, workoutItems]);
 
   const exercisesRawFromStore = useStudentUnifiedStore((state) => {
     if (!editingWorkoutId || !unitId) return null;
-    const foundUnit = state.data.units.find((u) => u.id === unitId);
-    if (!foundUnit) return null;
-    const foundWorkout = foundUnit.workouts.find(
-      (w) => w.id === editingWorkoutId,
+    const currentUnit = state.data.units.find(
+      (candidate) => candidate.id === unitId,
     );
-    if (!foundWorkout) return null;
-    return foundWorkout.exercises || null;
+    const currentWorkout = currentUnit?.workouts.find(
+      (candidate) => candidate.id === editingWorkoutId,
+    );
+    return currentWorkout?.exercises ?? null;
   });
 
   const exercisesRawFromWeeklyPlan = useMemo(() => {
-    if (!isWeeklyPlanMode || !weeklyPlan || !editingWorkoutId) return null;
-    const slot = planSlots.find((s) => s.workout?.id === editingWorkoutId);
+    if (!isWeeklyPlanMode || !editingWorkoutId) return null;
+    const slot = planSlots.find(
+      (candidate) => candidate.workout?.id === editingWorkoutId,
+    );
     return slot?.workout?.exercises ?? null;
-  }, [isWeeklyPlanMode, weeklyPlan, editingWorkoutId, planSlots]);
+  }, [editingWorkoutId, isWeeklyPlanMode, planSlots]);
 
-  const exercisesRaw = isWeeklyPlanMode
-    ? exercisesRawFromWeeklyPlan
-    : exercisesRawFromStore;
-  const exercises = useMemo(() => exercisesRaw || [], [exercisesRaw]);
+  const exercises = useMemo(
+    () =>
+      (isWeeklyPlanMode ? exercisesRawFromWeeklyPlan : exercisesRawFromStore) ??
+      [],
+    [exercisesRawFromStore, exercisesRawFromWeeklyPlan, isWeeklyPlanMode],
+  );
 
   const activeWorkout = useMemo(() => {
-    if (isWeeklyPlanMode && weeklyPlan && editingWorkoutId) {
-      const slot = planSlots.find((s) => s.workout?.id === editingWorkoutId);
+    if (isWeeklyPlanMode && editingWorkoutId) {
+      const slot = planSlots.find(
+        (candidate) => candidate.workout?.id === editingWorkoutId,
+      );
       return slot?.workout ?? null;
     }
-    return sortedWorkouts.find((w) => w.id === editingWorkoutId) ?? null;
-  }, [
-    isWeeklyPlanMode,
-    weeklyPlan,
-    planSlots,
-    sortedWorkouts,
-    editingWorkoutId,
-  ]);
+
+    return (
+      sortedWorkouts.find((workout) => workout.id === editingWorkoutId) ?? null
+    );
+  }, [editingWorkoutId, isWeeklyPlanMode, planSlots, sortedWorkouts]);
 
   const sortedExercises = useMemo(() => {
-    if (!exercises || exercises.length === 0) return [];
+    if (!exercises.length) return [];
     return [...exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [exercises]);
 
   useEffect(() => {
-    const currentIds = exerciseItems.map((e) => e.id).join(",");
-    const newIds = sortedExercises.map((e) => e.id).join(",");
+    const currentIds = exerciseItems.map((exercise) => exercise.id).join(",");
+    const nextIds = sortedExercises.map((exercise) => exercise.id).join(",");
+
     if (
-      currentIds !== newIds ||
+      currentIds !== nextIds ||
       exerciseItems.length !== sortedExercises.length
     ) {
       setExerciseItems(sortedExercises);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedExercises, exerciseItems.length, exerciseItems.map]);
+  }, [sortedExercises, exerciseItems]);
 
   const calculatedEstimatedTime = useMemo(() => {
-    if (!exercises || exercises.length === 0) return 0;
-    const TIME_PER_REP = 2;
-    const totalSeconds = exercises.reduce(
-      (total: number, ex: WorkoutExercise) => {
-        const sets = ex.sets || 0;
-        if (sets === 0) return total;
-        const repsStr = ex.reps || "10";
-        let avgReps = 10;
-        const rangeMatch = repsStr.match(/(\d+)\s*-\s*(\d+)/);
-        if (rangeMatch) {
-          const min = parseInt(rangeMatch[1], 10);
-          const max = parseInt(rangeMatch[2], 10);
-          avgReps = Math.round((min + max) / 2);
-        } else {
-          const singleMatch = repsStr.match(/(\d+)/);
-          if (singleMatch) avgReps = parseInt(singleMatch[1], 10);
-        }
-        const timePerSet = avgReps * TIME_PER_REP;
-        const restBetweenSets = ex.rest || 60;
-        const numberOfRests = sets > 0 ? sets - 1 : 0;
-        return total + sets * timePerSet + numberOfRests * restBetweenSets;
-      },
-      0,
-    );
+    if (!exercises.length) return 0;
+
+    const totalSeconds = exercises.reduce((accumulator, exercise) => {
+      const sets = exercise.sets || 0;
+      if (sets === 0) return accumulator;
+
+      const repsStr = exercise.reps || "10";
+      const rangeMatch = repsStr.match(/(\d+)\s*-\s*(\d+)/);
+      const singleMatch = repsStr.match(/(\d+)/);
+      const avgReps = rangeMatch
+        ? Math.round((Number(rangeMatch[1]) + Number(rangeMatch[2])) / 2)
+        : singleMatch
+          ? Number(singleMatch[1])
+          : 10;
+
+      const timePerSet = avgReps * 2;
+      const numberOfRests = sets > 0 ? sets - 1 : 0;
+
+      return (
+        accumulator + sets * timePerSet + numberOfRests * (exercise.rest || 60)
+      );
+    }, 0);
+
     return Math.ceil(totalSeconds / 60) + 10;
   }, [exercises]);
 
@@ -232,55 +229,88 @@ export function useEditUnitModal({
         order?: number;
       },
     ) => {
-      const { muscleGroup: mg, ...rest } = data;
+      const { muscleGroup: maybeMuscleGroup, ...rest } = data;
       const payload = {
         ...rest,
-        ...(mg !== undefined && { muscleGroup: mg as MuscleGroup }),
+        ...(maybeMuscleGroup !== undefined && {
+          muscleGroup: maybeMuscleGroup as MuscleGroup,
+        }),
       };
+
       if (isGymMode) {
         if (!studentId) {
-          toast.error("Aluno não identificado");
+          toast.error("Aluno nao identificado");
           return;
         }
-        apiClient
-          .put(`${workoutsManageUrl}/${workoutId}`, payload)
-          .then(() => loadWeeklyPlan?.(true))
+
+        useStudentDetailStore
+          .getState()
+          .updateWorkout({
+            scope: "gym",
+            studentId,
+            workoutId,
+            payload,
+          })
           .then(() => onPlanUpdated?.())
-          .catch((err) => {
-            console.error(err);
+          .catch((error) => {
+            console.error(error);
             toast.error("Erro ao atualizar treino");
           });
-      } else {
-        actions.updateWorkout(workoutId, payload).catch((err) => {
-          console.error(err);
-          toast.error("Erro ao atualizar treino");
-        });
+        return;
       }
+
+      if (isLibraryMode) {
+        if (!weeklyPlan?.id) {
+          toast.error("Plano da biblioteca nao identificado");
+          return;
+        }
+
+        useLibraryPlanStore
+          .getState()
+          .updateWorkout({
+            planId: weeklyPlan.id,
+            workoutId,
+            payload,
+          })
+          .then(() => onPlanUpdated?.())
+          .catch((error) => {
+            console.error(error);
+            toast.error("Erro ao atualizar treino");
+          });
+        return;
+      }
+
+      actions.updateWorkout(workoutId, payload).catch((error) => {
+        console.error(error);
+        toast.error("Erro ao atualizar treino");
+      });
     },
     [
       actions,
       isGymMode,
-      studentId,
-      workoutsManageUrl,
-      loadWeeklyPlan,
+      isLibraryMode,
       onPlanUpdated,
+      studentId,
+      weeklyPlan?.id,
     ],
   );
 
   useEffect(() => {
     if (!activeWorkout || calculatedEstimatedTime <= 0) return;
+
     const currentTime = activeWorkout.estimatedTime || 0;
     const hasSignificantChange =
       Math.abs(currentTime - calculatedEstimatedTime) >= 1;
     const hasChangedSinceLastUpdate =
       lastCalculatedTimeRef.current !== calculatedEstimatedTime;
+
     if (hasSignificantChange && hasChangedSinceLastUpdate) {
       lastCalculatedTimeRef.current = calculatedEstimatedTime;
-      handleUpdateWorkout(activeWorkout.id, {
+      void handleUpdateWorkout(activeWorkout.id, {
         estimatedTime: calculatedEstimatedTime,
       });
     }
-  }, [calculatedEstimatedTime, activeWorkout, handleUpdateWorkout]);
+  }, [activeWorkout, calculatedEstimatedTime, handleUpdateWorkout]);
 
   useEffect(() => {
     if (isOpen && isWeeklyPlanMode && weeklyPlan) {
@@ -288,100 +318,135 @@ export function useEditUnitModal({
         setTitle(String(weeklyPlan.title ?? ""));
         setDescription(String(weeklyPlan.description ?? ""));
       }
-    } else if (isOpen && unitId && unit) {
+      return;
+    }
+
+    if (isOpen && unitId && unit) {
       if (!isEditingUnitInputs && title === "" && description === "") {
         setTitle(String(unit.title ?? ""));
         setDescription(String(unit.description ?? ""));
       }
-    } else {
-      setEditingWorkoutId(null);
-      setShowExerciseSearch(false);
-      setTitle("");
-      setDescription("");
-      setWorkoutTitle("");
-      setDeleteConfirmationId(null);
-      setDeleteWorkoutConfirmationId(null);
-      setChatSlotId(null);
-      setWorkoutItems([]);
-      setExerciseItems([]);
+      return;
     }
+
+    setEditingWorkoutId(null);
+    setShowExerciseSearch(false);
+    setTitle("");
+    setDescription("");
+    setWorkoutTitle("");
+    setDeleteConfirmationId(null);
+    setDeleteWorkoutConfirmationId(null);
+    setChatSlotId(null);
+    setWorkoutItems([]);
+    setExerciseItems([]);
   }, [
-    isOpen,
-    unitId,
-    unit?.id,
-    isWeeklyPlanMode,
-    weeklyPlan,
+    description,
     isEditingUnitInputs,
+    isOpen,
+    isWeeklyPlanMode,
     title,
     unit,
-    description,
+    unitId,
+    weeklyPlan,
   ]);
 
   useEffect(() => {
     if (activeWorkout) {
       setWorkoutTitle(activeWorkout.title ?? "");
       setWorkoutMuscleGroup(activeWorkout.muscleGroup ?? "");
-    } else {
-      setWorkoutTitle("");
-      setWorkoutMuscleGroup("");
+      return;
     }
-  }, [
-    activeWorkout?.id,
-    activeWorkout?.title,
-    activeWorkout?.muscleGroup,
-    activeWorkout,
-  ]);
+
+    setWorkoutTitle("");
+    setWorkoutMuscleGroup("");
+  }, [activeWorkout]);
 
   const handleSaveUnit = useCallback(async () => {
     setSaving(true);
+
     try {
       if (isWeeklyPlanMode) {
-        await apiClient.patch(weeklyPlanUrl, {
-          title,
-          description,
-        });
-        await loadWeeklyPlan?.(true);
+        if (isGymMode) {
+          if (!studentId) {
+            toast.error("Aluno nao identificado");
+            return;
+          }
+
+          await useStudentDetailStore.getState().updateWeeklyPlan({
+            scope: "gym",
+            studentId,
+            payload: { title, description },
+          });
+        } else if (isLibraryMode) {
+          if (!weeklyPlan?.id) {
+            toast.error("Plano da biblioteca nao identificado");
+            return;
+          }
+
+          await useLibraryPlanStore.getState().updatePlan({
+            planId: weeklyPlan.id,
+            payload: { title, description },
+          });
+        } else {
+          await actions.updateWeeklyPlan({ title, description });
+        }
+
         onPlanUpdated?.();
         toast.success("Plano atualizado com sucesso!");
         return;
       }
+
       if (!unitId) return;
+
       await actions.updateUnit(unitId, { title, description });
       toast.success("Treino atualizado com sucesso!");
-    } catch (err) {
-      console.error(err);
-      toast.error(isWeeklyPlanMode ? "Erro ao atualizar plano" : "Erro ao atualizar treino");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        isWeeklyPlanMode
+          ? "Erro ao atualizar plano"
+          : "Erro ao atualizar treino",
+      );
     } finally {
       setSaving(false);
     }
   }, [
-    isWeeklyPlanMode,
-    title,
-    description,
-    unitId,
     actions,
-    loadWeeklyPlan,
+    description,
+    isGymMode,
+    isLibraryMode,
+    isWeeklyPlanMode,
     onPlanUpdated,
+    studentId,
+    title,
+    unitId,
+    weeklyPlan?.id,
   ]);
 
   const handleCreateWorkout = useCallback(async () => {
     if (!unitId) return;
+
     try {
       if (isGymMode) {
         if (!studentId) {
-          toast.error("Aluno não identificado");
+          toast.error("Aluno nao identificado");
           return;
         }
-        const response = await apiClient.post(workoutsManageUrl, {
-          unitId,
-          title: "Novo Dia",
-          description: "Descrição do treino",
-          muscleGroup: "",
-          difficulty: "iniciante",
-          estimatedTime: 0,
-          type: "strength",
+
+        const workoutId = await useStudentDetailStore.getState().createWorkout({
+          scope: "gym",
+          studentId,
+          payload: {
+            unitId,
+            title: "Novo Dia",
+            description: "Descricao do treino",
+            muscleGroup: "",
+            difficulty: "iniciante",
+            estimatedTime: 0,
+            type: "strength",
+          },
         });
-        const workoutId = (response as any).data?.data?.id as string | undefined;
+
         if (workoutId) {
           setEditingWorkoutId(workoutId);
         }
@@ -389,7 +454,7 @@ export function useEditUnitModal({
         const workoutId = await actions.createWorkout({
           unitId,
           title: "Novo Dia",
-          description: "Descrição do treino",
+          description: "Descricao do treino",
           muscleGroup: "",
           difficulty: "iniciante",
           estimatedTime: 0,
@@ -397,101 +462,156 @@ export function useEditUnitModal({
         });
         setEditingWorkoutId(workoutId);
       }
+
       toast.success("Novo dia de treino adicionado!");
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       toast.error("Erro ao criar treino");
     }
-  }, [unitId, actions, isGymMode, studentId, workoutsManageUrl]);
+  }, [actions, isGymMode, studentId, unitId]);
 
   const confirmDeleteWorkout = useCallback(async () => {
     if (!deleteWorkoutConfirmationId) return;
+
     const workoutIdToDelete = deleteWorkoutConfirmationId;
     setDeleteWorkoutConfirmationId(null);
-    if (editingWorkoutId === workoutIdToDelete) setEditingWorkoutId(null);
+
+    if (editingWorkoutId === workoutIdToDelete) {
+      setEditingWorkoutId(null);
+    }
+
     try {
       if (isGymMode) {
         if (!studentId) {
-          toast.error("Aluno não identificado");
+          toast.error("Aluno nao identificado");
           return;
         }
-        await apiClient.delete(`${workoutsManageUrl}/${workoutIdToDelete}`);
-        await loadWeeklyPlan?.(true);
-        onPlanUpdated?.();
+
+        await useStudentDetailStore.getState().deleteWorkout({
+          scope: "gym",
+          studentId,
+          workoutId: workoutIdToDelete,
+        });
+      } else if (isLibraryMode) {
+        if (!weeklyPlan?.id) {
+          toast.error("Plano da biblioteca nao identificado");
+          return;
+        }
+
+        await useLibraryPlanStore.getState().deleteWorkout({
+          planId: weeklyPlan.id,
+          workoutId: workoutIdToDelete,
+        });
       } else {
         await actions.deleteWorkout(workoutIdToDelete);
       }
+
+      onPlanUpdated?.();
       toast.success("Dia de treino removido!");
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Falha ao remover treino";
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Falha ao remover treino";
       toast.error(message);
     }
   }, [
+    actions,
     deleteWorkoutConfirmationId,
     editingWorkoutId,
-    actions,
     isGymMode,
-    studentId,
-    workoutsManageUrl,
-    loadWeeklyPlan,
+    isLibraryMode,
     onPlanUpdated,
+    studentId,
+    weeklyPlan?.id,
   ]);
 
-  const cancelDeleteWorkout = useCallback(
-    () => setDeleteWorkoutConfirmationId(null),
-    [],
-  );
+  const cancelDeleteWorkout = useCallback(() => {
+    setDeleteWorkoutConfirmationId(null);
+  }, []);
 
   const handleResetWeek = useCallback(async () => {
     if (isGymMode) {
-      toast.info("Reset semanal disponível apenas no app do aluno.");
+      toast.info("Reset semanal disponivel apenas no app do aluno.");
       return;
     }
+
     setResetting(true);
+
     try {
-      await apiClient.patch("/api/students/week-reset");
+      await actions.resetWeeklyPlan();
       await loadWeeklyPlan?.(true);
-      setWeeklyPlanSlotsKey((k) => k + 1);
+      setWeeklyPlanSlotsKey((current) => current + 1);
       onPlanUpdated?.();
-      toast.success("Semana resetada! Os treinos estão disponíveis novamente.");
+      toast.success("Semana resetada! Os treinos estao disponiveis novamente.");
     } catch {
-      toast.error("Não foi possível resetar a semana.");
+      toast.error("Nao foi possivel resetar a semana.");
     } finally {
       setResetting(false);
     }
-  }, [loadWeeklyPlan, onPlanUpdated, isGymMode]);
+  }, [actions, isGymMode, loadWeeklyPlan, onPlanUpdated]);
 
   const handleRemoveWorkoutFromSlot = useCallback(
     async (slotId: string) => {
-      const slot = planSlots.find((s) => s.id === slotId);
+      const slot = planSlots.find((candidate) => candidate.id === slotId);
       if (!slot?.workout) return;
+
       setLoadingSlotId(slotId);
+
       try {
-        await apiClient.delete(`${workoutsManageUrl}/${slot.workout.id}`);
-        if (isLibraryMode) {
-          await loadLibraryPlans();
+        if (isGymMode) {
+          if (!studentId) {
+            toast.error("Aluno nao identificado");
+            return;
+          }
+
+          await useStudentDetailStore.getState().deleteWorkout({
+            scope: "gym",
+            studentId,
+            workoutId: slot.workout.id,
+          });
+        } else if (isLibraryMode) {
+          if (!weeklyPlan?.id) {
+            toast.error("Plano da biblioteca nao identificado");
+            return;
+          }
+
+          await useLibraryPlanStore.getState().deleteWorkout({
+            planId: weeklyPlan.id,
+            workoutId: slot.workout.id,
+          });
         } else {
+          await actions.deleteWorkout(slot.workout.id);
           await loadWeeklyPlan?.(true);
         }
+
         onPlanUpdated?.();
         toast.success("Treino removido. O dia foi marcado como descanso.");
-      } catch {
-        toast.error("Não foi possível remover o treino.");
+      } catch (error) {
+        console.error(error);
+        toast.error("Nao foi possivel remover o treino.");
       } finally {
         setLoadingSlotId(null);
       }
     },
-    [planSlots, isLibraryMode, loadLibraryPlans, loadWeeklyPlan, onPlanUpdated, workoutsManageUrl],
+    [
+      actions,
+      isGymMode,
+      isLibraryMode,
+      loadWeeklyPlan,
+      onPlanUpdated,
+      planSlots,
+      studentId,
+      weeklyPlan?.id,
+    ],
   );
 
   const handleAddWorkoutToSlot = useCallback(
     async (slotId: string, dayName: string) => {
       setLoadingSlotId(slotId);
+
       try {
-        await apiClient.post(workoutsManageUrl, {
+        const payload = {
           planSlotId: slotId,
           title: `Treino ${dayName}`,
           description: "",
@@ -499,23 +619,54 @@ export function useEditUnitModal({
           muscleGroup: "full-body",
           difficulty: "iniciante",
           estimatedTime: 0,
-        });
-        if (isLibraryMode) {
-          await loadLibraryPlans();
+        };
+
+        if (isGymMode) {
+          if (!studentId) {
+            toast.error("Aluno nao identificado");
+            return;
+          }
+
+          await useStudentDetailStore.getState().createWorkout({
+            scope: "gym",
+            studentId,
+            payload,
+          });
+        } else if (isLibraryMode) {
+          if (!weeklyPlan?.id) {
+            toast.error("Plano da biblioteca nao identificado");
+            return;
+          }
+
+          await useLibraryPlanStore.getState().addWorkoutToSlot({
+            planId: weeklyPlan.id,
+            payload,
+          });
         } else {
+          await actions.addWeeklyPlanWorkout(payload);
           await loadWeeklyPlan?.(true);
         }
+
         onPlanUpdated?.();
         toast.success(
-          "Treino adicionado. Adicione exercícios ou use o Chat IA.",
+          "Treino adicionado. Adicione exercicios ou use o Chat IA.",
         );
-      } catch {
-        toast.error("Não foi possível adicionar o treino.");
+      } catch (error) {
+        console.error(error);
+        toast.error("Nao foi possivel adicionar o treino.");
       } finally {
         setLoadingSlotId(null);
       }
     },
-    [isLibraryMode, loadLibraryPlans, loadWeeklyPlan, onPlanUpdated],
+    [
+      actions,
+      isGymMode,
+      isLibraryMode,
+      loadWeeklyPlan,
+      onPlanUpdated,
+      studentId,
+      weeklyPlan?.id,
+    ],
   );
 
   const handleReorderWorkouts = useCallback(
@@ -523,7 +674,7 @@ export function useEditUnitModal({
       setWorkoutItems(newOrder);
       newOrder.forEach((workout, index) => {
         if ((workout.order ?? 0) !== index) {
-          handleUpdateWorkout(workout.id, { order: index });
+          void handleUpdateWorkout(workout.id, { order: index });
         }
       });
     },
@@ -531,38 +682,68 @@ export function useEditUnitModal({
   );
 
   const handleAddExercise = useCallback(() => {
-    if (editingWorkoutId) setShowExerciseSearch(true);
+    if (editingWorkoutId) {
+      setShowExerciseSearch(true);
+    }
   }, [editingWorkoutId]);
 
   const handleUpdateExercise = useCallback(
     (exerciseId: string, data: Partial<WorkoutExercise>) => {
       if (isGymMode) {
         if (!studentId) {
-          toast.error("Aluno não identificado");
+          toast.error("Aluno nao identificado");
           return;
         }
-        apiClient
-          .put(`${exercisesUrl}/${exerciseId}`, data as any)
-          .then(() => loadWeeklyPlan?.(true))
+
+        useStudentDetailStore
+          .getState()
+          .updateWorkoutExercise({
+            scope: "gym",
+            studentId,
+            exerciseId,
+            payload: data as Record<string, unknown>,
+          })
           .then(() => onPlanUpdated?.())
-          .catch((err) => {
-            console.error(err);
-            toast.error("Erro ao salvar exercício");
+          .catch((error) => {
+            console.error(error);
+            toast.error("Erro ao salvar exercicio");
           });
         return;
       }
-      actions.updateWorkoutExercise(exerciseId, data).catch((err) => {
-        console.error(err);
-        toast.error("Erro ao salvar exercício");
+
+      if (isLibraryMode) {
+        if (!weeklyPlan?.id) {
+          toast.error("Plano da biblioteca nao identificado");
+          return;
+        }
+
+        useLibraryPlanStore
+          .getState()
+          .updateWorkoutExercise({
+            planId: weeklyPlan.id,
+            exerciseId,
+            payload: data as Record<string, unknown>,
+          })
+          .then(() => onPlanUpdated?.())
+          .catch((error) => {
+            console.error(error);
+            toast.error("Erro ao salvar exercicio");
+          });
+        return;
+      }
+
+      actions.updateWorkoutExercise(exerciseId, data).catch((error) => {
+        console.error(error);
+        toast.error("Erro ao salvar exercicio");
       });
     },
     [
       actions,
       isGymMode,
-      studentId,
-      exercisesUrl,
-      loadWeeklyPlan,
+      isLibraryMode,
       onPlanUpdated,
+      studentId,
+      weeklyPlan?.id,
     ],
   );
 
@@ -588,39 +769,58 @@ export function useEditUnitModal({
 
   const confirmDeleteExercise = useCallback(async () => {
     if (!deleteConfirmationId) return;
+
     const exerciseIdToDelete = deleteConfirmationId;
     setDeleteConfirmationId(null);
+
     try {
       if (isGymMode) {
         if (!studentId) {
-          toast.error("Aluno não identificado");
+          toast.error("Aluno nao identificado");
           return;
         }
-        await apiClient.delete(`${exercisesUrl}/${exerciseIdToDelete}`);
-        await loadWeeklyPlan?.(true);
-        onPlanUpdated?.();
+
+        await useStudentDetailStore.getState().deleteWorkoutExercise({
+          scope: "gym",
+          studentId,
+          exerciseId: exerciseIdToDelete,
+        });
+      } else if (isLibraryMode) {
+        if (!weeklyPlan?.id) {
+          toast.error("Plano da biblioteca nao identificado");
+          return;
+        }
+
+        await useLibraryPlanStore.getState().deleteWorkoutExercise({
+          planId: weeklyPlan.id,
+          exerciseId: exerciseIdToDelete,
+        });
       } else {
         await actions.deleteWorkoutExercise(exerciseIdToDelete);
       }
-      toast.success("Exercício removido!");
-    } catch (err) {
-      console.error(err);
+
+      onPlanUpdated?.();
+      toast.success("Exercicio removido!");
+    } catch (error) {
+      console.error(error);
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Erro ao remover exercício. Tente novamente.";
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Erro ao remover exercicio. Tente novamente.";
       toast.error(message);
     }
   }, [
-    deleteConfirmationId,
     actions,
+    deleteConfirmationId,
     isGymMode,
-    studentId,
-    exercisesUrl,
-    loadWeeklyPlan,
+    isLibraryMode,
     onPlanUpdated,
+    studentId,
+    weeklyPlan?.id,
   ]);
 
-  const cancelDelete = useCallback(() => setDeleteConfirmationId(null), []);
+  const cancelDelete = useCallback(() => {
+    setDeleteConfirmationId(null);
+  }, []);
 
   const goBackFromWorkout = useCallback(() => {
     setEditingWorkoutId(null);
@@ -629,7 +829,7 @@ export function useEditUnitModal({
 
   const closeWorkoutChatWithRefresh = useCallback(() => {
     setChatSlotId(null);
-    loadWeeklyPlan?.(true);
+    void loadWeeklyPlan?.(true);
     onPlanUpdated?.();
   }, [loadWeeklyPlan, onPlanUpdated]);
 

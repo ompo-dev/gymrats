@@ -11,210 +11,185 @@ import { GymSettingsPage } from "@/components/organisms/gym/gym-settings";
 import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
 import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
-import { useGymInitializer } from "@/hooks/use-gym-initializer";
-import { useGymsList } from "@/hooks/use-gyms-list";
-import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
+import { useGym } from "@/hooks/use-gym";
+import {
+  useGymBootstrapBridge,
+  useGymDashboardBootstrapBridge,
+  useGymFinancialBootstrapBridge,
+  useGymSettingsBootstrapBridge,
+  useGymStatsBootstrapBridge,
+  useGymStudentsBootstrapBridge,
+} from "@/hooks/use-gym-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
-import type {
-  CheckIn,
-  BoostCampaign,
-  Coupon,
-  Equipment,
-  Expense,
-  FinancialSummary,
-  GymProfile,
-  GymStats,
-  MembershipPlan,
-  Payment,
-  StudentData,
-} from "@/lib/types";
-import { useGymUnifiedStore } from "@/stores/gym-unified-store";
+import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
-interface BalanceWithdraws {
-  balanceReais: number;
-  balanceCents: number;
-  withdraws: {
-    id: string;
-    amount: number;
-    pixKey: string;
-    pixKeyType: string;
-    externalId: string;
-    status: string;
-    createdAt: Date;
-    completedAt: Date | null;
-  }[];
+function GymDashboardTab() {
+  useGymDashboardBootstrapBridge();
+
+  const {
+    profile,
+    stats,
+    students = [],
+    equipment: rawEquipment = [],
+    recentCheckIns = [],
+    subscription,
+  } = useGym(
+    "profile",
+    "stats",
+    "students",
+    "equipment",
+    "recentCheckIns",
+    "subscription",
+  );
+  const equipment = normalizeEquipmentList(rawEquipment);
+
+  if (!profile || !stats) {
+    return null;
+  }
+
+  return (
+    <GymDashboardPage
+      profile={profile}
+      stats={stats}
+      students={students}
+      equipment={equipment}
+      recentCheckIns={recentCheckIns}
+      subscription={subscription}
+    />
+  );
 }
 
-interface GymHomeContentProps {
-  initialProfile: GymProfile | null;
-  initialStats: GymStats | null;
-  initialStudents: StudentData[];
-  initialEquipment: Equipment[];
-  initialFinancialSummary: FinancialSummary | null;
-  initialRecentCheckIns?: CheckIn[];
-  initialPlans: MembershipPlan[];
-  initialPayments: Payment[];
-  initialExpenses: Expense[];
-  initialBalanceWithdraws?: BalanceWithdraws;
-  initialCoupons?: Coupon[];
-  initialCampaigns?: BoostCampaign[];
-  initialSubscription?: {
-    id: string;
-    plan: string;
-    status: string;
-    currentPeriodEnd: Date;
-  } | null;
+function GymStudentsTab() {
+  useGymStudentsBootstrapBridge();
+
+  const { students = [], membershipPlans = [] } = useGym(
+    "students",
+    "membershipPlans",
+  );
+  return (
+    <GymStudentsPage students={students} membershipPlans={membershipPlans} />
+  );
 }
 
-function GymHomeContent({
-  initialProfile,
-  initialStats,
-  initialStudents,
-  initialEquipment,
-  initialFinancialSummary,
-  initialRecentCheckIns,
-  initialPlans,
-  initialPayments,
-  initialExpenses,
-  initialBalanceWithdraws,
-  initialCoupons = [],
-  initialCampaigns = [],
-  initialSubscription,
-}: GymHomeContentProps) {
+function GymEquipmentTab() {
+  useGymBootstrapBridge(["equipment"]);
+
+  const rawEquipment = useGym("equipment") ?? [];
+  return <GymEquipmentPage equipment={normalizeEquipmentList(rawEquipment)} />;
+}
+
+function GymFinancialTab() {
+  useGymFinancialBootstrapBridge();
+
+  const {
+    financialSummary,
+    payments = [],
+    coupons = [],
+    campaigns = [],
+    membershipPlans: plans = [],
+    expenses = [],
+    balanceWithdraws,
+    subscription,
+  } = useGym(
+    "financialSummary",
+    "payments",
+    "coupons",
+    "campaigns",
+    "membershipPlans",
+    "expenses",
+    "balanceWithdraws",
+    "subscription",
+  );
+
+  return (
+    <GymFinancialPage
+      financialSummary={financialSummary}
+      payments={payments}
+      coupons={coupons}
+      campaigns={campaigns}
+      plans={plans}
+      expenses={expenses}
+      balanceReais={balanceWithdraws?.balanceReais ?? 0}
+      balanceCents={balanceWithdraws?.balanceCents ?? 0}
+      withdraws={balanceWithdraws?.withdraws ?? []}
+      subscription={subscription}
+    />
+  );
+}
+
+function GymStatsTab() {
+  useGymStatsBootstrapBridge();
+
+  const { stats, equipment: rawEquipment = [] } = useGym("stats", "equipment");
+
+  if (!stats) {
+    return null;
+  }
+
+  return (
+    <GymStatsPage
+      stats={stats}
+      equipment={normalizeEquipmentList(rawEquipment)}
+    />
+  );
+}
+
+function GymSettingsTab() {
+  useGymSettingsBootstrapBridge();
+
+  const { profile, membershipPlans: plans = [] } = useGym(
+    "profile",
+    "membershipPlans",
+  );
+
+  if (!profile) {
+    return null;
+  }
+
+  return <GymSettingsPage profile={profile} plans={plans} />;
+}
+
+function GymGamificationTab() {
+  useGymBootstrapBridge(["profile"]);
+
+  const profile = useGym("profile");
+
+  if (!profile) {
+    return null;
+  }
+
+  return <GymGamificationPage profile={profile} />;
+}
+
+function GymHomeContent() {
   const router = useRouter();
-  const { activeGymId } = useGymsList();
-  const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
-  const { isAdmin, role } = useUserSession();
+  const { isAdmin, role, hasResolvedSession } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
-  useGymInitializer();
-  useLoadPrioritizedGym({ onlyPriorities: true });
 
-  // Hidratacao inicial vinda do server para evitar tela vazia
-  // e permitir transicao para runtime client-driven.
-  useEffect(() => {
-    if (
-      initialProfile ||
-      initialStats ||
-      initialStudents.length > 0 ||
-      initialEquipment.length > 0
-    ) {
-      hydrateInitial({
-        profile: initialProfile,
-        stats: initialStats,
-        students: initialStudents,
-        equipment: initialEquipment,
-        financialSummary: initialFinancialSummary,
-        recentCheckIns: initialRecentCheckIns || [],
-        membershipPlans: initialPlans,
-        payments: initialPayments,
-        expenses: initialExpenses,
-      });
-    }
-  }, [
-    hydrateInitial,
-    initialProfile,
-    initialStats,
-    initialStudents,
-    initialEquipment,
-    initialFinancialSummary,
-    initialRecentCheckIns,
-    initialPlans,
-    initialPayments,
-    initialExpenses,
-  ]);
-
-  const store = useGymUnifiedStore((state) => state.data);
-
-  const storeStudents = store.students ?? [];
-  const storeEquipment = store.equipment ?? [];
-  const storeRecentCheckIns = store.recentCheckIns ?? [];
-  const storeMembershipPlans = store.membershipPlans ?? [];
-  const storePayments = store.payments ?? [];
-  const storeExpenses = store.expenses ?? [];
-
-  const profile = store.profile ?? initialProfile;
-  const stats = store.stats ?? initialStats;
-  const students = storeStudents.length > 0 ? storeStudents : initialStudents;
-  const equipment =
-    storeEquipment.length > 0 ? storeEquipment : initialEquipment;
-  const financialSummary = store.financialSummary ?? initialFinancialSummary;
-  const recentCheckIns =
-    storeRecentCheckIns.length > 0
-      ? storeRecentCheckIns
-      : initialRecentCheckIns || [];
-  const plans =
-    storeMembershipPlans.length > 0 ? storeMembershipPlans : initialPlans;
-  const payments = storePayments.length > 0 ? storePayments : initialPayments;
-  const expenses = storeExpenses.length > 0 ? storeExpenses : initialExpenses;
-
-  // Usar valor padrão para evitar problemas de SSR
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
 
-  // Bloquear acesso à gamificação para não-admin (redireciona e não renderiza)
   useEffect(() => {
-    if (tab === "gamification" && !userIsAdmin) {
+    if (tab === "gamification" && hasResolvedSession && !userIsAdmin) {
       router.replace("/gym?tab=dashboard");
     }
-  }, [tab, userIsAdmin, router]);
+  }, [hasResolvedSession, tab, userIsAdmin, router]);
 
-  // key força remount ao trocar academia, evitando estado desatualizado
   return (
-    <div key={activeGymId || "gym"} className="px-4 py-6">
-      {tab === "dashboard" && profile && stats && (
-        <GymDashboardPage
-          profile={profile}
-          stats={stats}
-          students={students}
-          equipment={equipment}
-          recentCheckIns={recentCheckIns}
-          subscription={initialSubscription}
-        />
-      )}
-      {tab === "students" && <GymStudentsPage students={students ?? []} />}
-      {tab === "equipment" && <GymEquipmentPage equipment={equipment} />}
-      {tab === "financial" && (
-        <GymFinancialPage
-          financialSummary={financialSummary}
-          payments={payments}
-          coupons={initialCoupons}
-          campaigns={initialCampaigns}
-          plans={plans}
-          expenses={expenses}
-          balanceReais={initialBalanceWithdraws?.balanceReais ?? 0}
-          balanceCents={initialBalanceWithdraws?.balanceCents ?? 0}
-          withdraws={initialBalanceWithdraws?.withdraws ?? []}
-          subscription={initialSubscription}
-        />
-      )}
-      {tab === "stats" && stats && (
-        <GymStatsPage stats={stats} equipment={equipment} />
-      )}
-      {tab === "settings" && profile && (
-        <GymSettingsPage profile={profile} plans={plans} />
-      )}
-      {tab === "gamification" && profile && userIsAdmin && (
-        <GymGamificationPage profile={profile} />
-      )}
+    <div className="px-4 py-6">
+      {tab === "dashboard" && <GymDashboardTab />}
+      {tab === "students" && <GymStudentsTab />}
+      {tab === "equipment" && <GymEquipmentTab />}
+      {tab === "financial" && <GymFinancialTab />}
+      {tab === "stats" && <GymStatsTab />}
+      {tab === "settings" && <GymSettingsTab />}
+      {tab === "gamification" &&
+        (userIsAdmin ? <GymGamificationTab /> : null)}
       {tab === "more" && <GymMoreMenu.Simple />}
     </div>
   );
 }
 
-export default function GymHome({
-  initialProfile,
-  initialStats,
-  initialStudents,
-  initialEquipment,
-  initialFinancialSummary,
-  initialRecentCheckIns,
-  initialPlans,
-  initialPayments,
-  initialExpenses,
-  initialBalanceWithdraws,
-  initialCoupons,
-  initialCampaigns,
-  initialSubscription,
-}: GymHomeContentProps) {
+export default function GymHome() {
   return (
     <Suspense
       fallback={
@@ -223,21 +198,7 @@ export default function GymHome({
         </div>
       }
     >
-      <GymHomeContent
-        initialProfile={initialProfile}
-        initialStats={initialStats}
-        initialStudents={initialStudents}
-        initialEquipment={initialEquipment}
-        initialFinancialSummary={initialFinancialSummary}
-        initialRecentCheckIns={initialRecentCheckIns}
-        initialPlans={initialPlans}
-        initialPayments={initialPayments}
-        initialExpenses={initialExpenses}
-        initialBalanceWithdraws={initialBalanceWithdraws}
-        initialCoupons={initialCoupons}
-        initialCampaigns={initialCampaigns}
-        initialSubscription={initialSubscription}
-      />
+      <GymHomeContent />
     </Suspense>
   );
 }

@@ -4,7 +4,6 @@ import { Calendar, Clock, Dumbbell, Loader2, Moon, Trophy } from "lucide-react";
 import { useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { EditUnitModal } from "@/components/organisms/modals/edit-unit-modal";
-import { apiClient } from "@/lib/api/client";
 import { WorkoutPreviewCard } from "@/components/organisms/modals/workout-preview-card";
 import type {
   PlanSlotData,
@@ -168,13 +167,8 @@ export function WorkoutsTab({
   };
 
   const handleOpenEditor = async () => {
-    if (!weeklyPlan) {
-      if (onCreateWeeklyPlan) {
-        await onCreateWeeklyPlan();
-      } else {
-        await apiClient.post(`/api/gym/students/${student.id}/weekly-plan`, {});
-        await onReloadWeeklyPlan?.();
-      }
+    if (!weeklyPlan && onCreateWeeklyPlan) {
+      await onCreateWeeklyPlan();
     }
     setModalOpen(true);
   };

@@ -2,12 +2,12 @@
 
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { UserLocationMarker } from "./user-location-marker";
-import { GymMarker } from "./gym-marker";
 import type { GymLocation } from "@/lib/types";
+import { GymMarker } from "./gym-marker";
+import { UserLocationMarker } from "./user-location-marker";
 
-const DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333];
-const DEFAULT_ZOOM = 13;
+const _DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333];
+const _DEFAULT_ZOOM = 13;
 
 interface MapContainerComponentProps {
   center: [number, number];

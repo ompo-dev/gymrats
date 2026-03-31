@@ -3,7 +3,7 @@
   "info": {
     "title": "Fitness App API",
     "version": "1.0.0",
-    "description": "API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais",
+    "description": "API completa para o sistema de fitness com autentica��o, gerenciamento de usu�rios e muito mais",
     "contact": {
       "name": "Suporte API",
       "email": "suporte@fitnessapp.com"
@@ -17,12 +17,12 @@
   ],
   "tags": [
     {
-      "name": "Autenticação",
-      "description": "Endpoints de autenticação e sessão"
+      "name": "Autentica��o",
+      "description": "Endpoints de autentica��o e sess�o"
     },
     {
-      "name": "Usuários",
-      "description": "Gerenciamento de usuários"
+      "name": "Usu�rios",
+      "description": "Gerenciamento de usu�rios"
     },
     {
       "name": "Students",
@@ -34,11 +34,11 @@
     },
     {
       "name": "Workouts",
-      "description": "Endpoints de treinos e exercícios"
+      "description": "Endpoints de treinos e exerc�cios"
     },
     {
       "name": "Nutrition",
-      "description": "Endpoints de nutrição"
+      "description": "Endpoints de nutri��o"
     },
     {
       "name": "Foods",
@@ -93,34 +93,34 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "ID único do usuário"
+            "description": "ID único do usu�rio"
           },
           "email": {
             "type": "string",
             "format": "email",
-            "description": "Email do usuário"
+            "description": "Email do usu�rio"
           },
           "name": {
             "type": "string",
-            "description": "Nome completo do usuário"
+            "description": "Nome completo do usu�rio"
           },
           "role": {
             "type": "string",
             "enum": ["STUDENT", "GYM", "ADMIN"],
-            "description": "Role do usuário (fonte da verdade)"
+            "description": "Role do usu�rio (fonte da verdade)"
           },
           "hasGym": {
             "type": "boolean",
-            "description": "Se o usuário tem perfil de academia"
+            "description": "Se o usu�rio tem perfil de academia"
           },
           "hasStudent": {
             "type": "boolean",
-            "description": "Se o usuário tem perfil de aluno"
+            "description": "Se o usu�rio tem perfil de aluno"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Data de criação do usuário (ISO 8601)",
+            "description": "Data de cria��o do usu�rio (ISO 8601)",
             "example": "2025-12-27T23:56:23.743Z"
           }
         }
@@ -130,11 +130,11 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "ID da sessão"
+            "description": "ID da sess�o"
           },
           "token": {
             "type": "string",
-            "description": "Token de sessão"
+            "description": "Token de sess�o"
           }
         }
       },
@@ -161,7 +161,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "example": "João Silva"
+            "example": "Jo�o Silva"
           },
           "email": {
             "type": "string",
@@ -199,7 +199,7 @@
           "code": {
             "type": "string",
             "pattern": "^\\d{6}$",
-            "description": "Código de 6 dígitos",
+            "description": "C�digo de 6 d�gitos",
             "example": "123456"
           }
         }
@@ -216,7 +216,7 @@
           "code": {
             "type": "string",
             "pattern": "^\\d{6}$",
-            "description": "Código de 6 dígitos",
+            "description": "C�digo de 6 d�gitos",
             "example": "123456"
           },
           "newPassword": {
@@ -233,12 +233,12 @@
         "properties": {
           "userId": {
             "type": "string",
-            "description": "ID do usuário"
+            "description": "ID do usu�rio"
           },
           "role": {
             "type": "string",
             "enum": ["STUDENT", "GYM", "ADMIN"],
-            "description": "Nova role do usuário"
+            "description": "Nova role do usu�rio"
           }
         }
       },
@@ -282,12 +282,12 @@
           },
           "weeklyWorkoutFrequency": {
             "type": "number",
-            "description": "Frequência semanal de treinos",
+            "description": "Frequ�ncia semanal de treinos",
             "nullable": true
           },
           "workoutDuration": {
             "type": "number",
-            "description": "Duração do treino em minutos",
+            "description": "Dura��o do treino em minutos",
             "nullable": true
           },
           "goals": {
@@ -315,22 +315,22 @@
           },
           "bmr": {
             "type": "number",
-            "description": "Taxa metabólica basal (kcal/dia)",
+            "description": "Taxa metab�lica basal (kcal/dia)",
             "nullable": true
           },
           "tdee": {
             "type": "number",
-            "description": "Gasto energético total diário (kcal/dia)",
+            "description": "Gasto energ�tico total di�rio (kcal/dia)",
             "nullable": true
           },
           "targetCalories": {
             "type": "number",
-            "description": "Calorias alvo diárias",
+            "description": "Calorias alvo di�rias",
             "nullable": true
           },
           "targetProtein": {
             "type": "number",
-            "description": "Proteína alvo (gramas)",
+            "description": "Prote�na alvo (gramas)",
             "nullable": true
           },
           "targetCarbs": {
@@ -345,7 +345,7 @@
           },
           "activityLevel": {
             "type": "number",
-            "description": "Nível de atividade física (1-10)",
+            "description": "N�vel de atividade f�sica (1-10)",
             "minimum": 1,
             "maximum": 10,
             "nullable": true
@@ -360,7 +360,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Limitações físicas",
+            "description": "Limita��es f�sicas",
             "nullable": true
           },
           "motorLimitations": {
@@ -368,7 +368,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Limitações motoras",
+            "description": "Limita��es motoras",
             "nullable": true
           },
           "medicalConditions": {
@@ -376,17 +376,17 @@
             "items": {
               "type": "string"
             },
-            "description": "Condições médicas",
+            "description": "Condi��es m�dicas",
             "nullable": true
           },
           "limitationDetails": {
             "type": "object",
-            "description": "Detalhes das limitações (JSON object)",
+            "description": "Detalhes das limita��es (JSON object)",
             "nullable": true
           },
           "dailyAvailableHours": {
             "type": "number",
-            "description": "Horas disponíveis por dia para treino (0.5-24)",
+            "description": "Horas dispon�veis por dia para treino (0.5-24)",
             "nullable": true
           },
           "injuries": {
@@ -394,7 +394,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Lesões/limitações (campo legado)",
+            "description": "Les�es/limita��es (campo legado)",
             "nullable": true
           }
         }
@@ -423,7 +423,7 @@
           },
           "isTrans": {
             "type": "boolean",
-            "description": "Se a pessoa é transgênero",
+            "description": "Se a pessoa � transg�nero",
             "nullable": true
           },
           "usesHormones": {
@@ -434,7 +434,7 @@
           "hormoneType": {
             "type": "string",
             "enum": ["testosterone", "estrogen", "none"],
-            "description": "Tipo de hormônio usado",
+            "description": "Tipo de horm�nio usado",
             "nullable": true
           }
         }
@@ -537,11 +537,11 @@
           },
           "sets": {
             "type": "number",
-            "description": "Número de séries (baseado em preferredSets do onboarding)"
+            "description": "Número de s�ries (baseado em preferredSets do onboarding)"
           },
           "reps": {
             "type": "string",
-            "description": "Faixa de repetições (baseado em preferredRepRange do onboarding)"
+            "description": "Faixa de repeti��es (baseado em preferredRepRange do onboarding)"
           },
           "rest": {
             "type": "number",
@@ -558,7 +558,7 @@
           "educationalId": {
             "type": "string",
             "nullable": true,
-            "description": "ID do exercício no educational database"
+            "description": "ID do exerc�cio no educational database"
           },
           "order": {
             "type": "number"
@@ -569,7 +569,7 @@
               "type": "string"
             },
             "nullable": true,
-            "description": "Músculos primários (JSON array)"
+            "description": "Músculos prim�rios (JSON array)"
           },
           "secondaryMuscles": {
             "type": "array",
@@ -577,13 +577,13 @@
               "type": "string"
             },
             "nullable": true,
-            "description": "Músculos secundários (JSON array)"
+            "description": "Músculos secund�rios (JSON array)"
           },
           "difficulty": {
             "type": "string",
             "enum": ["iniciante", "intermediario", "avancado"],
             "nullable": true,
-            "description": "Nível de dificuldade"
+            "description": "N�vel de dificuldade"
           },
           "equipment": {
             "type": "array",
@@ -591,7 +591,7 @@
               "type": "string"
             },
             "nullable": true,
-            "description": "Equipamentos necessários (JSON array)"
+            "description": "Equipamentos necess�rios (JSON array)"
           },
           "instructions": {
             "type": "array",
@@ -599,7 +599,7 @@
               "type": "string"
             },
             "nullable": true,
-            "description": "Instruções passo a passo (JSON array)"
+            "description": "Instru��es passo a passo (JSON array)"
           },
           "tips": {
             "type": "array",
@@ -607,7 +607,7 @@
               "type": "string"
             },
             "nullable": true,
-            "description": "Dicas de execução (JSON array)"
+            "description": "Dicas de execu��o (JSON array)"
           },
           "commonMistakes": {
             "type": "array",
@@ -623,12 +623,12 @@
               "type": "string"
             },
             "nullable": true,
-            "description": "Benefícios do exercício (JSON array)"
+            "description": "Benef�cios do exerc�cio (JSON array)"
           },
           "scientificEvidence": {
             "type": "string",
             "nullable": true,
-            "description": "Evidência científica"
+            "description": "Evid�ncia cient�fica"
           },
           "alternatives": {
             "type": "array",
@@ -636,7 +636,7 @@
               "$ref": "#/components/schemas/AlternativeExercise"
             },
             "nullable": true,
-            "description": "Exercícios alternativos para este exercício"
+            "description": "Exerc�cios alternativos para este exerc�cio"
           },
           "createdAt": {
             "type": "string",
@@ -658,16 +658,16 @@
           },
           "name": {
             "type": "string",
-            "description": "Nome do exercício alternativo"
+            "description": "Nome do exerc�cio alternativo"
           },
           "reason": {
             "type": "string",
-            "description": "Motivo da alternativa (ex: 'Sem equipamento disponível', 'Menor impacto nas articulações')"
+            "description": "Motivo da alternativa (ex: 'Sem equipamento dispon�vel', 'Menor impacto nas articula��es')"
           },
           "educationalId": {
             "type": "string",
             "nullable": true,
-            "description": "ID do exercício no database educacional"
+            "description": "ID do exerc�cio no database educacional"
           }
         }
       },
@@ -916,40 +916,40 @@
     },
     "responses": {
       "UnauthorizedError": {
-        "description": "Não autenticado ou sessão inválida",
+        "description": "N�o autenticado ou sess�o inv�lida",
         "content": {
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
             },
             "example": {
-              "error": "Não autenticado"
+              "error": "N�o autenticado"
             }
           }
         }
       },
       "BadRequestError": {
-        "description": "Dados inválidos",
+        "description": "Dados inv�lidos",
         "content": {
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
             },
             "example": {
-              "error": "Dados inválidos"
+              "error": "Dados inv�lidos"
             }
           }
         }
       },
       "NotFoundError": {
-        "description": "Recurso não encontrado",
+        "description": "Recurso n�o encontrado",
         "content": {
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
             },
             "example": {
-              "error": "Recurso não encontrado"
+              "error": "Recurso n�o encontrado"
             }
           }
         }
@@ -965,7 +965,7 @@
         }
       },
       "SuccessResponse": {
-        "description": "Operação realizada com sucesso",
+        "description": "Opera��o realizada com sucesso",
         "content": {
           "application/json": {
             "schema": {
@@ -977,51 +977,6 @@
     }
   },
   "paths": {
-    "/api/students/all": {
-      "get": {
-        "tags": ["Students"],
-        "summary": "Buscar todos os dados do student",
-        "description": "Retorna todos os dados do student ou seções específicas via query params",
-        "operationId": "getAllStudentData",
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "sections",
-            "in": "query",
-            "description": "Seções específicas para buscar (ex: progress,profile,workouts)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Dados do student",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        }
-      }
-    },
     "/api/students/profile": {
       "get": {
         "tags": ["Students"],
@@ -1102,8 +1057,8 @@
     "/api/students/weight": {
       "get": {
         "tags": ["Students"],
-        "summary": "Buscar histórico de peso",
-        "description": "Retorna histórico de peso com paginação",
+        "summary": "Buscar hist�rico de peso",
+        "description": "Retorna hist�rico de peso com pagina��o",
         "operationId": "getWeightHistory",
         "security": [
           {
@@ -1133,7 +1088,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Histórico de peso",
+            "description": "Hist�rico de peso",
             "content": {
               "application/json": {
                 "schema": {
@@ -1288,8 +1243,8 @@
     "/api/students/student": {
       "get": {
         "tags": ["Students"],
-        "summary": "Buscar informações básicas do student",
-        "description": "Retorna informações básicas (id, age, gender, phone, avatar)",
+        "summary": "Buscar informa��es b�sicas do student",
+        "description": "Retorna informa��es b�sicas (id, age, gender, phone, avatar)",
         "operationId": "getStudentInfo",
         "security": [
           {
@@ -1301,7 +1256,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Informações do student",
+            "description": "Informa��es do student",
             "content": {
               "application/json": {
                 "schema": {
@@ -1328,7 +1283,7 @@
                     },
                     "isTrans": {
                       "type": "boolean",
-                      "description": "Se a pessoa é transgênero",
+                      "description": "Se a pessoa � transg�nero",
                       "nullable": true
                     },
                     "usesHormones": {
@@ -1339,7 +1294,7 @@
                     "hormoneType": {
                       "type": "string",
                       "enum": ["testosterone", "estrogen", "none"],
-                      "description": "Tipo de hormônio usado",
+                      "description": "Tipo de horm�nio usado",
                       "nullable": true
                     }
                   }
@@ -1562,8 +1517,8 @@
     "/api/gyms/list": {
       "get": {
         "tags": ["Gyms"],
-        "summary": "Listar academias do usuário",
-        "description": "Retorna todas as academias do usuário autenticado",
+        "summary": "Listar academias do usu�rio",
+        "description": "Retorna todas as academias do usu�rio autenticado",
         "operationId": "listGyms",
         "security": [
           {
@@ -1608,7 +1563,7 @@
       "post": {
         "tags": ["Gyms"],
         "summary": "Criar nova academia",
-        "description": "Cria uma nova academia para o usuário",
+        "description": "Cria uma nova academia para o usu�rio",
         "operationId": "createGym",
         "security": [
           {
@@ -1676,7 +1631,7 @@
       "get": {
         "tags": ["Gyms"],
         "summary": "Buscar perfil da academia",
-        "description": "Retorna o perfil completo da academia do usuário autenticado",
+        "description": "Retorna o perfil completo da academia do usu�rio autenticado",
         "operationId": "getGymProfile",
         "security": [
           {
@@ -1741,7 +1696,7 @@
       "post": {
         "tags": ["Gyms"],
         "summary": "Definir academia ativa",
-        "description": "Define qual academia será usada como ativa para o usuário",
+        "description": "Define qual academia ser� usada como ativa para o usu�rio",
         "operationId": "setActiveGym",
         "security": [
           {
@@ -1786,8 +1741,8 @@
     "/api/gyms/locations": {
       "get": {
         "tags": ["Gyms"],
-        "summary": "Buscar localizações das academias",
-        "description": "Retorna as localizações (endereços) de todas as academias do usuário",
+        "summary": "Buscar localiza��es das academias",
+        "description": "Retorna as localiza��es (endere�os) de todas as academias do usu�rio",
         "operationId": "getGymLocations",
         "security": [
           {
@@ -1799,7 +1754,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de localizações",
+            "description": "Lista de localiza��es",
             "content": {
               "application/json": {
                 "schema": {
@@ -1843,7 +1798,7 @@
       "get": {
         "tags": ["Workouts"],
         "summary": "Buscar units e workouts",
-        "description": "Retorna todas as units com workouts, exercícios e status de conclusão",
+        "description": "Retorna todas as units com workouts, exerc�cios e status de conclus�o",
         "operationId": "getUnits",
         "security": [
           {
@@ -1959,7 +1914,7 @@
       "post": {
         "tags": ["Workouts"],
         "summary": "Gerar treinos personalizados",
-        "description": "Gera treinos personalizados para o aluno baseado em seus dados do onboarding. Cria um plano mensal (4 semanas) com workouts personalizados considerando objetivos, limitações, equipamentos disponíveis e preferências.",
+        "description": "Gera treinos personalizados para o aluno baseado em seus dados do onboarding. Cria um plano mensal (4 semanas) com workouts personalizados considerando objetivos, limita��es, equipamentos dispon�veis e prefer�ncias.",
         "operationId": "generatePersonalizedWorkouts",
         "security": [
           {
@@ -1995,7 +1950,7 @@
             "$ref": "#/components/responses/UnauthorizedError"
           },
           "404": {
-            "description": "Perfil do aluno não encontrado",
+            "description": "Perfil do aluno n�o encontrado",
             "content": {
               "application/json": {
                 "schema": {
@@ -2019,8 +1974,8 @@
       },
       "patch": {
         "tags": ["Workouts"],
-        "summary": "Atualizar exercícios com alternativas",
-        "description": "Atualiza exercícios existentes nos treinos do aluno adicionando alternativas. Útil para adicionar alternativas a treinos que foram gerados antes da implementação de alternativas automáticas.",
+        "summary": "Atualizar exerc�cios com alternativas",
+        "description": "Atualiza exerc�cios existentes nos treinos do aluno adicionando alternativas. �til para adicionar alternativas a treinos que foram gerados antes da implementa��o de alternativas autom�ticas.",
         "operationId": "updateExercisesWithAlternatives",
         "security": [
           {
@@ -2032,7 +1987,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Alternativas adicionadas aos exercícios com sucesso",
+            "description": "Alternativas adicionadas aos exerc�cios com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -2127,7 +2082,7 @@
       "get": {
         "tags": ["Workouts"],
         "summary": "Buscar progresso do workout",
-        "description": "Retorna o progresso salvo de um workout específico",
+        "description": "Retorna o progresso salvo de um workout espec�fico",
         "operationId": "getWorkoutProgress",
         "security": [
           {
@@ -2335,8 +2290,8 @@
     "/api/workouts/history": {
       "get": {
         "tags": ["Workouts"],
-        "summary": "Buscar histórico de workouts",
-        "description": "Retorna o histórico de workouts completados pelo student",
+        "summary": "Buscar hist�rico de workouts",
+        "description": "Retorna o hist�rico de workouts completados pelo student",
         "operationId": "getWorkoutHistory",
         "security": [
           {
@@ -2366,7 +2321,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Histórico de workouts",
+            "description": "Hist�rico de workouts",
             "content": {
               "application/json": {
                 "schema": {
@@ -2673,7 +2628,7 @@
       "delete": {
         "tags": ["Workouts"],
         "summary": "Deletar workout",
-        "description": "Remove um workout e todos os seus exercícios",
+        "description": "Remove um workout e todos os seus exerc�cios",
         "operationId": "deleteWorkout",
         "security": [
           {
@@ -2709,8 +2664,8 @@
     "/api/workouts/exercises": {
       "post": {
         "tags": ["Workouts"],
-        "summary": "Adicionar exercício ao workout",
-        "description": "Adiciona um novo exercício a um workout",
+        "summary": "Adicionar exerc�cio ao workout",
+        "description": "Adiciona um novo exerc�cio a um workout",
         "operationId": "addWorkoutExercise",
         "security": [
           {
@@ -2827,8 +2782,8 @@
     "/api/workouts/exercises/{id}": {
       "put": {
         "tags": ["Workouts"],
-        "summary": "Atualizar exercício",
-        "description": "Atualiza um exercício existente em um workout",
+        "summary": "Atualizar exerc�cio",
+        "description": "Atualiza um exerc�cio existente em um workout",
         "operationId": "updateWorkoutExercise",
         "security": [
           {
@@ -2949,8 +2904,8 @@
       },
       "delete": {
         "tags": ["Workouts"],
-        "summary": "Deletar exercício",
-        "description": "Remove um exercício de um workout",
+        "summary": "Deletar exerc�cio",
+        "description": "Remove um exerc�cio de um workout",
         "operationId": "deleteWorkoutExercise",
         "security": [
           {
@@ -2986,8 +2941,8 @@
     "/api/exercises/search": {
       "get": {
         "tags": ["Workouts"],
-        "summary": "Buscar exercícios",
-        "description": "Busca exercícios do banco educacional com filtros opcionais",
+        "summary": "Buscar exerc�cios",
+        "description": "Busca exerc�cios do banco educacional com filtros opcionais",
         "operationId": "searchExercises",
         "security": [
           {
@@ -3001,7 +2956,7 @@
           {
             "name": "q",
             "in": "query",
-            "description": "Termo de busca (nome do exercício)",
+            "description": "Termo de busca (nome do exerc�cio)",
             "schema": {
               "type": "string"
             }
@@ -3036,7 +2991,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de exercícios",
+            "description": "Lista de exerc�cios",
             "content": {
               "application/json": {
                 "schema": {
@@ -3181,7 +3136,7 @@
       "post": {
         "tags": ["Subscriptions"],
         "summary": "Iniciar trial",
-        "description": "Inicia um período de trial gratuito para o student",
+        "description": "Inicia um per�odo de trial gratuito para o student",
         "operationId": "startTrial",
         "security": [
           {
@@ -3354,7 +3309,7 @@
       "post": {
         "tags": ["Gym Subscriptions"],
         "summary": "Iniciar trial para gym",
-        "description": "Inicia um período de trial gratuito para a gym",
+        "description": "Inicia um per�odo de trial gratuito para a gym",
         "operationId": "startGymTrial",
         "security": [
           {
@@ -3428,8 +3383,8 @@
     "/api/payments": {
       "get": {
         "tags": ["Payments"],
-        "summary": "Buscar histórico de pagamentos",
-        "description": "Retorna histórico de pagamentos do student",
+        "summary": "Buscar hist�rico de pagamentos",
+        "description": "Retorna hist�rico de pagamentos do student",
         "operationId": "getPayments",
         "security": [
           {
@@ -3459,7 +3414,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Histórico de pagamentos",
+            "description": "Hist�rico de pagamentos",
             "content": {
               "application/json": {
                 "schema": {
@@ -3488,8 +3443,8 @@
     "/api/payment-methods": {
       "get": {
         "tags": ["Payments"],
-        "summary": "Buscar métodos de pagamento",
-        "description": "Retorna métodos de pagamento do usuário",
+        "summary": "Buscar m�todos de pagamento",
+        "description": "Retorna m�todos de pagamento do usu�rio",
         "operationId": "getPaymentMethods",
         "security": [
           {
@@ -3501,7 +3456,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Métodos de pagamento",
+            "description": "M�todos de pagamento",
             "content": {
               "application/json": {
                 "schema": {
@@ -3537,8 +3492,8 @@
       },
       "post": {
         "tags": ["Payments"],
-        "summary": "Adicionar método de pagamento",
-        "description": "Adiciona um novo método de pagamento",
+        "summary": "Adicionar m�todo de pagamento",
+        "description": "Adiciona um novo m�todo de pagamento",
         "operationId": "addPaymentMethod",
         "security": [
           {
@@ -3584,8 +3539,8 @@
     "/api/workouts/history/{historyId}/exercises/{exerciseId}": {
       "put": {
         "tags": ["Workouts"],
-        "summary": "Atualizar exercício em workout completado",
-        "description": "Atualiza um exercício específico em um workout já completado. Útil para corrigir carga, séries ou outros dados que foram registrados incorretamente.",
+        "summary": "Atualizar exerc�cio em workout completado",
+        "description": "Atualiza um exerc�cio espec�fico em um workout j� completado. �til para corrigir carga, s�ries ou outros dados que foram registrados incorretamente.",
         "operationId": "updateExerciseLog",
         "security": [
           {
@@ -3600,7 +3555,7 @@
             "name": "historyId",
             "in": "path",
             "required": true,
-            "description": "ID do histórico do workout",
+            "description": "ID do hist�rico do workout",
             "schema": {
               "type": "string"
             }
@@ -3609,7 +3564,7 @@
             "name": "exerciseId",
             "in": "path",
             "required": true,
-            "description": "ID do exercício (ExerciseLog)",
+            "description": "ID do exerc�cio (ExerciseLog)",
             "schema": {
               "type": "string"
             }
@@ -3624,7 +3579,7 @@
                 "properties": {
                   "sets": {
                     "type": "array",
-                    "description": "Array de séries do exercício",
+                    "description": "Array de s�ries do exerc�cio",
                     "items": {
                       "type": "object",
                       "properties": {
@@ -3634,11 +3589,11 @@
                         },
                         "reps": {
                           "type": "number",
-                          "description": "Número de repetições"
+                          "description": "Número de repeti��es"
                         },
                         "completed": {
                           "type": "boolean",
-                          "description": "Se a série foi completada"
+                          "description": "Se a s�rie foi completada"
                         },
                         "rest": {
                           "type": "number",
@@ -3650,12 +3605,12 @@
                   "notes": {
                     "type": "string",
                     "nullable": true,
-                    "description": "Notas sobre o exercício"
+                    "description": "Notas sobre o exerc�cio"
                   },
                   "formCheckScore": {
                     "type": "number",
                     "nullable": true,
-                    "description": "Pontuação da forma (0-100)",
+                    "description": "Pontua��o da forma (0-100)",
                     "minimum": 0,
                     "maximum": 100
                   },
@@ -3663,7 +3618,7 @@
                     "type": "string",
                     "nullable": true,
                     "description": "Dificuldade percebida",
-                    "enum": ["fácil", "médio", "difícil"]
+                    "enum": ["f�cil", "m�dio", "dif�cil"]
                   }
                 }
               },
@@ -3690,14 +3645,14 @@
                 ],
                 "notes": "Corrigido: carga estava errada",
                 "formCheckScore": 85,
-                "difficulty": "médio"
+                "difficulty": "m�dio"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Exercício atualizado com sucesso",
+            "description": "Exerc�cio atualizado com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -3757,8 +3712,8 @@
       },
       "patch": {
         "tags": ["Workouts"],
-        "summary": "Atualizar exercício em workout completado (parcial)",
-        "description": "Atualiza parcialmente um exercício específico em um workout já completado. Permite atualizar apenas os campos fornecidos.",
+        "summary": "Atualizar exerc�cio em workout completado (parcial)",
+        "description": "Atualiza parcialmente um exerc�cio espec�fico em um workout j� completado. Permite atualizar apenas os campos fornecidos.",
         "operationId": "updateExerciseLogPartial",
         "security": [
           {
@@ -3773,7 +3728,7 @@
             "name": "historyId",
             "in": "path",
             "required": true,
-            "description": "ID do histórico do workout",
+            "description": "ID do hist�rico do workout",
             "schema": {
               "type": "string"
             }
@@ -3782,7 +3737,7 @@
             "name": "exerciseId",
             "in": "path",
             "required": true,
-            "description": "ID do exercício (ExerciseLog)",
+            "description": "ID do exerc�cio (ExerciseLog)",
             "schema": {
               "type": "string"
             }
@@ -3821,7 +3776,7 @@
         },
         "responses": {
           "200": {
-            "description": "Exercício atualizado com sucesso",
+            "description": "Exerc�cio atualizado com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -3856,8 +3811,8 @@
     "/api/workouts/{id}/progress/exercises/{exerciseId}": {
       "put": {
         "tags": ["Workouts"],
-        "summary": "Atualizar exercício no progresso atual",
-        "description": "Atualiza um exercício específico no progresso atual de um workout em andamento. Útil para corrigir carga, séries ou outros dados antes de completar o workout.",
+        "summary": "Atualizar exerc�cio no progresso atual",
+        "description": "Atualiza um exerc�cio espec�fico no progresso atual de um workout em andamento. �til para corrigir carga, s�ries ou outros dados antes de completar o workout.",
         "operationId": "updateWorkoutProgressExercise",
         "security": [
           {
@@ -3881,7 +3836,7 @@
             "name": "exerciseId",
             "in": "path",
             "required": true,
-            "description": "ID do exercício (exerciseId ou id do log)",
+            "description": "ID do exerc�cio (exerciseId ou id do log)",
             "schema": {
               "type": "string"
             }
@@ -3896,7 +3851,7 @@
                 "properties": {
                   "sets": {
                     "type": "array",
-                    "description": "Array de séries do exercício",
+                    "description": "Array de s�ries do exerc�cio",
                     "items": {
                       "type": "object",
                       "properties": {
@@ -3906,11 +3861,11 @@
                         },
                         "reps": {
                           "type": "number",
-                          "description": "Número de repetições"
+                          "description": "Número de repeti��es"
                         },
                         "completed": {
                           "type": "boolean",
-                          "description": "Se a série foi completada"
+                          "description": "Se a s�rie foi completada"
                         },
                         "rest": {
                           "type": "number",
@@ -3922,12 +3877,12 @@
                   "notes": {
                     "type": "string",
                     "nullable": true,
-                    "description": "Notas sobre o exercício"
+                    "description": "Notas sobre o exerc�cio"
                   },
                   "formCheckScore": {
                     "type": "number",
                     "nullable": true,
-                    "description": "Pontuação da forma (0-100)",
+                    "description": "Pontua��o da forma (0-100)",
                     "minimum": 0,
                     "maximum": 100
                   },
@@ -3935,7 +3890,7 @@
                     "type": "string",
                     "nullable": true,
                     "description": "Dificuldade percebida",
-                    "enum": ["fácil", "médio", "difícil"]
+                    "enum": ["f�cil", "m�dio", "dif�cil"]
                   }
                 }
               },
@@ -3961,7 +3916,7 @@
         },
         "responses": {
           "200": {
-            "description": "Exercício atualizado com sucesso",
+            "description": "Exerc�cio atualizado com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -3969,7 +3924,7 @@
                   "properties": {
                     "exerciseLog": {
                       "type": "object",
-                      "description": "Exercício atualizado"
+                      "description": "Exerc�cio atualizado"
                     },
                     "totalVolume": {
                       "type": "number",
@@ -3996,8 +3951,8 @@
       },
       "patch": {
         "tags": ["Workouts"],
-        "summary": "Atualizar exercício no progresso atual (parcial)",
-        "description": "Atualiza parcialmente um exercício específico no progresso atual de um workout em andamento. Permite atualizar apenas os campos fornecidos.",
+        "summary": "Atualizar exerc�cio no progresso atual (parcial)",
+        "description": "Atualiza parcialmente um exerc�cio espec�fico no progresso atual de um workout em andamento. Permite atualizar apenas os campos fornecidos.",
         "operationId": "updateWorkoutProgressExercisePartial",
         "security": [
           {
@@ -4021,7 +3976,7 @@
             "name": "exerciseId",
             "in": "path",
             "required": true,
-            "description": "ID do exercício (exerciseId ou id do log)",
+            "description": "ID do exerc�cio (exerciseId ou id do log)",
             "schema": {
               "type": "string"
             }
@@ -4060,7 +4015,7 @@
         },
         "responses": {
           "200": {
-            "description": "Exercício atualizado com sucesso",
+            "description": "Exerc�cio atualizado com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -4095,8 +4050,8 @@
     "/api/nutrition/daily": {
       "get": {
         "tags": ["Nutrition"],
-        "summary": "Buscar nutrição do dia",
-        "description": "Retorna a nutrição diária do student, incluindo refeições, totais e metas",
+        "summary": "Buscar nutri��o do dia",
+        "description": "Retorna a nutri��o di�ria do student, incluindo refei��es, totais e metas",
         "operationId": "getDailyNutrition",
         "security": [
           {
@@ -4110,7 +4065,7 @@
           {
             "name": "date",
             "in": "query",
-            "description": "Data no formato ISO (ex: 2024-01-15). Se não fornecido, usa a data atual",
+            "description": "Data no formato ISO (ex: 2024-01-15). Se n�o fornecido, usa a data atual",
             "required": false,
             "schema": {
               "type": "string",
@@ -4120,7 +4075,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Nutrição do dia",
+            "description": "Nutri��o do dia",
             "content": {
               "application/json": {
                 "schema": {
@@ -4131,7 +4086,7 @@
                   "meals": [
                     {
                       "id": "meal_123",
-                      "name": "Café da Manhã",
+                      "name": "Caf� da Manh�",
                       "type": "breakfast",
                       "calories": 450,
                       "protein": 25,
@@ -4178,8 +4133,8 @@
       },
       "post": {
         "tags": ["Nutrition"],
-        "summary": "Atualizar nutrição do dia",
-        "description": "Cria ou atualiza a nutrição diária do student, incluindo refeições e alimentos",
+        "summary": "Atualizar nutri��o do dia",
+        "description": "Cria ou atualiza a nutri��o di�ria do student, incluindo refei��es e alimentos",
         "operationId": "updateDailyNutrition",
         "security": [
           {
@@ -4279,7 +4234,7 @@
                 "date": "2024-01-15T00:00:00.000Z",
                 "meals": [
                   {
-                    "name": "Café da Manhã",
+                    "name": "Caf� da Manh�",
                     "type": "breakfast",
                     "calories": 450,
                     "protein": 25,
@@ -4309,7 +4264,7 @@
         },
         "responses": {
           "200": {
-            "description": "Nutrição atualizada com sucesso",
+            "description": "Nutri��o atualizada com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -4336,8 +4291,8 @@
       },
       "put": {
         "tags": ["Nutrition"],
-        "summary": "Atualizar nutrição do dia (PUT)",
-        "description": "Cria ou atualiza completamente a nutrição diária do student. Útil para substituir todos os dados de uma vez.",
+        "summary": "Atualizar nutri��o do dia (PUT)",
+        "description": "Cria ou atualiza completamente a nutri��o di�ria do student. �til para substituir todos os dados de uma vez.",
         "operationId": "updateDailyNutritionPut",
         "security": [
           {
@@ -4438,7 +4393,7 @@
         },
         "responses": {
           "200": {
-            "description": "Nutrição atualizada com sucesso",
+            "description": "Nutri��o atualizada com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -4465,8 +4420,8 @@
       },
       "patch": {
         "tags": ["Nutrition"],
-        "summary": "Atualizar nutrição do dia (PATCH - parcial)",
-        "description": "Atualiza parcialmente a nutrição diária do student. Permite atualizar apenas os campos fornecidos (ex: apenas waterIntake ou apenas uma refeição específica).",
+        "summary": "Atualizar nutri��o do dia (PATCH - parcial)",
+        "description": "Atualiza parcialmente a nutri��o di�ria do student. Permite atualizar apenas os campos fornecidos (ex: apenas waterIntake ou apenas uma refei��o espec�fica).",
         "operationId": "updateDailyNutritionPatch",
         "security": [
           {
@@ -4490,14 +4445,14 @@
                   },
                   "meals": {
                     "type": "array",
-                    "description": "Array completo de refeições (substitui todas as refeições)",
+                    "description": "Array completo de refei��es (substitui todas as refei��es)",
                     "items": {
                       "type": "object"
                     }
                   },
                   "waterIntake": {
                     "type": "number",
-                    "description": "Apenas atualizar consumo de água"
+                    "description": "Apenas atualizar consumo de �gua"
                   }
                 }
               },
@@ -4509,7 +4464,7 @@
         },
         "responses": {
           "200": {
-            "description": "Nutrição atualizada com sucesso",
+            "description": "Nutri��o atualizada com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -4572,7 +4527,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "Número máximo de resultados",
+            "description": "Número m�ximo de resultados",
             "required": false,
             "schema": {
               "type": "integer",
@@ -4626,7 +4581,7 @@
       "post": {
         "tags": ["Foods"],
         "summary": "Upload de alimentos do CSV TACO",
-        "description": "Faz upload de alimentos a partir do CSV da Tabela Brasileira de Composição de Alimentos (TACO). Requer autenticação ADMIN. Pode enviar um arquivo CSV ou usar o arquivo padrão (public/alimentos.csv).",
+        "description": "Faz upload de alimentos a partir do CSV da Tabela Brasileira de Composi��o de Alimentos (TACO). Requer autentica��o ADMIN. Pode enviar um arquivo CSV ou usar o arquivo padr�o (public/alimentos.csv).",
         "operationId": "uploadFoods",
         "security": [
           {
@@ -4642,16 +4597,16 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Arquivo CSV com os alimentos (opcional, usa public/alimentos.csv se não fornecido)"
+                    "description": "Arquivo CSV com os alimentos (opcional, usa public/alimentos.csv se n�o fornecido)"
                   },
                   "skipDuplicates": {
                     "type": "boolean",
-                    "description": "Se true, não atualiza alimentos existentes (apenas cria novos)",
+                    "description": "Se true, n�o atualiza alimentos existentes (apenas cria novos)",
                     "default": false
                   },
                   "batchSize": {
                     "type": "integer",
-                    "description": "Tamanho do lote para inserção (1-500)",
+                    "description": "Tamanho do lote para inser��o (1-500)",
                     "default": 100,
                     "minimum": 1,
                     "maximum": 500
@@ -4663,7 +4618,7 @@
         },
         "responses": {
           "200": {
-            "description": "Upload concluído com sucesso",
+            "description": "Upload conclu�do com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -4695,7 +4650,7 @@
                   }
                 },
                 "example": {
-                  "message": "Upload de alimentos concluído",
+                  "message": "Upload de alimentos conclu�do",
                   "total": 598,
                   "created": 550,
                   "updated": 48,
@@ -4712,14 +4667,14 @@
             "$ref": "#/components/responses/UnauthorizedError"
           },
           "403": {
-            "description": "Acesso negado - requer permissão ADMIN",
+            "description": "Acesso negado - requer permiss�o ADMIN",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
                 "example": {
-                  "error": "Acesso negado. Requer permissão ADMIN"
+                  "error": "Acesso negado. Requer permiss�o ADMIN"
                 }
               }
             }
@@ -4734,7 +4689,7 @@
       "get": {
         "tags": ["Foods"],
         "summary": "Buscar detalhes de um alimento",
-        "description": "Retorna informações detalhadas de um alimento específico pelo ID",
+        "description": "Retorna informa��es detalhadas de um alimento espec�fico pelo ID",
         "operationId": "getFoodById",
         "parameters": [
           {
@@ -4794,7 +4749,7 @@
       "get": {
         "tags": ["Memberships"],
         "summary": "Buscar memberships de academias",
-        "description": "Retorna todas as memberships (matrículas) do student em academias",
+        "description": "Retorna todas as memberships (matr�culas) do student em academias",
         "operationId": "getMemberships",
         "security": [
           {
@@ -4848,9 +4803,9 @@
     },
     "/api/auth/sign-up": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": ["Autentica��o"],
         "summary": "Criar nova conta",
-        "description": "Registra um novo usuário no sistema. A senha é automaticamente hasheada com bcrypt.",
+        "description": "Registra um novo usu�rio no sistema. A senha � automaticamente hasheada com bcrypt.",
         "operationId": "signUp",
         "requestBody": {
           "required": true,
@@ -4862,7 +4817,7 @@
               "examples": {
                 "student": {
                   "value": {
-                    "name": "João Silva",
+                    "name": "Jo�o Silva",
                     "email": "joao@email.com",
                     "password": "senhaSegura123"
                   }
@@ -4883,7 +4838,7 @@
                   "user": {
                     "id": "clx1234567890",
                     "email": "joao@email.com",
-                    "name": "João Silva",
+                    "name": "Jo�o Silva",
                     "role": "STUDENT"
                   },
                   "session": {
@@ -4894,7 +4849,7 @@
             }
           },
           "400": {
-            "description": "Dados inválidos ou email já cadastrado",
+            "description": "Dados inv�lidos ou email j� cadastrado",
             "content": {
               "application/json": {
                 "schema": {
@@ -4903,17 +4858,17 @@
                 "examples": {
                   "missingFields": {
                     "value": {
-                      "error": "Nome, email e senha são obrigatórios"
+                      "error": "Nome, email e senha s�o obrigat�rios"
                     }
                   },
                   "shortPassword": {
                     "value": {
-                      "error": "A senha deve ter no mínimo 8 caracteres"
+                      "error": "A senha deve ter no m�nimo 8 caracteres"
                     }
                   },
                   "duplicateEmail": {
                     "value": {
-                      "error": "Este email já está cadastrado"
+                      "error": "Este email j� est� cadastrado"
                     }
                   }
                 }
@@ -4935,9 +4890,9 @@
     },
     "/api/auth/sign-in": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": ["Autentica��o"],
         "summary": "Fazer login",
-        "description": "Autentica um usuário e retorna uma sessão. A senha é verificada usando bcrypt.",
+        "description": "Autentica um usu�rio e retorna uma sess�o. A senha � verificada usando bcrypt.",
         "operationId": "signIn",
         "requestBody": {
           "required": true,
@@ -4965,7 +4920,7 @@
                 "schema": {
                   "type": "string"
                 },
-                "description": "Cookie de autenticação (auth_token)"
+                "description": "Cookie de autentica��o (auth_token)"
               }
             },
             "content": {
@@ -4977,7 +4932,7 @@
                   "user": {
                     "id": "clx1234567890",
                     "email": "joao@email.com",
-                    "name": "João Silva",
+                    "name": "Jo�o Silva",
                     "role": "STUDENT",
                     "hasGym": false,
                     "hasStudent": true
@@ -4990,20 +4945,20 @@
             }
           },
           "400": {
-            "description": "Dados inválidos",
+            "description": "Dados inv�lidos",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
                 "example": {
-                  "error": "Email e senha são obrigatórios"
+                  "error": "Email e senha s�o obrigat�rios"
                 }
               }
             }
           },
           "401": {
-            "description": "Credenciais inválidas",
+            "description": "Credenciais inv�lidas",
             "content": {
               "application/json": {
                 "schema": {
@@ -5030,9 +4985,9 @@
     },
     "/api/auth/session": {
       "get": {
-        "tags": ["Autenticação"],
-        "summary": "Verificar sessão",
-        "description": "Retorna informações sobre a sessão atual do usuário autenticado.",
+        "tags": ["Autentica��o"],
+        "summary": "Verificar sess�o",
+        "description": "Retorna informa��es sobre a sess�o atual do usu�rio autenticado.",
         "operationId": "getSession",
         "security": [
           {
@@ -5044,7 +4999,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Sessão válida",
+            "description": "Sess�o v�lida",
             "content": {
               "application/json": {
                 "schema": {
@@ -5054,7 +5009,7 @@
                   "user": {
                     "id": "clx1234567890",
                     "email": "joao@email.com",
-                    "name": "João Silva",
+                    "name": "Jo�o Silva",
                     "role": "STUDENT",
                     "hasGym": false,
                     "hasStudent": true,
@@ -5069,7 +5024,7 @@
             }
           },
           "401": {
-            "description": "Não autenticado ou sessão inválida",
+            "description": "N�o autenticado ou sess�o inv�lida",
             "content": {
               "application/json": {
                 "schema": {
@@ -5078,12 +5033,12 @@
                 "examples": {
                   "noToken": {
                     "value": {
-                      "error": "Token não fornecido"
+                      "error": "Token n�o fornecido"
                     }
                   },
                   "invalidSession": {
                     "value": {
-                      "error": "Sessão inválida ou expirada"
+                      "error": "Sess�o inv�lida ou expirada"
                     }
                   }
                 }
@@ -5105,9 +5060,9 @@
     },
     "/api/auth/sign-out": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": ["Autentica��o"],
         "summary": "Fazer logout",
-        "description": "Encerra a sessão atual do usuário, removendo o token do banco de dados e o cookie.",
+        "description": "Encerra a sess�o atual do usu�rio, removendo o token do banco de dados e o cookie.",
         "operationId": "signOut",
         "security": [
           {
@@ -5132,14 +5087,14 @@
             }
           },
           "401": {
-            "description": "Token não fornecido",
+            "description": "Token n�o fornecido",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
                 "example": {
-                  "error": "Token não fornecido"
+                  "error": "Token n�o fornecido"
                 }
               }
             }
@@ -5159,9 +5114,9 @@
     },
     "/api/auth/forgot-password": {
       "post": {
-        "tags": ["Autenticação"],
-        "summary": "Solicitar recuperação de senha",
-        "description": "Envia um código de verificação de 6 dígitos por email para recuperação de senha. O código expira em 15 minutos. Sempre retorna sucesso para não expor se o email está cadastrado ou não.",
+        "tags": ["Autentica��o"],
+        "summary": "Solicitar recupera��o de senha",
+        "description": "Envia um c�digo de verifica��o de 6 d�gitos por email para recupera��o de senha. O c�digo expira em 15 minutos. Sempre retorna sucesso para n�o expor se o email est� cadastrado ou n�o.",
         "operationId": "forgotPassword",
         "requestBody": {
           "required": true,
@@ -5190,7 +5145,7 @@
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example": "Se o email estiver cadastrado, você receberá um código de verificação."
+                      "example": "Se o email estiver cadastrado, voc� receber� um c�digo de verifica��o."
                     }
                   }
                 }
@@ -5198,7 +5153,7 @@
             }
           },
           "400": {
-            "description": "Dados inválidos",
+            "description": "Dados inv�lidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -5222,9 +5177,9 @@
     },
     "/api/auth/verify-reset-code": {
       "post": {
-        "tags": ["Autenticação"],
-        "summary": "Verificar código de recuperação",
-        "description": "Verifica se o código de 6 dígitos enviado por email é válido e não expirou. O código expira em 15 minutos após o envio.",
+        "tags": ["Autentica��o"],
+        "summary": "Verificar c�digo de recupera��o",
+        "description": "Verifica se o c�digo de 6 d�gitos enviado por email � v�lido e n�o expirou. O c�digo expira em 15 minutos ap�s o envio.",
         "operationId": "verifyResetCode",
         "requestBody": {
           "required": true,
@@ -5246,7 +5201,7 @@
         },
         "responses": {
           "200": {
-            "description": "Código verificado com sucesso",
+            "description": "C�digo verificado com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -5258,7 +5213,7 @@
                     },
                     "message": {
                       "type": "string",
-                      "example": "Código verificado com sucesso"
+                      "example": "C�digo verificado com sucesso"
                     }
                   }
                 }
@@ -5266,7 +5221,7 @@
             }
           },
           "400": {
-            "description": "Código inválido ou expirado",
+            "description": "C�digo inv�lido ou expirado",
             "content": {
               "application/json": {
                 "schema": {
@@ -5275,12 +5230,12 @@
                 "examples": {
                   "invalidCode": {
                     "value": {
-                      "error": "Código inválido"
+                      "error": "C�digo inv�lido"
                     }
                   },
                   "expiredCode": {
                     "value": {
-                      "error": "Código expirado. Solicite um novo código."
+                      "error": "C�digo expirado. Solicite um novo c�digo."
                     }
                   }
                 }
@@ -5288,7 +5243,7 @@
             }
           },
           "404": {
-            "description": "Usuário não encontrado",
+            "description": "Usu�rio n�o encontrado",
             "content": {
               "application/json": {
                 "schema": {
@@ -5312,9 +5267,9 @@
     },
     "/api/auth/reset-password": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": ["Autentica��o"],
         "summary": "Redefinir senha",
-        "description": "Redefine a senha do usuário após verificar o código de recuperação. O código deve ser válido e não expirado. Após redefinir a senha, o código é invalidado.",
+        "description": "Redefine a senha do usu�rio ap�s verificar o c�digo de recupera��o. O c�digo deve ser v�lido e n�o expirado. Ap�s redefinir a senha, o c�digo � invalidado.",
         "operationId": "resetPassword",
         "requestBody": {
           "required": true,
@@ -5353,7 +5308,7 @@
             }
           },
           "400": {
-            "description": "Código inválido ou expirado, ou senha inválida",
+            "description": "C�digo inv�lido ou expirado, ou senha inv�lida",
             "content": {
               "application/json": {
                 "schema": {
@@ -5362,12 +5317,12 @@
                 "examples": {
                   "invalidCode": {
                     "value": {
-                      "error": "Código inválido"
+                      "error": "C�digo inv�lido"
                     }
                   },
                   "expiredCode": {
                     "value": {
-                      "error": "Código expirado. Solicite um novo código."
+                      "error": "C�digo expirado. Solicite um novo c�digo."
                     }
                   }
                 }
@@ -5375,7 +5330,7 @@
             }
           },
           "404": {
-            "description": "Usuário não encontrado",
+            "description": "Usu�rio n�o encontrado",
             "content": {
               "application/json": {
                 "schema": {
@@ -5399,9 +5354,9 @@
     },
     "/api/auth/update-role": {
       "post": {
-        "tags": ["Usuários"],
-        "summary": "Atualizar role do usuário",
-        "description": "Atualiza o role de um usuário (STUDENT, GYM ou ADMIN). Cria os registros necessários (Student ou Gym) se não existirem.",
+        "tags": ["Usu�rios"],
+        "summary": "Atualizar role do usu�rio",
+        "description": "Atualiza o role de um usu�rio (STUDENT, GYM ou ADMIN). Cria os registros necess�rios (Student ou Gym) se n�o existirem.",
         "operationId": "updateRole",
         "security": [
           {
@@ -5456,7 +5411,7 @@
                         "role": {
                           "type": "string",
                           "enum": ["STUDENT", "GYM", "ADMIN"],
-                          "description": "Role do usuário (STUDENT, GYM ou ADMIN)"
+                          "description": "Role do usu�rio (STUDENT, GYM ou ADMIN)"
                         }
                       }
                     }
@@ -5473,14 +5428,14 @@
             }
           },
           "404": {
-            "description": "Usuário não encontrado",
+            "description": "Usu�rio n�o encontrado",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
                 "example": {
-                  "error": "Usuário não encontrado"
+                  "error": "Usu�rio n�o encontrado"
                 }
               }
             }

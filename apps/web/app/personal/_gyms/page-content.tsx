@@ -1,7 +1,7 @@
 "use client";
 
-import { PersonalGymsPage } from "@/components/organisms/personal";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
+import { PersonalGymsPage } from "@/components/organisms/personal";
 import type { PersonalAffiliation } from "../types";
 
 interface PersonalGymsPageContentProps {
@@ -21,11 +21,7 @@ export function PersonalGymsPageContent({
 }: PersonalGymsPageContentProps) {
   if (gymId) {
     return (
-      <GymProfileView
-        gymId={gymId}
-        onBack={onBackFromGym}
-        variant="personal"
-      />
+      <GymProfileView gymId={gymId} onBack={onBackFromGym} variant="personal" />
     );
   }
 

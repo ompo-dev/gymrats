@@ -11,7 +11,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
-import { EditUnitModal, TrainingLibraryModal } from "@/components/organisms/modals";
+import {
+  EditUnitModal,
+  NutritionLibraryModal,
+  TrainingLibraryModal,
+} from "@/components/organisms/modals";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
 import {
   AppLayout,
@@ -19,11 +23,12 @@ import {
 } from "@/components/templates/layouts/app-layout";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { useStudentInitializer } from "@/hooks/use-student-initializer";
+import { useStudentDefaultBootstrapBridge } from "@/hooks/use-student-bootstrap";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
   hasProfile: boolean;
+  profileResolved: boolean;
   initialProgress: {
     streak: number;
     xp: number;
@@ -33,6 +38,7 @@ interface StudentLayoutContentProps {
 export function StudentLayoutContent({
   children,
   hasProfile,
+  profileResolved,
   initialProgress,
 }: StudentLayoutContentProps) {
   const [isMounted, setIsMounted] = useState(false);
@@ -47,14 +53,15 @@ export function StudentLayoutContent({
 
   // Inicializar dados do student automaticamente quando o layout carregar
   // Não bloquear renderização - dados carregam em background
-  useStudentInitializer({
-    autoLoad: true,
-  });
+  useStudentDefaultBootstrapBridge({ enabled: false });
 
   // Buscar progresso do store para atualizar header dinamicamente
-  const storeProgress = (useStudent("progress") as unknown) as import("@/lib/types").UserProgress | undefined;
+  const storeProgress = useStudent("progress") as unknown as
+    | import("@/lib/types").UserProgress
+    | undefined;
   const { loadWeeklyPlan } = useStudent("loaders");
   const editPlanModal = useModalState("edit-plan");
+  const nutritionLibraryModal = useModalState("nutrition-library");
   const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
   const currentXP = storeProgress?.totalXP ?? initialProgress.xp;
 
@@ -75,7 +82,7 @@ export function StudentLayoutContent({
 
   // Redirecionar para onboarding se não tiver perfil (dentro de useEffect para evitar erro de render)
   useEffect(() => {
-    if (isMounted && !hasProfile && !isOnboarding) {
+    if (isMounted && profileResolved && !hasProfile && !isOnboarding) {
       // Usar replace em vez de push para evitar histórico de navegação
       // E adicionar um pequeno delay para evitar múltiplos redirecionamentos
       const timeoutId = setTimeout(() => {
@@ -84,7 +91,7 @@ export function StudentLayoutContent({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isMounted, hasProfile, isOnboarding, router]);
+  }, [isMounted, hasProfile, isOnboarding, profileResolved, router]);
 
   // Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
   if (!isMounted) {
@@ -96,7 +103,7 @@ export function StudentLayoutContent({
   }
 
   // Mostrar loading enquanto redireciona para onboarding
-  if (!hasProfile && !isOnboarding) {
+  if (profileResolved && !hasProfile && !isOnboarding) {
     return (
       <LoadingScreen.Simple variant="student" message="Redirecionando..." />
     );
@@ -106,7 +113,6 @@ export function StudentLayoutContent({
   const handleTabChange = async (newTab: string) => {
     if (newTab === "home") {
       await setTab(null);
-      router.push("/student");
     } else {
       await setTab(newTab);
     }
@@ -129,6 +135,7 @@ export function StudentLayoutContent({
           <WorkoutModal.Simple />
           <EditUnitModal />
           <TrainingLibraryModal />
+          {nutritionLibraryModal.isOpen && <NutritionLibraryModal />}
           {editPlanModal.isOpen && (
             <EditUnitModal
               isWeeklyPlanMode

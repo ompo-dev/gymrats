@@ -1,69 +1,13 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect } from "react";
-import { apiClient } from "@/lib/api/client";
-import { useGymsDataStore } from "@/stores/gyms-list-store";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
-import { useSubscriptionStore } from "@/stores/subscription-store";
+import { useCallback, useEffect, useMemo } from "react";
+import {
+  type GymSubscriptionData,
+  type StudentSubscriptionData,
+  useSubscriptionStore,
+} from "@/stores/subscription-store";
 
-// Tipo unificado para subscription de student
-export interface StudentSubscriptionData {
-  id: string;
-  plan: string;
-  status:
-    | "active"
-    | "canceled"
-    | "expired"
-    | "past_due"
-    | "trialing"
-    | "pending_payment";
-  currentPeriodStart?: Date;
-  currentPeriodEnd?: Date;
-  cancelAtPeriodEnd?: boolean;
-  canceledAt?: Date | null;
-  trialStart?: Date | null;
-  trialEnd?: Date | null;
-  isTrial?: boolean;
-  daysRemaining?: number | null;
-  billingPeriod?: "monthly" | "annual";
-  source?: "OWN" | "GYM_ENTERPRISE";
-  gymId?: string;
-  enterpriseGymName?: string;
-  /** Trial só uma vez: false se já usou trial ou já assinou */
-  canStartTrial?: boolean;
-}
-
-// Tipo unificado para subscription de gym
-export interface GymSubscriptionData {
-  id: string;
-  plan: string;
-  status:
-    | "active"
-    | "canceled"
-    | "expired"
-    | "past_due"
-    | "trialing"
-    | "pending_payment"
-    | string;
-  basePrice: number;
-  pricePerStudent: number;
-  currentPeriodStart: Date;
-  currentPeriodEnd: Date;
-  cancelAtPeriodEnd: boolean;
-  canceledAt: Date | null;
-  trialStart: Date | null;
-  trialEnd: Date | null;
-  isTrial: boolean;
-  daysRemaining: number | null;
-  activeStudents: number;
-  totalAmount: number;
-  billingPeriod?: "monthly" | "annual";
-  /** Trial só uma vez: false quando já existe assinatura */
-  canStartTrial?: boolean;
-}
-
-// Tipo unificado
+export type { GymSubscriptionData, StudentSubscriptionData };
 export type SubscriptionData = StudentSubscriptionData | GymSubscriptionData;
 
 interface UseSubscriptionOptions {
@@ -71,432 +15,111 @@ interface UseSubscriptionOptions {
   includeDaysRemaining?: boolean;
   includeTrialInfo?: boolean;
   includeActiveStudents?: boolean;
-  enabled?: boolean; // Nova opção para controlar a query
+  enabled?: boolean;
 }
 
 export function useSubscriptionUnified(options: UseSubscriptionOptions) {
-  const queryClient = useQueryClient();
   const { userType, enabled = true } = options;
 
-  const setSubscription = useSubscriptionStore((s) => s.setSubscription);
-  const setGymSubscription = useSubscriptionStore((s) => s.setGymSubscription);
-  const updateSubscription = useStudentUnifiedStore(
-    (s) => s.updateSubscription,
+  const subscription = useSubscriptionStore((state) =>
+    userType === "student" ? state.subscription : state.gymSubscription,
+  );
+  const meta = useSubscriptionStore((state) =>
+    userType === "student" ? state.studentMeta : state.gymMeta,
+  );
+  const loadSubscription = useSubscriptionStore(
+    (state) => state.loadSubscription,
+  );
+  const startTrialStore = useSubscriptionStore((state) => state.startTrial);
+  const createSubscriptionStore = useSubscriptionStore(
+    (state) => state.createSubscription,
+  );
+  const cancelSubscriptionStore = useSubscriptionStore(
+    (state) => state.cancelSubscription,
   );
 
-  // Helper para atualizar ambos os stores - Memoizado para evitar loops
-  const syncStores = React.useCallback(
-    (sub: SubscriptionData | null) => {
-      if (userType === "student") {
-        setSubscription(sub as any);
-        updateSubscription(sub as any);
-      } else {
-        setGymSubscription(sub as any);
-      }
-    },
-    [userType, setSubscription, setGymSubscription, updateSubscription],
-  );
-
-  const queryKey = userType === "student" ? "subscription" : "gym-subscription";
-  const currentEndpoint =
-    userType === "student"
-      ? "/api/subscriptions/current"
-      : "/api/gym-subscriptions/current";
-  const startTrialEndpoint =
-    userType === "student"
-      ? "/api/subscriptions/start-trial"
-      : "/api/gym-subscriptions/start-trial";
-  const createEndpoint =
-    userType === "student"
-      ? "/api/subscriptions/create"
-      : "/api/gym-subscriptions/create";
-  const cancelEndpoint =
-    userType === "student"
-      ? "/api/subscriptions/cancel"
-      : "/api/gym-subscriptions/cancel";
-
-  /** Tipo quando API retorna subscription: null mas isFirstPayment (ex: assinatura cancelada) */
-  type NoSubscriptionPayload = {
-    __noSubscription: true;
-    isFirstPayment: boolean;
-  };
-
-  const { data, isLoading, error, refetch } = useQuery<
-    | (SubscriptionData & { isFirstPayment?: boolean })
-    | NoSubscriptionPayload
-    | null
-  >({
-    queryKey: [queryKey],
-    queryFn: async () => {
-      try {
-        const response = await apiClient.get<{
-          subscription: SubscriptionData | null;
-          isFirstPayment?: boolean;
-        }>(currentEndpoint);
-        const sub = response.data.subscription;
-        const isFirstPayment = response.data.isFirstPayment ?? true;
-
-        if (!sub) {
-          return { __noSubscription: true as const, isFirstPayment };
-        }
-
-        // Extrair billingPeriod antes de criar baseData
-          const billingPeriodFromAPI =
-            ("billingPeriod" in sub && sub.billingPeriod) || "monthly";
-
-          // Converter strings de data para Date objects
-          const baseData = {
-            ...sub,
-            currentPeriodStart: sub.currentPeriodStart
-              ? new Date(sub.currentPeriodStart)
-              : undefined,
-            currentPeriodEnd: sub.currentPeriodEnd
-              ? new Date(sub.currentPeriodEnd)
-              : undefined,
-            trialStart: sub.trialStart ? new Date(sub.trialStart) : null,
-            trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
-            canceledAt: sub.canceledAt ? new Date(sub.canceledAt) : null,
-            isTrial:
-              (sub.status === "trialing" || sub.status === "canceled") &&
-              sub.trialEnd
-                ? new Date(sub.trialEnd) > new Date()
-                : false,
-            daysRemaining: sub.trialEnd
-              ? Math.max(
-                  0,
-                  Math.ceil(
-                    (new Date(sub.trialEnd).getTime() - Date.now()) /
-                      (1000 * 60 * 60 * 24),
-                  ),
-                )
-              : null,
-          };
-
-          // Adicionar campos específicos de gym se necessário
-          if (userType === "gym" && "activeStudents" in sub) {
-            const gymData = {
-              ...baseData,
-              activeStudents: (sub as GymSubscriptionData).activeStudents || 0,
-              totalAmount: (sub as GymSubscriptionData).totalAmount || 0,
-              billingPeriod: billingPeriodFromAPI as "monthly" | "annual",
-              isFirstPayment,
-            };
-
-            return gymData as GymSubscriptionData & { isFirstPayment?: boolean };
-          }
-
-          const result = {
-            ...baseData,
-            isFirstPayment,
-          } as StudentSubscriptionData & { isFirstPayment?: boolean };
-          return result;
-        } catch (_error) {
-          return null;
-        }
-      },
-      staleTime: 1000 * 60, // 1 minuto (aumentado para evitar refetches desnecessários)
-      retry: 2,
-      enabled: enabled, // Usar opção enabled
-      refetchOnMount: false, // Desabilitado para evitar loops - dados vêm do store unificado
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false, // Desabilitado para evitar loops
-      gcTime: 1000 * 60 * 5, // 5 minutos
-    },
-  );
-
-  const subscriptionFromData =
-    data && !("__noSubscription" in data) ? data : null;
-
-  const toSubscriptionForStore = (
-    v: typeof data,
-  ): SubscriptionData | null =>
-    v && !("__noSubscription" in v) ? v : null;
-
-  // Sincronizar com store quando data mudar
   useEffect(() => {
-    if (data !== undefined) {
-      if (data === null) {
-        const storeState = useSubscriptionStore.getState();
-        const currentSub =
-          userType === "student"
-            ? storeState.subscription
-            : storeState.gymSubscription;
+    if (!enabled) return;
+    void loadSubscription(userType);
+  }, [enabled, loadSubscription, userType]);
 
-        if (currentSub && currentSub.id === "temp-trial-id") {
-          return;
-        }
-        syncStores(null);
-      } else if ("__noSubscription" in data) {
-        syncStores(null);
-      } else {
-        syncStores(data);
-      }
-    }
-  }, [data, userType, syncStores]);
+  const refetch = useCallback(
+    () => loadSubscription(userType, true),
+    [loadSubscription, userType],
+  );
 
-  const startTrialMutation = useMutation({
-    mutationFn: async () => {
-      try {
-        const response = await apiClient.post<{
-          success?: boolean;
-          error?: string;
-        }>(startTrialEndpoint);
-        return response.data;
-      } catch (error) {
-        const err = error as {
-          response?: { data?: { error?: string } };
-          message?: string;
-        };
-        const errorMessage =
-          err?.response?.data?.error ||
-          (err instanceof Error ? err.message : undefined) ||
-          "Erro ao iniciar trial";
-        return { error: errorMessage };
-      }
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: [queryKey] });
+  const startTrial = useCallback(
+    () => startTrialStore(userType),
+    [startTrialStore, userType],
+  );
 
-      const previousSubscription =
-        queryClient.getQueryData<SubscriptionData | null>([queryKey]);
-
-      const now = new Date();
-      const trialEnd = new Date(now);
-      trialEnd.setDate(trialEnd.getDate() + 14);
-
-      const optimisticSubscription: SubscriptionData =
-        userType === "student"
-          ? ({
-              id: "temp-trial-id",
-              plan: "premium",
-              status: "trialing",
-              currentPeriodStart: now,
-              currentPeriodEnd: trialEnd,
-              cancelAtPeriodEnd: false,
-              canceledAt: null,
-              trialStart: now,
-              trialEnd: trialEnd,
-              isTrial: true,
-              daysRemaining: 14,
-            } as StudentSubscriptionData)
-          : ({
-              id: "temp-trial-id",
-              plan: "basic",
-              status: "trialing",
-              basePrice: 150,
-              pricePerStudent: 1.5,
-              currentPeriodStart: now,
-              currentPeriodEnd: trialEnd,
-              cancelAtPeriodEnd: false,
-              canceledAt: null,
-              trialStart: now,
-              trialEnd: trialEnd,
-              isTrial: true,
-              daysRemaining: 14,
-              activeStudents: 0,
-              totalAmount: 150,
-            } as GymSubscriptionData);
-
-      syncStores(optimisticSubscription);
-
-      queryClient.setQueryData<SubscriptionData | null>(
-        [queryKey],
-        optimisticSubscription,
-      );
-
-      return { previousSubscription };
-    },
-    onError: async (err, _variables, context) => {
-      const e = err as {
-        response?: { data?: { error?: string } };
-        message?: string;
-      };
-      const errorMessage =
-        e?.response?.data?.error ||
-        (e instanceof Error ? e.message : undefined) ||
-        "Erro ao iniciar trial";
-
-      if (context?.previousSubscription !== undefined) {
-        syncStores(toSubscriptionForStore(context.previousSubscription));
-        queryClient.setQueryData(
-          [queryKey],
-          context.previousSubscription,
-        );
-      }
-
-      // Refetch para atualizar canStartTrial quando trial não é mais permitido
-      if (
-        errorMessage.includes("já existe") ||
-        errorMessage.includes("já utilizou") ||
-        errorMessage.includes("já possui")
-      ) {
-        await queryClient.invalidateQueries({ queryKey: [queryKey] });
-        await queryClient.refetchQueries({ queryKey: [queryKey] });
-      }
-    },
-    onSuccess: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      await queryClient.invalidateQueries({
-        queryKey: [queryKey],
-      });
-
-      await queryClient.refetchQueries({
-        queryKey: [queryKey],
-      });
-
-      const cachedData = queryClient.getQueryData([queryKey]);
-      const sub = toSubscriptionForStore(cachedData);
-      if (sub && sub.id !== "temp-trial-id") {
-        syncStores(sub);
-      }
-
-      // Gym: atualizar lista de academias após criar assinatura
-      if (userType === "gym") {
-        useGymsDataStore.getState().loadAllGyms();
-      }
-    },
-  });
-
-  const createSubscriptionMutation = useMutation({
-    mutationFn: async (
-      params:
-        | { plan: "monthly" | "annual"; referralCode?: string }
-        | {
-            plan: "basic" | "premium" | "enterprise";
-            billingPeriod: "monthly" | "annual";
-            referralCode?: string;
-          },
+  const createSubscription = useCallback(
+    (
+      ...args:
+        | [plan: "monthly" | "annual", referralCode?: string | null]
+        | [
+            plan: "basic" | "premium" | "enterprise",
+            billingPeriod?: "monthly" | "annual",
+            referralCode?: string | null,
+          ]
     ) => {
-      const finalParams = { ...params };
+      if (userType === "student") {
+        const [plan, referralCode] = args as [
+          "monthly" | "annual",
+          string | null | undefined,
+        ];
 
-      const response = await apiClient.post<{
-        billingUrl?: string;
-        pixId?: string;
-        brCode?: string;
-        brCodeBase64?: string;
-        amount?: number;
-        error?: string;
-      }>(createEndpoint, finalParams);
-      return response.data;
-    },
-  });
-
-  const cancelSubscriptionMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiClient.post<{
-        success?: boolean;
-        error?: string;
-      }>(cancelEndpoint);
-      return response.data;
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: [queryKey] });
-
-      const previousSubscription = queryClient.getQueryData([queryKey]);
-
-      // Atualizar status para canceled mantendo os dados (ignora payload __noSubscription)
-      const prevSub = toSubscriptionForStore(previousSubscription ?? null);
-      if (prevSub) {
-        const canceledSubscription = {
-          ...prevSub,
-          status: "canceled",
-          canceledAt: new Date(),
-          cancelAtPeriodEnd: true,
-        } as SubscriptionData;
-
-        syncStores(canceledSubscription);
-
-        queryClient.setQueryData<SubscriptionData | null>(
-          [queryKey],
-          canceledSubscription,
-        );
-      } else {
-        syncStores(null);
-        queryClient.setQueryData(
-          [queryKey],
-          previousSubscription ?? null,
-        );
+        return createSubscriptionStore("student", {
+          plan,
+          referralCode: referralCode || undefined,
+        });
       }
 
-      return { previousSubscription };
-    },
-    onError: (_err, _variables, context) => {
-      if (context?.previousSubscription !== undefined) {
-        syncStores(toSubscriptionForStore(context.previousSubscription));
-        queryClient.setQueryData(
-          [queryKey],
-          context.previousSubscription,
-        );
-      }
-    },
-    onSuccess: async () => {
-      // Aguardar um pouco para garantir que o servidor processou
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      const [plan, billingPeriod = "monthly", referralCode] = args as [
+        "basic" | "premium" | "enterprise",
+        "monthly" | "annual" | undefined,
+        string | null | undefined,
+      ];
 
-      // Invalidar e refetch para pegar os dados atualizados do servidor
-      await queryClient.invalidateQueries({
-        queryKey: [queryKey],
+      return createSubscriptionStore("gym", {
+        plan,
+        billingPeriod,
+        referralCode: referralCode || undefined,
       });
-
-      await queryClient.refetchQueries({
-        queryKey: [queryKey],
-      });
-
-      // Sincronizar com store após refetch
-      const updatedData = queryClient.getQueryData([queryKey]);
-      if (updatedData !== undefined) {
-        syncStores(toSubscriptionForStore(updatedData));
-      }
-
-      // Gym: atualizar lista de academias (canCreateMultipleGyms, isActive)
-      if (userType === "gym") {
-        useGymsDataStore.getState().loadAllGyms();
-      }
     },
-  });
+    [createSubscriptionStore, userType],
+  );
 
-  // Criar funções tipadas separadamente para evitar problemas de inferência
-  const createSubscriptionStudent = async (
-    plan: "monthly" | "annual",
-    referralCode?: string | null,
-  ) => {
-    return await createSubscriptionMutation.mutateAsync({
-      plan,
-      referralCode: referralCode || undefined,
-    });
-  };
+  const cancelSubscription = useCallback(
+    () => cancelSubscriptionStore(userType),
+    [cancelSubscriptionStore, userType],
+  );
 
-  const createSubscriptionGym = async (
-    plan: "basic" | "premium" | "enterprise",
-    billingPeriod: "monthly" | "annual" = "monthly",
-    referralCode?: string | null,
-  ) => {
-    return await createSubscriptionMutation.mutateAsync({
-      plan,
-      billingPeriod,
-      referralCode: referralCode || undefined,
-    });
-  };
-
-  const createSubscription =
-    userType === "student" ? createSubscriptionStudent : createSubscriptionGym;
-
-  const isFirstPayment = data?.isFirstPayment ?? true;
-
-  return {
-    subscription: subscriptionFromData,
-    isFirstPayment,
-    isLoading,
-    error,
-    refetch,
-    startTrial: startTrialMutation.mutateAsync,
-    isStartingTrial: startTrialMutation.isPending,
-    createSubscription: createSubscription as
-      | typeof createSubscriptionStudent
-      | typeof createSubscriptionGym,
-    isCreatingSubscription: createSubscriptionMutation.isPending,
-    cancelSubscription: cancelSubscriptionMutation.mutateAsync,
-    isCancelingSubscription: cancelSubscriptionMutation.isPending,
-  };
+  return useMemo(
+    () => ({
+      subscription: subscription as SubscriptionData | null,
+      isFirstPayment: meta.isFirstPayment,
+      isLoading: enabled ? meta.isLoading : false,
+      error: meta.error ? new Error(meta.error) : null,
+      refetch,
+      startTrial,
+      isStartingTrial: meta.isMutating,
+      createSubscription,
+      isCreatingSubscription: meta.isMutating,
+      cancelSubscription,
+      isCancelingSubscription: meta.isMutating,
+    }),
+    [
+      cancelSubscription,
+      createSubscription,
+      enabled,
+      meta.error,
+      meta.isFirstPayment,
+      meta.isLoading,
+      meta.isMutating,
+      refetch,
+      startTrial,
+      subscription,
+    ],
+  );
 }

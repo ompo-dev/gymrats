@@ -86,9 +86,7 @@ export function PersonalListItemCard({
                 </span>
               )}
               {distance != null && (
-                <span className="font-bold">
-                  {distance.toFixed(1)} km
-                </span>
+                <span className="font-bold">{distance.toFixed(1)} km</span>
               )}
             </div>
           )}
@@ -102,7 +100,7 @@ export function PersonalListItemCard({
           )}
         </div>
         {trailingAction && (
-          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="shrink-0" onClickCapture={(e) => e.stopPropagation()}>
             {trailingAction}
           </div>
         )}

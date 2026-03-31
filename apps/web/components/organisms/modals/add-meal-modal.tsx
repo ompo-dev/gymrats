@@ -162,9 +162,9 @@ function AddMealModalSimple({ onClose, onAddMeal }: AddMealModalProps) {
                   transition={{ duration: 0.3 }}
                   className="mt-4 space-y-3"
                 >
-                  <label className="block text-sm font-bold text-duo-fg-muted">
+                  <p className="block text-sm font-bold text-duo-fg-muted">
                     Horários das Refeições Selecionadas
-                  </label>
+                  </p>
                   <div className="space-y-2">
                     {selectedTypes.map((typeId, index) => {
                       const mealType = mealTypes.find((m) => m.id === typeId);

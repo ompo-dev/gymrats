@@ -7,9 +7,9 @@ import { DuoButton, DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo/molecules/duo-input";
 import { useAbility } from "@/hooks/use-ability";
 import { Features } from "@/lib/access-control/features";
-import { apiClient } from "@/lib/api/client";
 import type { FoodItem, Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useCatalogSearchStore } from "@/stores/catalog-search-store";
 import { FoodSearchChat } from "./food-search-chat";
 
 interface FoodSearchProps {
@@ -38,6 +38,8 @@ interface FoodSearchProps {
       totalFats: number;
     };
   }) => Promise<void> | void;
+  foodDatabase?: FoodItem[];
+  contextMode?: "student" | "external";
 }
 
 const mealIcons: Record<string, string> = {
@@ -82,6 +84,7 @@ function FoodSearchSimple({
   onAddMeal,
   chatStreamUrl,
   onApplyNutrition,
+  contextMode = "student",
 }: FoodSearchProps) {
   // Verificar se é premium/trial
   const { can } = useAbility();
@@ -140,23 +143,15 @@ function FoodSearchSimple({
           setIsLoadingMore(true);
         }
 
-        const params = new URLSearchParams();
-        if (debouncedQuery.trim()) {
-          params.append("q", debouncedQuery.trim());
-        }
-        if (selectedCategory) {
-          params.append("category", selectedCategory);
-        }
-        params.append("limit", ITEMS_PER_PAGE.toString());
-        if (page > 0) {
-          params.append("offset", (page * ITEMS_PER_PAGE).toString());
-        }
+        const response = await useCatalogSearchStore.getState().loadFoods({
+          query: debouncedQuery.trim() || undefined,
+          category: selectedCategory || undefined,
+          limit: ITEMS_PER_PAGE,
+          offset: page * ITEMS_PER_PAGE,
+          force: true,
+        });
 
-        const response = await apiClient.get<{ foods: FoodItem[] }>(
-          `/api/foods/search?${params.toString()}`,
-        );
-
-        const newFoods = response.data.foods || [];
+        const newFoods = response.items || [];
         if (id !== fetchIdRef.current) return; // Resposta obsoleta, descartar
 
         if (reset || page === 0) {
@@ -321,6 +316,7 @@ function FoodSearchSimple({
         onSelectMeal={onSelectMeal}
         chatStreamUrl={chatStreamUrl}
         onApplyNutrition={onApplyNutrition}
+        contextMode={contextMode}
       />
     );
   }
@@ -556,16 +552,16 @@ function FoodSearchSimple({
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 <span className="rounded-full bg-[var(--duo-primary)]/20 px-2 py-0.5 text-xs font-bold text-[var(--duo-primary)]">
-                                  {food.calories} cal
+                                  {Math.round(food.calories)} cal
                                 </span>
                                 <span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
-                                  P: {food.protein}g
+                                  P: {Math.round(food.protein)}g
                                 </span>
                                 <span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
-                                  C: {food.carbs}g
+                                  C: {Math.round(food.carbs)}g
                                 </span>
                                 <span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
-                                  G: {food.fats}g
+                                  G: {Math.round(food.fats)}g
                                 </span>
                               </div>
                             </div>

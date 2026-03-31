@@ -23,14 +23,49 @@ export interface AuthResponse {
   };
   session: {
     id: string;
-    token: string;
+    token?: string | null;
   };
+}
+
+export interface AuthSessionResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: "PENDING" | "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
+    hasGym: boolean;
+    hasStudent: boolean;
+    activeGymId?: string | null;
+    gyms?: Array<{
+      id: string;
+      plan?: string;
+      subscription?: {
+        plan: string;
+        status: string;
+        currentPeriodEnd?: string | Date | null;
+      } | null;
+    }>;
+    student?: {
+      id: string;
+      subscription?: {
+        plan: string;
+        status: string;
+        currentPeriodEnd?: string | Date | null;
+      } | null;
+    } | null;
+    personal?: {
+      id: string;
+    } | null;
+  };
+  session?: {
+    id: string;
+    token?: string | null;
+  } | null;
 }
 
 export const authApi = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      // Usar axios client (API → Component)
       const response = await apiClient.post<AuthResponse>(
         "/api/auth/sign-in",
         credentials,
@@ -46,7 +81,6 @@ export const authApi = {
 
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
-      // Usar axios client (API → Component)
       const response = await apiClient.post<AuthResponse>(
         "/api/auth/sign-up",
         data,
@@ -62,16 +96,13 @@ export const authApi = {
 
   async logout(): Promise<void> {
     try {
-      // Primeiro tentar logout via Better Auth
       if (typeof window !== "undefined") {
         const { authClient } = await import("@/lib/auth-client");
         await authClient.signOut();
       }
 
-      // Também chamar endpoint de logout para compatibilidade
       await apiClient.post("/api/auth/sign-out");
-    } catch (err) {
-      // Se falhar, apenas limpar localStorage e cookies
+    } catch (error) {
       if (typeof window !== "undefined") {
         clearAuthToken();
         localStorage.removeItem("isAuthenticated");
@@ -80,18 +111,33 @@ export const authApi = {
         localStorage.removeItem("userRole");
         localStorage.removeItem("isAdmin");
       }
-      throw err;
+
+      throw error;
     }
   },
 
-  async getSession(): Promise<AuthResponse | null> {
+  async getSession(): Promise<AuthSessionResponse | null> {
     try {
-      // Usar axios client (API → Component)
-      // O interceptor já adiciona o token automaticamente
-      const response = await apiClient.get<AuthResponse>("/api/auth/session");
+      const response =
+        await apiClient.get<AuthSessionResponse>("/api/auth/session");
       return response.data;
     } catch {
       return null;
+    }
+  },
+
+  async exchangeOneTimeToken(token: string): Promise<AuthSessionResponse> {
+    try {
+      const response = await apiClient.post<AuthSessionResponse>(
+        "/api/auth/exchange-one-time-token",
+        { token },
+      );
+      return response.data;
+    } catch (error) {
+      const err = error as ApiError;
+      const errorMessage =
+        err.response?.data?.error || err.message || "Erro ao trocar token";
+      throw new Error(errorMessage);
     }
   },
 
@@ -107,7 +153,7 @@ export const authApi = {
       const errorMessage =
         err.response?.data?.error ||
         err.message ||
-        "Erro ao solicitar recuperação de senha";
+        "Erro ao solicitar recuperacao de senha";
       throw new Error(errorMessage);
     }
   },
@@ -125,7 +171,7 @@ export const authApi = {
     } catch (error) {
       const err = error as ApiError;
       const errorMessage =
-        err.response?.data?.error || err.message || "Erro ao verificar código";
+        err.response?.data?.error || err.message || "Erro ao verificar codigo";
       throw new Error(errorMessage);
     }
   },

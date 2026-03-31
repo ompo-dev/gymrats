@@ -1,34 +1,159 @@
 services:
-  app:
+  migrate:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    command: bun apps/web/scripts/migration/run-stack-migrations.mjs --all
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL:-postgresql://gymrats:gymrats@db:5432/gymrats?schema=public}
+      DIRECT_URL: ${DIRECT_URL:-postgresql://gymrats:gymrats@db:5432/gymrats?schema=public}
+    volumes:
+      - .:/app
+      - root-node-modules:/app/node_modules
+    profiles:
+      - ops
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: sh -lc "cd apps/web && bunx next dev --hostname 0.0.0.0 --port 3000"
     environment:
       NODE_ENV: development
       HOST: 0.0.0.0
       PORT: 3000
-      DATABASE_URL: postgresql://gymrats:gymrats@db:5432/gymrats?schema=public
+      DATABASE_URL: ${DATABASE_URL:-postgresql://gymrats:gymrats@db:5432/gymrats?schema=public}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:4000}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+      NEXT_PUBLIC_FAKE_WITHDRAW: ${NEXT_PUBLIC_FAKE_WITHDRAW:-false}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:4000}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-me}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-change-me}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-change-me}
+      ABACATEPAY_API_TOKEN: ${ABACATEPAY_API_TOKEN:-}
+      ABACATEPAY_WEBHOOK_SECRET: ${ABACATEPAY_WEBHOOK_SECRET:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      CRON_SECRET: ${CRON_SECRET:-change-me}
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3000}:3000"
     volumes:
       - .:/app
+      - root-node-modules:/app/node_modules
     depends_on:
-      db:
+      api:
+        condition: service_started
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bun --watch apps/api/src/index.ts
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 4000
+      GYMRATS_RUNTIME_ROLE: api
+      DATABASE_URL: ${DATABASE_URL:-postgresql://gymrats:gymrats@db:5432/gymrats?schema=public}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-me}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-change-me}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-change-me}
+      ABACATEPAY_API_TOKEN: ${ABACATEPAY_API_TOKEN:-}
+      ABACATEPAY_WEBHOOK_SECRET: ${ABACATEPAY_WEBHOOK_SECRET:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      CRON_SECRET: ${CRON_SECRET:-change-me}
+    ports:
+      - "${API_PORT:-4000}:4000"
+    volumes:
+      - .:/app
+      - root-node-modules:/app/node_modules
+    depends_on:
+      redis:
         condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bun --watch apps/worker/src/index.ts
+    environment:
+      NODE_ENV: development
+      GYMRATS_RUNTIME_ROLE: worker
+      DATABASE_URL: ${DATABASE_URL:-postgresql://gymrats:gymrats@db:5432/gymrats?schema=public}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-me}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-change-me}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-change-me}
+      ABACATEPAY_API_TOKEN: ${ABACATEPAY_API_TOKEN:-}
+      ABACATEPAY_WEBHOOK_SECRET: ${ABACATEPAY_WEBHOOK_SECRET:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      CRON_SECRET: ${CRON_SECRET:-change-me}
+    volumes:
+      - .:/app
+      - root-node-modules:/app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: gymrats
-      POSTGRES_USER: gymrats
-      POSTGRES_PASSWORD: gymrats
+      POSTGRES_DB: ${POSTGRES_DB:-gymrats}
+      POSTGRES_USER: ${POSTGRES_USER:-gymrats}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymrats}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gymrats -d gymrats"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-gymrats} -d ${POSTGRES_DB:-gymrats}",
+        ]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    profiles:
+      - local-db
 
 volumes:
-  db-data:
+  postgres-data:
+  redis-data:
+  root-node-modules:

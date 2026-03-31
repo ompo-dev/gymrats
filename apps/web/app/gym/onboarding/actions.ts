@@ -1,111 +1,40 @@
 "use server";
 
-import type { Gym, GymProfile, GymStats } from "@prisma/client";
-import { getUserContext } from "@/lib/context/auth-context-factory";
-import { db } from "@/lib/db";
-import { geocodeAddress } from "@/lib/services/geocoding.service";
-import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
-import { initializeGymTrial } from "@/lib/utils/auto-trial";
-import { ensureGymRole } from "@/lib/utils/ensure-user-role";
-import { getGymContext } from "@/lib/utils/gym/gym-context";
+import { serverApiPost } from "@/lib/api/server";
+import { getApiErrorMessage } from "@/lib/api/server-action-utils";
 import type { GymOnboardingData } from "./steps/types";
-
-type GymWithProfileAndStats = Gym & {
-  profile?: GymProfile | null;
-  stats?: GymStats | null;
-};
 
 export async function submitNewGym(formData: GymOnboardingData) {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-
-    const fullAddress = formData.addressNumber
-      ? `${formData.address}, ${formData.addressNumber}, ${formData.city}, ${formData.state} - ${formData.zipCode}`
-      : `${formData.address}, ${formData.city}, ${formData.state} - ${formData.zipCode}`;
-
-    const coords = await geocodeAddress(fullAddress);
-
-    const newGym = await GymInventoryService.createGym(ctx.user.id, {
+    return await serverApiPost<{
+      success: boolean;
+      gymId?: string;
+      error?: string;
+    }>("/api/gyms/onboarding", {
       ...formData,
-      address: fullAddress,
-      latitude: coords?.lat ?? null,
-      longitude: coords?.lng ?? null,
+      createAdditional: true,
     });
-
-    return { success: true, gymId: newGym.id };
   } catch (error) {
     console.error("Erro ao criar nova academia:", error);
-    const message =
-      error instanceof Error ? error.message : "Erro ao criar nova academia";
-    return { success: false, error: message };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao criar nova academia"),
+    };
   }
 }
 
 export async function submitGymOnboarding(formData: GymOnboardingData) {
   try {
-    let ctx = (await getGymContext()).ctx;
-
-    // Se sem contexto (PENDING ou GYM sem gym criada), cadastra agora
-    if (!ctx) {
-      const { ctx: userCtx, error: userError } = await getUserContext();
-      if (userError || !userCtx) {
-        return { success: false, error: "Não autenticado" };
-      }
-      const role = userCtx.user.role;
-      if (role !== "PENDING" && role !== "GYM") {
-        return { success: false, error: "Fluxo inválido" };
-      }
-      const ensure = await ensureGymRole(
-        userCtx.user.id,
-        (userCtx.user.name as string) || formData.name,
-        (userCtx.user.email as string) || formData.email,
-      );
-      if (!ensure.ok) {
-        return { success: false, error: ensure.error };
-      }
-      ctx = (await getGymContext()).ctx;
-      if (!ctx) {
-        return {
-          success: false,
-          error: "Erro ao obter contexto após cadastro",
-        };
-      }
-    }
-
-    const fullAddress = formData.addressNumber
-      ? `${formData.address}, ${formData.addressNumber}, ${formData.city}, ${formData.state} - ${formData.zipCode}`
-      : `${formData.address}, ${formData.city}, ${formData.state} - ${formData.zipCode}`;
-
-    const coords = await geocodeAddress(fullAddress);
-
-    const gyms = await db.gym.findMany({ where: { userId: ctx.user.id } });
-    const gymId = gyms[0]?.id;
-
-    if (gymId) {
-      await GymInventoryService.updateOnboarding(gymId, {
-        ...formData,
-        address: fullAddress,
-        latitude: coords?.lat ?? null,
-        longitude: coords?.lng ?? null,
-      });
-    } else {
-      const newGym = await GymInventoryService.createGym(ctx.user.id, {
-        ...formData,
-        address: fullAddress,
-        latitude: coords?.lat ?? null,
-        longitude: coords?.lng ?? null,
-      });
-    }
-
-    return { success: true };
+    return await serverApiPost<{
+      success: boolean;
+      gymId?: string;
+      error?: string;
+    }>("/api/gyms/onboarding", formData);
   } catch (error) {
     console.error("Erro ao salvar perfil da academia:", error);
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Erro ao salvar perfil da academia";
-    return { success: false, error: message };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao salvar perfil da academia"),
+    };
   }
 }

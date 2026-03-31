@@ -104,6 +104,7 @@ function DuoModalHeader({
       )}
       {children}
       <button
+        type="button"
         onClick={onClose}
         className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--duo-fg-muted)] transition-all duration-200 hover:bg-[var(--duo-bg-elevated)] hover:text-[var(--duo-fg)] active:scale-90"
         aria-label="Fechar"

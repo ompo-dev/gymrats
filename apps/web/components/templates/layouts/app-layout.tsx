@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import type { ReactNode } from "react";
 import { AppBottomNav } from "@/components/organisms/navigation/app-bottom-nav";
@@ -47,7 +47,6 @@ function AppLayoutSimple({
   className = "",
 }: AppLayoutProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [tab, setTab] = useQueryState(
     "tab",
     parseAsString.withDefault(defaultTab),
@@ -62,11 +61,14 @@ function AppLayoutSimple({
   const activeTab = tab;
 
   const handleTabChange = async (newTab: string) => {
+    if (newTab === activeTab) {
+      return;
+    }
+
     if (customTabChange) {
       await customTabChange(newTab, activeTab);
     } else {
       await setTab(newTab);
-      router.push(`${basePath}?tab=${newTab}`);
     }
 
     setTimeout(() => {

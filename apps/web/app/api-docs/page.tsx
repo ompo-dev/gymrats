@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { resolveApiBaseUrl } from "@/lib/api/client-factory";
 
 interface SwaggerUIConfig {
   url: string;
@@ -39,6 +40,7 @@ declare global {
 export default function ApiDocsPage() {
   const swaggerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const swaggerJsonUrl = `${resolveApiBaseUrl()}/api/swagger`;
 
   useEffect(() => {
     if (typeof window === "undefined" || !swaggerRef.current) return;
@@ -51,9 +53,12 @@ export default function ApiDocsPage() {
         swaggerRef.current.innerHTML = "";
 
         SwaggerUIBundle({
-          url: "/api/swagger",
+          url: swaggerJsonUrl,
           dom_id: "#swagger-ui",
-          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+          presets: [
+            SwaggerUIBundle.presets?.apis ?? {},
+            SwaggerUIStandalonePreset,
+          ],
           layout: "StandaloneLayout",
           deepLinking: true,
           displayRequestDuration: true,
@@ -61,40 +66,13 @@ export default function ApiDocsPage() {
           tryItOutEnabled: true,
           persistAuthorization: true,
           supportedSubmitMethods: ["get", "post", "put", "delete", "patch"],
-          requestInterceptor: async (req: {
-            headers?: Record<string, string>;
-            credentials?: string;
-          }) => {
-            // Tentar pegar token do cookie primeiro
-            const cookies = document.cookie.split(";");
-            let token: string | null = null;
-            for (const cookie of cookies) {
-              const [name, value] = cookie.trim().split("=");
-              if (name === "auth_token") {
-                token = value;
-                break;
-              }
-            }
-
-            // Se não encontrou no cookie, tentar token client
-            if (!token) {
-              const { getAuthToken } = await import("@/lib/auth/token-client");
-              token = getAuthToken();
-            }
-
-            if (token && req.headers) {
-              req.headers.Authorization = `Bearer ${token}`;
-            }
-
-            // Garantir que cookies sejam enviados
+          requestInterceptor: async (req) => {
             req.credentials = "include";
-
             return req;
           },
           responseInterceptor: (
             res: Record<string, string | number | boolean | object | null>,
           ) => {
-            // Log de respostas para debug
             console.log("[Swagger] Response:", res);
             return res;
           },
@@ -128,24 +106,25 @@ export default function ApiDocsPage() {
     };
 
     document.body.appendChild(bundleScript);
-  }, []);
+  }, [swaggerJsonUrl]);
 
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto p-4 md:p-8">
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            📚 API Documentation
+            API Documentation
           </h1>
           <p className="text-gray-600 text-sm md:text-base">
-            Documentação completa da API do Fitness App. Teste todas as rotas de
-            autenticação e gerenciamento de usuários.
+            Documentacao completa da API do GymRats. Teste rotas autenticadas
+            usando a sessao ativa do navegador.
           </p>
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>💡 Dica:</strong> Após fazer login, copie o token e clique
-              em &quot;Authorize&quot; no topo para autenticar nas rotas
-              protegidas.
+              <strong>Dica:</strong> No navegador, os requests usam a sessao
+              autenticada via cookie. O botao &quot;Authorize&quot; so e
+              necessario para tokens fornecidos manualmente em ferramentas
+              externas.
             </p>
           </div>
         </div>
@@ -154,7 +133,7 @@ export default function ApiDocsPage() {
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#58CC02] mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando documentação...</p>
+              <p className="text-gray-600">Carregando documentacao...</p>
             </div>
           </div>
         )}

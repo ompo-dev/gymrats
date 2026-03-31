@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "target": "ES2020",
@@ -12,6 +13,32 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true
+    "incremental": true,
+    "paths": {
+      "@gymrats/access-control": ["packages/access-control/src/index.ts"],
+      "@gymrats/access-control/*": ["packages/access-control/src/*"],
+      "@gymrats/api": ["packages/api/src/index.ts"],
+      "@gymrats/api/*": ["packages/api/src/*"],
+      "@gymrats/auth": ["packages/auth/src/index.ts"],
+      "@gymrats/auth/*": ["packages/auth/src/*"],
+      "@gymrats/cache": ["packages/cache/src/index.ts"],
+      "@gymrats/cache/*": ["packages/cache/src/*"],
+      "@gymrats/config": ["packages/config/src/index.ts"],
+      "@gymrats/config/*": ["packages/config/src/*"],
+      "@gymrats/catalog": ["packages/catalog/src/index.ts"],
+      "@gymrats/catalog/*": ["packages/catalog/src/*"],
+      "@gymrats/db": ["packages/db/src/index.ts"],
+      "@gymrats/db/*": ["packages/db/src/*"],
+      "@gymrats/domain": ["packages/domain/src/index.ts"],
+      "@gymrats/domain/*": ["packages/domain/src/*"],
+      "@gymrats/env": ["packages/env/src/index.ts"],
+      "@gymrats/env/*": ["packages/env/src/*"],
+      "@gymrats/schemas": ["packages/schemas/src/index.ts"],
+      "@gymrats/schemas/*": ["packages/schemas/src/*"],
+      "@gymrats/types": ["packages/types/src/index.ts"],
+      "@gymrats/types/*": ["packages/types/src/*"],
+      "@gymrats/workflows": ["packages/workflows/src/index.ts"],
+      "@gymrats/workflows/*": ["packages/workflows/src/*"]
+    }
   }
 }

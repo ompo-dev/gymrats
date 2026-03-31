@@ -14,10 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
-import {
-  formatCurrencyInput,
-  parseCurrencyBR,
-} from "@/lib/utils/currency";
+import { formatCurrencyInput, parseCurrencyBR } from "@/lib/utils/currency";
 
 const EXPENSE_TYPES = [
   { value: "maintenance", label: "Manutenção" },
@@ -33,7 +30,7 @@ const EXPENSE_TYPES = [
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
   variant?: "gym" | "personal";
 }
 
@@ -43,10 +40,9 @@ export function AddExpenseModal({
   onSuccess,
   variant = "gym",
 }: AddExpenseModalProps) {
-  const gymData = useGym("actions", "loaders");
-  const personalData = usePersonal("actions", "loaders");
-  const { actions, loaders } =
-    variant === "personal" ? personalData : gymData;
+  const gymActions = useGym("actions");
+  const personalActions = usePersonal("actions");
+  const actions = variant === "personal" ? personalActions : gymActions;
   const [form, setForm] = useState({
     type: "other" as (typeof EXPENSE_TYPES)[number]["value"],
     description: "",
@@ -88,9 +84,7 @@ export function AddExpenseModal({
         date: new Date().toISOString().split("T")[0],
         category: form.category.trim() || null,
       });
-      await loaders.loadSection("expenses");
-      await loaders.loadSection("financialSummary");
-      onSuccess?.();
+      await onSuccess?.();
       onClose();
     } catch (err) {
       setError(

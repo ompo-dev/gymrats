@@ -1,10 +1,16 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
-import { PersonalGymService } from "@/lib/services/personal/personal-gym.service";
-import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
-import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import {
+  serverApiDelete,
+  serverApiGet,
+  serverApiPatch,
+  serverApiPost,
+} from "@/lib/api/server";
+import {
+  buildApiPath,
+  getApiErrorMessage,
+  reviveDate,
+} from "@/lib/api/server-action-utils";
 import type {
   BoostCampaign,
   Coupon,
@@ -25,33 +31,84 @@ export interface PersonalMembershipPlan {
   personalId: string;
   name: string;
   description?: string | null;
-  type: string; // Changed from "monthly" | "quarterly" | "semi-annual" | "annual" | "trial" to string
+  type: string;
   price: number;
   duration: number;
-  benefits?: string[] | string | null; // Changed from string | null to string[] | string | null
+  benefits?: string[] | string | null;
   isActive: boolean;
+}
+
+function revivePayments(payments: Payment[]): Payment[] {
+  return payments.map((payment) => ({
+    ...payment,
+    date: reviveDate(payment.date) as Date,
+    dueDate: reviveDate(payment.dueDate) as Date,
+    withdrawnAt:
+      (reviveDate(payment.withdrawnAt) as Date | null | undefined) ?? undefined,
+  }));
+}
+
+function reviveExpenses(expenses: Expense[]): Expense[] {
+  return expenses.map((expense) => ({
+    ...expense,
+    date: reviveDate(expense.date) as Date,
+  }));
+}
+
+function reviveCoupons(coupons: Coupon[]): Coupon[] {
+  return coupons.map((coupon) => ({
+    ...coupon,
+    expiryDate: reviveDate(coupon.expiryDate) as Date,
+  }));
+}
+
+function reviveCampaigns(campaigns: BoostCampaign[]): BoostCampaign[] {
+  return campaigns.map((campaign) => ({
+    ...campaign,
+    startsAt: (reviveDate(campaign.startsAt) as Date | null) ?? null,
+    endsAt: (reviveDate(campaign.endsAt) as Date | null) ?? null,
+    createdAt: reviveDate(campaign.createdAt) as Date,
+    updatedAt: reviveDate(campaign.updatedAt) as Date,
+  }));
+}
+
+function reviveSubscription(
+  subscription: PersonalSubscriptionData | null,
+): PersonalSubscriptionData | null {
+  if (!subscription) {
+    return null;
+  }
+
+  return {
+    ...subscription,
+    currentPeriodStart: reviveDate(subscription.currentPeriodStart) as Date,
+    currentPeriodEnd: reviveDate(subscription.currentPeriodEnd) as Date,
+    canceledAt: (reviveDate(subscription.canceledAt) as Date | null) ?? null,
+  };
 }
 
 export async function getPersonalProfile(): Promise<PersonalProfile | null> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return null;
-    const personal = await db.personal.findUnique({
-      where: { id: ctx.personalId },
-    });
-    if (!personal) return null;
+    const payload = await serverApiGet<{
+      personal: (PersonalProfile & { subscription?: unknown }) | null;
+    }>("/api/personals");
+
+    if (!payload.personal) {
+      return null;
+    }
+
     return {
-      id: personal.id,
-      name: personal.name,
-      email: personal.email,
-      bio: personal.bio,
-      phone: personal.phone,
-      address: (personal as any).address,
-      cref: (personal as any).cref,
-      pixKey: (personal as any).pixKey,
-      pixKeyType: (personal as any).pixKeyType,
-      atendimentoPresencial: personal.atendimentoPresencial,
-      atendimentoRemoto: personal.atendimentoRemoto,
+      id: payload.personal.id,
+      name: payload.personal.name,
+      email: payload.personal.email,
+      bio: payload.personal.bio,
+      phone: payload.personal.phone,
+      address: payload.personal.address,
+      cref: payload.personal.cref,
+      pixKey: payload.personal.pixKey,
+      pixKeyType: payload.personal.pixKeyType,
+      atendimentoPresencial: payload.personal.atendimentoPresencial,
+      atendimentoRemoto: payload.personal.atendimentoRemoto,
     };
   } catch (error) {
     console.error("[getPersonalProfile] Erro:", error);
@@ -63,18 +120,25 @@ export async function getPersonalAffiliations(): Promise<
   PersonalAffiliation[]
 > {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    const affiliations = await PersonalGymService.listPersonalGyms(
-      ctx.personalId,
-    );
-    return (affiliations as any[]).map((a: any) => ({
-      id: a.id,
+    const payload = await serverApiGet<{
+      affiliations: Array<{
+        id: string;
+        gym: {
+          id: string;
+          name: string;
+          image?: string | null;
+          logo?: string | null;
+        };
+      }>;
+    }>("/api/personals/affiliations");
+
+    return payload.affiliations.map((affiliation) => ({
+      id: affiliation.id,
       gym: {
-        id: a.gym.id,
-        name: a.gym.name,
-        image: a.gym.image ?? null,
-        logo: a.gym.logo ?? null,
+        id: affiliation.gym.id,
+        name: affiliation.gym.name,
+        image: affiliation.gym.image ?? null,
+        logo: affiliation.gym.logo ?? null,
       },
     }));
   } catch (error) {
@@ -87,12 +151,10 @@ export async function getPersonalStudents(
   gymId?: string,
 ): Promise<StudentData[]> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    return StudentPersonalService.listStudentsAsStudentData(
-      ctx.personalId,
-      gymId,
+    const payload = await serverApiGet<{ students: StudentData[] }>(
+      buildApiPath("/api/personals/students/student-data", { gymId }),
     );
+    return payload.students;
   } catch (error) {
     console.error("[getPersonalStudents] Erro:", error);
     return [];
@@ -103,26 +165,30 @@ export async function getPersonalStudentAssignments(
   gymId?: string,
 ): Promise<PersonalStudentAssignment[]> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    const assignments = await StudentPersonalService.listStudentsByPersonal(
-      ctx.personalId,
-      gymId,
-    );
-    return (assignments as any[]).map((a: any) => ({
-      id: a.id,
+    const payload = await serverApiGet<{
+      students: Array<{
+        id: string;
+        student: {
+          id: string;
+          avatar?: string | null;
+          user?: {
+            id: string;
+            name?: string | null;
+            email?: string | null;
+          } | null;
+        };
+        gym?: { id: string; name: string } | null;
+      }>;
+    }>(buildApiPath("/api/personals/students", { gymId }));
+
+    return payload.students.map((assignment) => ({
+      id: assignment.id,
       student: {
-        id: a.student.id,
-        avatar: a.student.avatar ?? null,
-        user: a.student.user
-          ? {
-              id: a.student.user.id,
-              name: a.student.user.name ?? null,
-              email: a.student.user.email ?? null,
-            }
-          : null,
+        id: assignment.student.id,
+        avatar: assignment.student.avatar ?? null,
+        user: assignment.student.user ?? null,
       },
-      gym: a.gym ? { id: a.gym.id, name: a.gym.name } : null,
+      gym: assignment.gym ?? null,
     }));
   } catch (error) {
     console.error("[getPersonalStudentAssignments] Erro:", error);
@@ -130,27 +196,20 @@ export async function getPersonalStudentAssignments(
   }
 }
 
-export async function getPersonalStudentsAsStudentData(): Promise<StudentData[]> {
-  try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    return StudentPersonalService.listStudentsAsStudentData(ctx.personalId);
-  } catch (error) {
-    console.error("[getPersonalStudentsAsStudentData] Erro:", error);
-    return [];
-  }
+export async function getPersonalStudentsAsStudentData(): Promise<
+  StudentData[]
+> {
+  return getPersonalStudents();
 }
 
 export async function getPersonalStudentById(
   studentId: string,
 ): Promise<StudentData | null> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return null;
-    return StudentPersonalService.getStudentByIdAsStudentData(
-      ctx.personalId,
-      studentId,
+    const payload = await serverApiGet<{ student: StudentData }>(
+      `/api/personals/students/${studentId}/student-data`,
     );
+    return payload.student;
   } catch (error) {
     console.error("[getPersonalStudentById] Erro:", error);
     return null;
@@ -160,20 +219,15 @@ export async function getPersonalStudentById(
 export async function getPersonalStudentPayments(
   _studentId: string,
 ): Promise<Payment[]> {
-  try {
-    await getPersonalContext();
-    return [];
-  } catch (error) {
-    console.error("[getPersonalStudentPayments] Erro:", error);
-    return [];
-  }
+  return [];
 }
 
 export async function getPersonalFinancialSummary(): Promise<FinancialSummary | null> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return null;
-    return PersonalFinancialService.getFinancialSummary(ctx.personalId);
+    const payload = await serverApiGet<{
+      financialSummary: FinancialSummary | null;
+    }>("/api/personals/financial-summary");
+    return payload.financialSummary;
   } catch (error) {
     console.error("[getPersonalFinancialSummary] Erro:", error);
     return null;
@@ -182,9 +236,10 @@ export async function getPersonalFinancialSummary(): Promise<FinancialSummary | 
 
 export async function getPersonalExpenses(): Promise<Expense[]> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    return PersonalFinancialService.getExpenses(ctx.personalId);
+    const payload = await serverApiGet<{ expenses: Expense[] }>(
+      "/api/personals/expenses",
+    );
+    return reviveExpenses(payload.expenses);
   } catch (error) {
     console.error("[getPersonalExpenses] Erro:", error);
     return [];
@@ -193,11 +248,10 @@ export async function getPersonalExpenses(): Promise<Expense[]> {
 
 export async function getPersonalCoupons(): Promise<Coupon[]> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    return (await PersonalFinancialService.getCoupons(
-      ctx.personalId,
-    )) as unknown as Coupon[];
+    const payload = await serverApiGet<{ coupons: Coupon[] }>(
+      "/api/personals/coupons",
+    );
+    return reviveCoupons(payload.coupons);
   } catch (error) {
     console.error("[getPersonalCoupons] Erro:", error);
     return [];
@@ -213,53 +267,25 @@ export async function createPersonalCoupon(data: {
   expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-
-    const code = data.code.trim().toUpperCase();
-    const discountType =
-      data.discountKind === "PERCENTAGE" ? "percentage" : "fixed";
-    const parsedExpiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
-    if (parsedExpiresAt && Number.isNaN(parsedExpiresAt.getTime())) {
-      return { success: false, error: "Data de validade inv\u00e1lida" };
-    }
-
-    const existing = await db.personalCoupon.findFirst({
-      where: { personalId: ctx.personalId, code },
-    });
-    if (existing)
-      return { success: false, error: "Cupom com esse código já existe" };
-
-    await db.personalCoupon.create({
-      data: {
-        personalId: ctx.personalId,
-        code,
-        notes: data.notes || code,
-        discountType,
-        discountValue: data.discount,
-        maxUses: data.maxRedeems ?? -1,
-        isActive: true,
-        expiresAt: parsedExpiresAt,
-      },
-    });
-
-    return { success: true };
+    return await serverApiPost<{ success: true }>(
+      "/api/personals/coupons",
+      data,
+    );
   } catch (error) {
     console.error("[createPersonalCoupon] Erro:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Erro ao criar cupom",
+      error: getApiErrorMessage(error, "Erro ao criar cupom"),
     };
   }
 }
 
 export async function getPersonalPayments(): Promise<Payment[]> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    return await PersonalFinancialService.getPayments(ctx.personalId) as unknown as Payment[];
+    const payload = await serverApiGet<{ payments: Payment[] }>(
+      "/api/personals/payments",
+    );
+    return revivePayments(payload.payments);
   } catch (error) {
     console.error("[getPersonalPayments] Erro:", error);
     return [];
@@ -270,31 +296,24 @@ export async function deletePersonalCoupon(
   couponId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "N\u00e3o autenticado" };
-
-    const deleted = await db.personalCoupon.deleteMany({
-      where: { id: couponId, personalId: ctx.personalId },
-    });
-
-    if (deleted.count === 0)
-      return { success: false, error: "Cupom n\u00e3o encontrado" };
-
-    return { success: true };
+    return await serverApiDelete<{ success: true }>(
+      buildApiPath("/api/personals/coupons", { couponId }),
+    );
   } catch (error) {
     console.error("[deletePersonalCoupon] Erro:", error);
-    return { success: false, error: "Erro ao excluir cupom" };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao excluir cupom"),
+    };
   }
 }
 
 export async function getPersonalBoostCampaigns(): Promise<BoostCampaign[]> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    return (await PersonalFinancialService.getBoostCampaigns(
-      ctx.personalId,
-    )) as unknown as BoostCampaign[];
+    const payload = await serverApiGet<{ campaigns: BoostCampaign[] }>(
+      "/api/personals/boost-campaigns",
+    );
+    return reviveCampaigns(payload.campaigns);
   } catch (error) {
     console.error("[getPersonalBoostCampaigns] Erro:", error);
     return [];
@@ -312,77 +331,24 @@ export async function createPersonalBoostCampaign(data: {
   radiusKm?: number;
 }) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-
-    const personal = await db.personal.findUnique({
-      where: { id: ctx.personalId },
-      select: { name: true, email: true },
-    });
-
-    const radiusKm = data.radiusKm ?? 5;
-
-    const campaign = await db.boostCampaign.create({
-      data: {
-        personalId: ctx.personalId,
-        title: data.title,
-        description: data.description,
-        primaryColor: data.primaryColor,
-        linkedCouponId: data.linkedCouponId,
-        linkedPlanId: data.linkedPlanId,
-        durationHours: data.durationHours,
-        amountCents: data.amountCents,
-        radiusKm,
-        status: "pending_payment",
-      },
-    });
-
-    const { abacatePay } = await import("@/lib/api/abacatepay");
-    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
-    const pixResponse = await abacatePay.createPixQrCode({
-      amount: data.amountCents,
-      expiresIn: PIX_EXPIRES_IN_SECONDS,
-      description: `Impulsionamento: ${data.title}`.slice(0, 37),
-      metadata: {
-        campaignId: campaign.id,
-        personalId: ctx.personalId,
-        kind: "boost-campaign",
-      },
-      customer: personal?.email
-        ? {
-            name: personal.name ?? "Personal",
-            email: personal.email,
-            cellphone: "",
-            taxId: "",
-          }
-        : undefined,
-    });
-
-    if (pixResponse.error || !pixResponse.data) {
-      return {
-        success: false,
-        error: pixResponse.error ?? "Erro ao gerar PIX",
-      } as const;
-    }
-
-    await db.boostCampaign.update({
-      where: { id: campaign.id },
-      data: { abacatePayBillingId: pixResponse.data.id },
-    });
-
-    return {
-      success: true,
-      brCode: pixResponse.data.brCode,
-      brCodeBase64: pixResponse.data.brCodeBase64,
-      amount: pixResponse.data.amount,
-      pixId: pixResponse.data.id,
-      campaignId: campaign.id,
-      expiresAt: pixResponse.data.expiresAt,
-    } as const;
+    return await serverApiPost<
+      | {
+          success: true;
+          brCode: string;
+          brCodeBase64: string;
+          amount: number;
+          pixId: string;
+          campaignId: string;
+          expiresAt?: string;
+        }
+      | { success: false; error: string }
+    >("/api/personals/boost-campaigns", data);
   } catch (error) {
     console.error("[createPersonalBoostCampaign] Erro:", error);
-    return { success: false, error: "Erro interno ao criar campanha" } as const;
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro interno ao criar campanha"),
+    } as const;
   }
 }
 
@@ -390,27 +356,19 @@ export async function deletePersonalBoostCampaign(
   campaignId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "N\u00e3o autenticado" };
-
-    const deleted = await db.boostCampaign.deleteMany({
-      where: { id: campaignId, personalId: ctx.personalId },
-    });
-
-    if (deleted.count === 0)
-      return { success: false, error: "Campanha n\u00e3o encontrada" };
-
-    return { success: true };
+    return await serverApiDelete<{ success: true }>(
+      buildApiPath("/api/personals/boost-campaigns", { campaignId }),
+    );
   } catch (error) {
     console.error("[deletePersonalBoostCampaign] Erro:", error);
-    return { success: false, error: "Erro ao excluir campanha" };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao excluir campanha"),
+    };
   }
 }
 
-export async function getPersonalBoostCampaignPix(
-  campaignId: string,
-): Promise<
+export async function getPersonalBoostCampaignPix(campaignId: string): Promise<
   | {
       success: true;
       brCode: string;
@@ -422,71 +380,34 @@ export async function getPersonalBoostCampaignPix(
   | { success: false; error: string }
 > {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-
-    const campaign = await db.boostCampaign.findFirst({
-      where: {
-        id: campaignId,
-        personalId: ctx.personalId,
-        status: "pending_payment",
-      },
-      include: { personal: { select: { name: true, email: true } } },
-    });
-
-    if (!campaign)
-      return { success: false, error: "Campanha não encontrada ou já paga" };
-
-    const { abacatePay } = await import("@/lib/api/abacatepay");
-    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
-    const pixResponse = await abacatePay.createPixQrCode({
-      amount: campaign.amountCents,
-      expiresIn: PIX_EXPIRES_IN_SECONDS,
-      description: `Impulsionamento: ${campaign.title}`.slice(0, 37),
-      metadata: {
-        campaignId: campaign.id,
-        personalId: ctx.personalId,
-        kind: "boost-campaign",
-      },
-      customer: campaign.personal?.email
-        ? {
-            name: campaign.personal.name ?? "Personal",
-            email: campaign.personal.email,
-            cellphone: "",
-            taxId: "",
-          }
-        : undefined,
-    });
-
-    if (pixResponse.error || !pixResponse.data) {
-      return { success: false, error: pixResponse.error ?? "Erro ao gerar PIX" };
-    }
-
-    await db.boostCampaign.update({
-      where: { id: campaign.id },
-      data: { abacatePayBillingId: pixResponse.data.id },
-    });
-
-    return {
-      success: true,
-      brCode: pixResponse.data.brCode,
-      brCodeBase64: pixResponse.data.brCodeBase64,
-      amount: pixResponse.data.amount,
-      pixId: pixResponse.data.id,
-      expiresAt: pixResponse.data.expiresAt,
-    };
+    return await serverApiGet<
+      | {
+          success: true;
+          brCode: string;
+          brCodeBase64: string;
+          amount: number;
+          pixId: string;
+          expiresAt?: string;
+        }
+      | { success: false; error: string }
+    >(`/api/personals/boost-campaigns/${campaignId}/pix`);
   } catch (error) {
     console.error("[getPersonalBoostCampaignPix] Erro:", error);
-    return { success: false, error: "Erro ao gerar PIX" };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao gerar PIX"),
+    };
   }
 }
 
-export async function getPersonalMembershipPlans(): Promise<PersonalMembershipPlan[]> {
+export async function getPersonalMembershipPlans(): Promise<
+  PersonalMembershipPlan[]
+> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return [];
-    return await PersonalFinancialService.getMembershipPlans(ctx.personalId);
+    const payload = await serverApiGet<{ plans: PersonalMembershipPlan[] }>(
+      "/api/personals/membership-plans",
+    );
+    return payload.plans;
   } catch (error) {
     console.error("[getPersonalMembershipPlans] Erro:", error);
     return [];
@@ -496,82 +417,38 @@ export async function getPersonalMembershipPlans(): Promise<PersonalMembershipPl
 export async function createPersonalMembershipPlan(
   data: Omit<PersonalMembershipPlan, "id" | "isActive" | "personalId">,
 ) {
-  const { ctx, errorResponse } = await getPersonalContext();
-  if (errorResponse || !ctx) throw new Error("Não autorizado");
-
-  const parsedBenefits = Array.isArray(data.benefits)
-    ? JSON.stringify(data.benefits)
-    : data.benefits;
-
-    const plan = await (db as any).personalMembershipPlan.create({
-    data: {
-      personalId: ctx.personalId,
-      name: data.name,
-      description: data.description,
-      type: data.type,
-      price: data.price,
-      duration: data.duration,
-      benefits: parsedBenefits,
-      isActive: true,
-    },
-  });
-  return plan;
+  const payload = await serverApiPost<{ plan: PersonalMembershipPlan }>(
+    "/api/personals/membership-plans",
+    data,
+  );
+  return payload.plan;
 }
 
 export async function updatePersonalMembershipPlan(
   planId: string,
   data: Partial<Omit<PersonalMembershipPlan, "id" | "personalId">>,
 ) {
-  const { ctx, errorResponse } = await getPersonalContext();
-  if (errorResponse || !ctx) throw new Error("Não autorizado");
-
-  const updateData: any = { ...data };
-  if (data.benefits !== undefined) {
-    updateData.benefits = Array.isArray(data.benefits)
-      ? JSON.stringify(data.benefits)
-      : data.benefits;
-  }
-
-  const plan = await (db as any).personalMembershipPlan.update({
-    where: { id: planId, personalId: ctx.personalId },
-    data: updateData,
-  });
-  return plan;
+  const payload = await serverApiPatch<{ plan: PersonalMembershipPlan }>(
+    `/api/personals/membership-plans/${planId}`,
+    data,
+  );
+  return payload.plan;
 }
 
 export async function deletePersonalMembershipPlan(planId: string) {
-  const { ctx, errorResponse } = await getPersonalContext();
-  if (errorResponse || !ctx) throw new Error("Não autorizado");
-
-  await (db as any).personalMembershipPlan.update({
-    where: { id: planId, personalId: ctx.personalId },
-    data: { isActive: false },
-  });
+  await serverApiDelete<{ success: true }>(
+    `/api/personals/membership-plans/${planId}`,
+  );
 }
 
 export async function getPersonalSubscription(): Promise<PersonalSubscriptionData | null> {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
-    if (errorResponse || !ctx) return null;
-    const sub = await (db as any).personalSubscription.findUnique({
-      where: { personalId: ctx.personalId },
-    });
-    if (!sub) return null;
-    return {
-      id: sub.id,
-      plan: sub.plan,
-      status: sub.status,
-      basePrice: sub.basePrice,
-      effectivePrice: sub.effectivePrice ?? null,
-      discountPercent: sub.discountPercent ?? null,
-      currentPeriodStart: sub.currentPeriodStart,
-      currentPeriodEnd: sub.currentPeriodEnd,
-      cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? undefined,
-      canceledAt: sub.canceledAt ?? null,
-    };
+    const payload = await serverApiGet<{
+      subscription: PersonalSubscriptionData | null;
+    }>("/api/personals/subscription");
+    return reviveSubscription(payload.subscription);
   } catch (error) {
     console.error("[getPersonalSubscription] Erro:", error);
     return null;
   }
 }
-

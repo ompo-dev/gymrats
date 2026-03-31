@@ -1,5 +1,10 @@
 import { db } from "@/lib/db";
-import type { Equipment, GymProfile, GymStats } from "@/lib/types";
+import type {
+  Equipment,
+  GymProfile,
+  GymStats,
+  MaintenanceRecord,
+} from "@/lib/types";
 
 interface CreateGymInput {
   name: string;
@@ -21,6 +26,73 @@ interface UpdateOnboardingInput {
   latitude?: number | null;
   longitude?: number | null;
   equipment?: Array<{ name: string; type: string }>;
+}
+
+function normalizeMaintenanceType(
+  type?: string | null,
+): MaintenanceRecord["type"] {
+  if (type === "preventive" || type === "corrective") {
+    return type;
+  }
+
+  return "inspection";
+}
+
+function mapEquipment(eq: {
+  id: string;
+  name: string;
+  type: string;
+  brand: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  purchaseDate: Date | null;
+  lastMaintenance: Date | null;
+  nextMaintenance: Date | null;
+  status: string;
+  currentUserId: string | null;
+  currentUserName: string | null;
+  currentStartTime: Date | null;
+  qrCode: string | null;
+  maintenanceHistory?: Array<{
+    id: string;
+    date: Date;
+    type: string;
+    description: string | null;
+    performedBy: string | null;
+    cost: number | null;
+    nextScheduled: Date | null;
+  }>;
+}): Equipment {
+  return {
+    id: eq.id,
+    name: eq.name,
+    type: eq.type,
+    status: eq.status as Equipment["status"],
+    brand: eq.brand || undefined,
+    model: eq.model || undefined,
+    serialNumber: eq.serialNumber || undefined,
+    purchaseDate: eq.purchaseDate || undefined,
+    lastMaintenance: eq.lastMaintenance || undefined,
+    nextMaintenance: eq.nextMaintenance || undefined,
+    currentUser: eq.currentUserId
+      ? {
+          studentId: eq.currentUserId,
+          studentName: eq.currentUserName ?? "Aluno",
+          startTime: eq.currentStartTime ?? new Date(),
+        }
+      : undefined,
+    usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
+    maintenanceHistory: (eq.maintenanceHistory ?? []).map((record) => ({
+      id: record.id,
+      date: record.date,
+      type: normalizeMaintenanceType(record.type),
+      description: record.description ?? "",
+      performedBy: record.performedBy ?? "",
+      cost: record.cost ?? undefined,
+      nextScheduled: record.nextScheduled ?? undefined,
+    })),
+    qrCode: eq.qrCode || undefined,
+  };
 }
 
 export class GymInventoryService {
@@ -97,29 +169,15 @@ export class GymInventoryService {
     const equipment = await db.equipment.findMany({
       where: { gymId },
       orderBy: { name: "asc" },
+      include: {
+        maintenanceHistory: {
+          orderBy: { date: "desc" },
+          take: 20,
+        },
+      },
     });
 
-    return equipment.map(
-      (eq) =>
-        ({
-          id: eq.id,
-          name: eq.name,
-          type: eq.type,
-          status: eq.status as Equipment["status"],
-          lastMaintenance: eq.lastMaintenance || undefined,
-          brand: eq.brand || undefined,
-          model: eq.model || undefined,
-          currentUser: eq.currentUserId
-            ? {
-                studentId: eq.currentUserId,
-                studentName: eq.currentUserName ?? "Aluno",
-                startTime: eq.currentStartTime ?? new Date(),
-              }
-            : undefined,
-          usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
-          maintenanceHistory: [],
-        }) as Equipment,
-    );
+    return equipment.map(mapEquipment);
   }
 
   /**
@@ -131,28 +189,17 @@ export class GymInventoryService {
   ): Promise<Equipment | null> {
     const equipment = await db.equipment.findUnique({
       where: { id: equipmentId, gymId },
+      include: {
+        maintenanceHistory: {
+          orderBy: { date: "desc" },
+          take: 20,
+        },
+      },
     });
 
     if (!equipment) return null;
 
-    return {
-      id: equipment.id,
-      name: equipment.name,
-      type: equipment.type,
-      status: equipment.status as Equipment["status"],
-      lastMaintenance: equipment.lastMaintenance || undefined,
-      brand: equipment.brand || undefined,
-      model: equipment.model || undefined,
-      currentUser: equipment.currentUserId
-        ? {
-            studentId: equipment.currentUserId,
-            studentName: equipment.currentUserName ?? "Aluno",
-            startTime: equipment.currentStartTime ?? new Date(),
-          }
-        : undefined,
-      usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
-      maintenanceHistory: [],
-    } as Equipment;
+    return mapEquipment(equipment);
   }
 
   /**

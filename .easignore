@@ -1,0 +1,15 @@
+bun.lock
+bun.lockb
+pnpm-lock.yaml
+yarn.lock
+
+# Ignorando apenas as pastas pesadas de compilação, mantendo os package.json das outras pastas pro npm ci não dar erro
+.next/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+.cursor/
+docs/
+devops/

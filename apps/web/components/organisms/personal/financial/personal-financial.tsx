@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
@@ -19,23 +19,22 @@ export interface PersonalFinancialPageProps {
 export function PersonalFinancialPage({
   onRefresh,
 }: PersonalFinancialPageProps = {}) {
-  const { subTab, setSubTab, stats, subscription } = usePersonalFinancial();
+  const { stats, subscription } = usePersonalFinancial();
   const [querySubTab, setQuerySubTab] = useQueryState(
     "subTab",
     parseAsString.withDefault("overview"),
   );
-  const [viewMode, setViewMode] = useState<PersonalFinancialViewMode>("overview");
-
-  useEffect(() => {
-    if (querySubTab && (querySubTab === "overview" || querySubTab === "subscription")) {
-      setViewMode(querySubTab);
+  const viewMode = useMemo<PersonalFinancialViewMode>(() => {
+    if (querySubTab === "overview" || querySubTab === "subscription") {
+      return querySubTab;
     }
+
+    return "overview";
   }, [querySubTab]);
 
   const handleTabChange = (tab: string) => {
     const mode = tab as PersonalFinancialViewMode;
-    setViewMode(mode);
-    setSubTab(mode);
+    void setQuerySubTab(mode);
   };
 
   return (
@@ -69,7 +68,10 @@ export function PersonalFinancialPage({
       </SlideIn>
 
       {viewMode === "overview" && (
-        <PersonalFinancialOverviewTab stats={stats} subscription={subscription} />
+        <PersonalFinancialOverviewTab
+          stats={stats}
+          subscription={subscription}
+        />
       )}
 
       {viewMode === "subscription" && (

@@ -1,14 +1,22 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  FinancialSummary,
+  Payment,
+} from "@/lib/types";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
-import { PersonalFinancialPageContent } from "./page-content";
 import type {
   PersonalAffiliation,
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "../types";
+import { PersonalFinancialPageContent } from "./page-content";
 
 export function PersonalFinancialRouteWrapper({
   subscription,
@@ -20,29 +28,42 @@ export function PersonalFinancialRouteWrapper({
   plans = [],
   expenses = [],
   financialSummary,
-  balanceReais = 0,
-  balanceCents = 0,
-  withdraws = [],
 }: {
   subscription: PersonalSubscriptionData | null;
   students: PersonalStudentAssignment[];
   affiliations: PersonalAffiliation[];
-  payments?: any[];
-  coupons?: any[];
-  campaigns?: any[];
-  plans?: any[];
-  expenses?: any[];
-  financialSummary?: any;
-  balanceReais?: number;
-  balanceCents?: number;
-  withdraws?: any[];
+  payments?: Payment[];
+  coupons?: Coupon[];
+  campaigns?: BoostCampaign[];
+  plans?: PersonalMembershipPlan[];
+  expenses?: Expense[];
+  financialSummary?: FinancialSummary | null;
 }) {
   const router = useRouter();
   const hydrateInitial = usePersonalUnifiedStore((s) => s.hydrateInitial);
+  const lastHydrationKeyRef = useRef<string | null>(null);
+  const hydrationPayload = useMemo(
+    () => ({ subscription, students, affiliations }),
+    [subscription, students, affiliations],
+  );
+  const hydrationKey = useMemo(
+    () =>
+      JSON.stringify({
+        subscription,
+        students,
+        affiliations,
+      }),
+    [subscription, students, affiliations],
+  );
 
   useEffect(() => {
-    hydrateInitial({ subscription, students, affiliations });
-  }, [hydrateInitial, subscription, students, affiliations]);
+    if (lastHydrationKeyRef.current === hydrationKey) {
+      return;
+    }
+
+    lastHydrationKeyRef.current = hydrationKey;
+    hydrateInitial(hydrationPayload);
+  }, [hydrateInitial, hydrationKey, hydrationPayload]);
 
   const onRefresh = useCallback(async () => {
     router.refresh();
@@ -57,9 +78,6 @@ export function PersonalFinancialRouteWrapper({
       plans={plans}
       expenses={expenses}
       financialSummary={financialSummary}
-      balanceReais={balanceReais}
-      balanceCents={balanceCents}
-      withdraws={withdraws}
       onRefresh={onRefresh}
     />
   );

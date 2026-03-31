@@ -17,6 +17,35 @@ interface PlanCardProps {
   };
 }
 
+function formatAddonPrice(price: number) {
+  return price.toLocaleString("pt-BR", {
+    minimumFractionDigits: price % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function GymMonthlyAddons({ plan }: { plan: SubscriptionPlan }) {
+  if (
+    plan.perStudentPrice === undefined &&
+    plan.perPersonalPrice === undefined
+  ) {
+    return null;
+  }
+
+  return (
+    <>
+      {plan.perStudentPrice !== undefined ? (
+        <div>+ R$ {formatAddonPrice(plan.perStudentPrice)}/aluno</div>
+      ) : null}
+      {plan.perPersonalPrice !== undefined ? (
+        <div>
+          + R$ {formatAddonPrice(plan.perPersonalPrice)}/personal filiado
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function PlanCardSimple({
   plan,
   isSelected,
@@ -51,7 +80,6 @@ function PlanCardSimple({
         </span>
       )}
       {isEnterprise && shouldSpanFullWidth ? (
-        // Layout especial para Enterprise (2 colunas)
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="mb-2 text-xl font-bold text-duo-text capitalize">
@@ -63,25 +91,22 @@ function PlanCardSimple({
               </div>
               <div className="text-sm text-duo-gray-dark whitespace-nowrap">
                 {billingPeriod === "annual" ? (
-                  <span>Preço fixo anual</span>
+                  <span>Preco fixo anual</span>
                 ) : (
                   <span>{texts.perMonth}</span>
                 )}
               </div>
-              {billingPeriod === "monthly" &&
-                userType === "gym" &&
-                plan.perStudentPrice !== undefined && (
-                  <div className="text-sm text-duo-gray-dark whitespace-nowrap">
-                    + R${" "}
-                    {plan.perStudentPrice.toLocaleString("pt-BR", {
-                      minimumFractionDigits:
-                        plan.perStudentPrice % 1 === 0 ? 0 : 2,
-                      maximumFractionDigits: 2,
-                    })}
-                    /aluno
-                  </div>
-                )}
+              {billingPeriod === "monthly" && userType === "gym" ? (
+                <div className="space-y-1 text-sm text-duo-gray-dark whitespace-nowrap">
+                  <GymMonthlyAddons plan={plan} />
+                </div>
+              ) : null}
             </div>
+            {billingPeriod === "annual" && userType === "gym" ? (
+              <div className="mt-2 text-sm text-duo-gray-dark">
+                Sem cobranca variavel por aluno ou personal
+              </div>
+            ) : null}
           </div>
           {isEnterprise && (
             <div className="shrink-0">
@@ -93,7 +118,6 @@ function PlanCardSimple({
           )}
         </div>
       ) : (
-        // Layout padrão para outros planos
         <>
           <div className="mb-2 text-lg font-bold text-duo-text capitalize">
             {plan.name}
@@ -102,22 +126,20 @@ function PlanCardSimple({
             R$ {Math.round(planPrice).toLocaleString("pt-BR")}
           </div>
           {billingPeriod === "annual" ? (
-            <div className="text-xs text-duo-gray-dark">Preço fixo anual</div>
+            <div className="space-y-1 text-xs text-duo-gray-dark">
+              <div>Preco fixo anual</div>
+              {userType === "gym" ? (
+                <div>Sem cobranca variavel por aluno ou personal</div>
+              ) : null}
+            </div>
           ) : (
             <div className="text-xs text-duo-gray-dark">{texts.perMonth}</div>
           )}
-          {billingPeriod === "monthly" &&
-            userType === "gym" &&
-            plan.perStudentPrice !== undefined && (
-              <div className="mt-1 text-xs text-duo-gray-dark">
-                + R${" "}
-                {plan.perStudentPrice.toLocaleString("pt-BR", {
-                  minimumFractionDigits: plan.perStudentPrice % 1 === 0 ? 0 : 2,
-                  maximumFractionDigits: 2,
-                })}
-                /aluno
-              </div>
-            )}
+          {billingPeriod === "monthly" && userType === "gym" ? (
+            <div className="mt-1 space-y-1 text-xs text-duo-gray-dark">
+              <GymMonthlyAddons plan={plan} />
+            </div>
+          ) : null}
         </>
       )}
     </DuoCard.Root>

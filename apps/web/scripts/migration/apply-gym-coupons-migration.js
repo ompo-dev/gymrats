@@ -38,14 +38,19 @@ async function applyMigration() {
     for (let i = 0; i < commands.length; i++) {
       try {
         await prisma.$executeRawUnsafe(commands[i]);
-        console.log(`✅ Comando ${i + 1}/${commands.length} executado com sucesso`);
+        console.log(
+          `✅ Comando ${i + 1}/${commands.length} executado com sucesso`,
+        );
       } catch (error) {
         if (
           error.message.includes("already exists") ||
           error.message.includes("duplicate") ||
-          (error.message.includes("relation") && error.message.includes("already exists"))
+          (error.message.includes("relation") &&
+            error.message.includes("already exists"))
         ) {
-          console.log(`⚠️  Comando ${i + 1}/${commands.length} ignorado (já existe)`);
+          console.log(
+            `⚠️  Comando ${i + 1}/${commands.length} ignorado (já existe)`,
+          );
         } else {
           console.error(`❌ Erro no comando ${i + 1}:`, error.message);
           throw error;

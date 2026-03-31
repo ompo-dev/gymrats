@@ -32,6 +32,25 @@ export interface ParsedNutritionResponse {
   message: string;
 }
 
+export interface NutritionPreviewMeal {
+  type: string;
+  name: string;
+  time?: string;
+  foods: ParsedFood[];
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFats: number;
+}
+
+export interface NutritionPreviewPlan {
+  meals: NutritionPreviewMeal[];
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFats: number;
+}
+
 /** Estrutura bruta do alimento vindo da IA (não validada) */
 interface RawParsedFood {
   name?: string;
@@ -49,6 +68,122 @@ interface RawParsedFood {
 /** Resultado da extração progressiva: alimentos extraídos do stream até o momento */
 export interface NutritionStreamExtractResult {
   foods: ParsedFood[];
+}
+
+const DEFAULT_MEAL_NAMES: Record<string, string> = {
+  breakfast: "Cafe da Manha",
+  lunch: "Almoco",
+  dinner: "Jantar",
+  snack: "Lanche",
+  "afternoon-snack": "Cafe da Tarde",
+  "pre-workout": "Pre Treino",
+  "post-workout": "Pos Treino",
+};
+
+const DEFAULT_MEAL_TIMES: Record<string, string> = {
+  breakfast: "08:00",
+  lunch: "12:30",
+  dinner: "19:30",
+  snack: "15:00",
+  "afternoon-snack": "16:00",
+  "pre-workout": "17:00",
+  "post-workout": "18:30",
+};
+
+function normalizeMealType(
+  mealType: string | null | undefined,
+  fallbackMealType?: string | null,
+): string {
+  const raw = (mealType || fallbackMealType || "snack").trim().toLowerCase();
+
+  const aliases: Record<string, string> = {
+    breakfast: "breakfast",
+    "cafe da manha": "breakfast",
+    "cafe-da-manha": "breakfast",
+    lunch: "lunch",
+    almoco: "lunch",
+    dinner: "dinner",
+    jantar: "dinner",
+    snack: "snack",
+    lanche: "snack",
+    "afternoon-snack": "afternoon-snack",
+    "cafe da tarde": "afternoon-snack",
+    "pre-workout": "pre-workout",
+    "pre treino": "pre-workout",
+    "post-workout": "post-workout",
+    "pos treino": "post-workout",
+  };
+
+  return aliases[raw] || raw || "snack";
+}
+
+export function getNutritionMealName(mealType: string): string {
+  return DEFAULT_MEAL_NAMES[normalizeMealType(mealType)] || mealType;
+}
+
+export function getNutritionMealTime(mealType: string): string | undefined {
+  return DEFAULT_MEAL_TIMES[normalizeMealType(mealType)];
+}
+
+export function buildNutritionPreviewPlan(
+  foods: ParsedFood[],
+  options?: {
+    fallbackMealType?: string | null;
+    existingMeals?: Array<{
+      type: string;
+      name?: string | null;
+      time?: string | null;
+    }>;
+  },
+): NutritionPreviewPlan {
+  const groupedMeals = new Map<string, NutritionPreviewMeal>();
+
+  for (const food of foods) {
+    const mealType = normalizeMealType(
+      food.mealType,
+      options?.fallbackMealType,
+    );
+    const existingMeal = options?.existingMeals?.find(
+      (meal) => normalizeMealType(meal.type) === mealType,
+    );
+    const currentMeal =
+      groupedMeals.get(mealType) ??
+      ({
+        type: mealType,
+        name: existingMeal?.name?.trim() || getNutritionMealName(mealType),
+        time: existingMeal?.time || getNutritionMealTime(mealType),
+        foods: [],
+        totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFats: 0,
+      } satisfies NutritionPreviewMeal);
+
+    const itemCalories = food.calories * food.servings;
+    const itemProtein = food.protein * food.servings;
+    const itemCarbs = food.carbs * food.servings;
+    const itemFats = food.fats * food.servings;
+
+    currentMeal.foods.push({
+      ...food,
+      mealType,
+    });
+    currentMeal.totalCalories += itemCalories;
+    currentMeal.totalProtein += itemProtein;
+    currentMeal.totalCarbs += itemCarbs;
+    currentMeal.totalFats += itemFats;
+    groupedMeals.set(mealType, currentMeal);
+  }
+
+  const meals = Array.from(groupedMeals.values());
+
+  return {
+    meals,
+    totalCalories: meals.reduce((sum, meal) => sum + meal.totalCalories, 0),
+    totalProtein: meals.reduce((sum, meal) => sum + meal.totalProtein, 0),
+    totalCarbs: meals.reduce((sum, meal) => sum + meal.totalCarbs, 0),
+    totalFats: meals.reduce((sum, meal) => sum + meal.totalFats, 0),
+  };
 }
 
 function parseRawFoodToParsedFood(food: RawParsedFood): ParsedFood | null {

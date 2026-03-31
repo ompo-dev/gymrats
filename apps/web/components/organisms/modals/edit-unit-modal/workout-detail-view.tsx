@@ -70,10 +70,14 @@ export function WorkoutDetailView({
     <div className="space-y-6">
       <div className="bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border space-y-4">
         <div>
-          <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
+          <label
+            htmlFor="workout-detail-title"
+            className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block"
+          >
             Título do Dia
           </label>
           <input
+            id="workout-detail-title"
             type="text"
             value={workoutTitle}
             onChange={(e) => onWorkoutTitleChange(e.target.value)}
@@ -82,9 +86,9 @@ export function WorkoutDetailView({
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
+          <p className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
             Grupo Muscular
-          </label>
+          </p>
           <div className="flex flex-wrap gap-2">
             {MUSCLE_CATEGORIES.map((category) => (
               <DuoButton

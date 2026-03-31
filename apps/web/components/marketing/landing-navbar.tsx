@@ -3,7 +3,6 @@
 import { Building2, Dumbbell, Users } from "lucide-react";
 import Link from "next/link";
 import { DuoButton, DuoColorPicker } from "@/components/duo";
-import { cn } from "@/lib/utils";
 
 export interface LandingNavbarProps {
   viewMode: "student" | "gym";

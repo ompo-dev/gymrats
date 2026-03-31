@@ -2,26 +2,23 @@
 
 import { Dumbbell, Flame, Trophy, Zap } from "lucide-react";
 import { motion } from "motion/react";
-import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect, useState } from "react";
 import { CardioFunctionalPage } from "@/app/student/_cardio/cardio-functional-page";
-import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { apiClient } from "@/lib/api/client";
 import { DietPage } from "@/app/student/_diet/diet-page";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
-import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
-import { PersonalProfileView } from "@/app/student/_personals/personal-profile-view";
 import { LearningPath } from "@/app/student/_learn/learning-path";
 import { StudentMoreMenu } from "@/app/student/_more/student-more-menu";
 import {
   StudentPaymentsPage,
   type StudentPaymentsPageProps,
 } from "@/app/student/_payments/student-payments-page";
+import { PersonalProfileView } from "@/app/student/_personals/personal-profile-view";
 import { ProfilePage } from "@/app/student/_profile/profile-page";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import { createTestSelector } from "@/components/foundations";
 import { EducationPage } from "@/components/organisms/education/education-page";
 import { EducationalLessons } from "@/components/organisms/education/educational-lessons";
 import { MuscleExplorer } from "@/components/organisms/education/muscle-explorer";
@@ -31,25 +28,49 @@ import { LevelProgressCard } from "@/components/organisms/home/home/level-progre
 import { NutritionStatusCard } from "@/components/organisms/home/home/nutrition-status-card";
 import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-workouts-card";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { GymMapWithLeaflet } from "@/components/organisms/sections/gym-map-with-leaflet";
-import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
+import { StudentHomeScreen } from "@/components/screens/student";
+import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
+import { usePaymentFlow } from "@/hooks/use-payment-flow";
 import { useStudent } from "@/hooks/use-student";
+import {
+  useStudentGymsBootstrapBridge,
+  useStudentHomeBootstrapBridge,
+} from "@/hooks/use-student-bootstrap";
 import { useToast } from "@/hooks/use-toast";
-import { useUserSession } from "@/hooks/use-user-session";
 import type {
   DailyNutrition,
   DayPass,
   GymLocation,
   PlanSlotData,
   StudentGymMembership,
-  SubscriptionData,
   Unit,
   UserProgress,
   WeeklyPlanData,
-  WeightHistoryItem,
   WorkoutHistory,
 } from "@/lib/types";
-import type { StudentProfileData, UserInfo } from "@/lib/types/student-unified";
+import type {
+  StudentPixPaymentPayload,
+  StudentProfileData,
+  SubscriptionData,
+  UserInfo,
+  WeightHistoryItem,
+} from "@/lib/types/student-unified";
+
+function HomeTabBootstrapBridge() {
+  useStudentHomeBootstrapBridge();
+  return null;
+}
+
+function GymsTabBootstrapBridge() {
+  useStudentGymsBootstrapBridge();
+  return null;
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
 
 /**
  * Componente de Conteúdo da Home do Student
@@ -64,22 +85,17 @@ import type { StudentProfileData, UserInfo } from "@/lib/types/student-unified";
 function StudentHomeContent() {
   // Carregamento prioritizado: progress, workoutHistory, profile aparecem primeiro
   // Se dados já existem no store, só carrega o que falta
-  useLoadPrioritized({ context: "home" });
-
-  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
-  const [personalId, setPersonalId] = useQueryState("personalId", parseAsString);
+  const [personalId, setPersonalId] = useQueryState(
+    "personalId",
+    parseAsString,
+  );
 
   // ✅ SEGURO: Verificar se é admin validando no servidor
-  const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
-  const userIsAdmin = isAdmin || role === "ADMIN";
 
   // Redirecionar se a sessão ainda estiver carregando
-  useEffect(() => {
-    if (isSessionLoading) return;
-  }, [isSessionLoading]);
   const [educationView, setEducationView] = useQueryState(
     "view",
     parseAsString.withDefault("menu"),
@@ -152,9 +168,17 @@ function StudentHomeContent() {
     "role",
   );
 
-  const { addDayPass } = useStudent("actions");
-  const { loadSubscription, loadMemberships, loadPayments } =
-    useStudent("loaders");
+  const {
+    addDayPass,
+    joinGym,
+    changeMembershipPlan,
+    cancelMembership,
+    cancelPersonalAssignment,
+    cancelStudentPayment,
+    getStudentPaymentStatus,
+    getPersonalPaymentStatus,
+  } = useStudent("actions");
+  const paymentFlow = usePaymentFlow();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -180,16 +204,22 @@ function StudentHomeContent() {
   };
 
   // Dados do store (sem fallback SSR) — cast do persist (JsonValue) para tipos do domínio
-  const currentGymLocations = (storeGymLocations ??
-    []) as unknown as GymLocation[];
-  const currentDayPasses = (storeDayPasses ?? []) as unknown as DayPass[];
-  const currentMemberships = (storeMemberships ??
-    []) as unknown as StudentGymMembership[];
+  const currentGymLocations = asArray<GymLocation>(storeGymLocations);
+  const currentDayPasses = asArray<DayPass>(storeDayPasses);
+  const currentMemberships = asArray<StudentGymMembership>(storeMemberships);
   const currentUser = storeUser as unknown as UserInfo | null;
-  const currentWorkoutHistory = (storeWorkoutHistory ??
-    []) as unknown as WorkoutHistory[];
-  const currentWeightHistory = (storeWeightHistory ??
-    []) as unknown as WeightHistoryItem[];
+  const currentWorkoutHistory = Array.isArray(storeWorkoutHistory)
+    ? (storeWorkoutHistory as WorkoutHistory[])
+    : asArray<WorkoutHistory>(
+        (storeWorkoutHistory as { history?: unknown[] } | null | undefined)
+          ?.history,
+      );
+  const currentWeightHistory = Array.isArray(storeWeightHistory)
+    ? (storeWeightHistory as WeightHistoryItem[])
+    : asArray<WeightHistoryItem>(
+        (storeWeightHistory as { history?: unknown[] } | null | undefined)
+          ?.history,
+      );
   const currentWeightGain = (storeWeightGain ?? null) as number | null;
   const profile = storeProfile as unknown as StudentProfileData | null;
   const currentWeight = profile?.weight;
@@ -228,6 +258,7 @@ function StudentHomeContent() {
     appliedCoupon?: { code: string; discountString: string };
   } | null>(null);
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
+  const studentHomeScreenId = "student-home-screen";
 
   const handleJoinGym = async (
     gymId: string,
@@ -235,23 +266,11 @@ function StudentHomeContent() {
     couponId?: string,
   ) => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const res = await apiClient.post<{
-        brCode?: string;
-        brCodeBase64?: string;
-        amount?: number;
-        paymentId?: string;
-        expiresAt?: string;
-        membershipId?: string;
-        success?: boolean;
-        planName?: string;
-        originalPrice?: number;
-        appliedCoupon?: { code: string; discountString: string };
-      }>(`/api/students/gyms/${gymId}/join`, {
+      const data = await joinGym({
+        gymId,
         planId,
         couponId: couponId || null,
       });
-      const data = res?.data ?? {};
       const hasPixData =
         data.paymentId &&
         data.brCode != null &&
@@ -259,6 +278,7 @@ function StudentHomeContent() {
         typeof data.amount === "number" &&
         data.amount > 0;
       if (hasPixData) {
+        await paymentFlow.invalidatePaymentQueries();
         setPixModal({
           open: true,
           paymentId: data.paymentId!,
@@ -296,21 +316,15 @@ function StudentHomeContent() {
 
   const handleChangePlan = async (membershipId: string, planId: string) => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const res = await apiClient.post<{
-        brCode: string;
-        brCodeBase64: string;
-        amount: number;
-        paymentId: string;
-        expiresAt?: string;
-      }>(`/api/students/memberships/${membershipId}/change-plan`, { planId });
+      const res = await changeMembershipPlan({ membershipId, planId });
+      await paymentFlow.invalidatePaymentQueries();
       setPixModal({
         open: true,
-        paymentId: res.data.paymentId,
-        brCode: res.data.brCode,
-        brCodeBase64: res.data.brCodeBase64,
-        amount: res.data.amount,
-        expiresAt: res.data.expiresAt,
+        paymentId: res.paymentId,
+        brCode: res.brCode,
+        brCodeBase64: res.brCodeBase64,
+        amount: res.amount,
+        expiresAt: res.expiresAt,
       });
     } catch (err) {
       const msg =
@@ -363,16 +377,12 @@ function StudentHomeContent() {
 
   const handleCancelMembership = async (membershipId: string) => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post(
-        `/api/students/memberships/${membershipId}/cancel`,
-        {},
-      );
+      await cancelMembership(membershipId);
+      await paymentFlow.invalidatePaymentQueries();
       toast({
         title: "Assinatura cancelada",
         description: "Sua matrícula nesta academia foi cancelada.",
       });
-      await loadMemberships();
       setProfileRefreshKey((k) => k + 1);
     } catch (err) {
       const msg =
@@ -391,24 +401,14 @@ function StudentHomeContent() {
   };
 
   const handlePixConfirmed = async () => {
-    await Promise.all([loadMemberships(), loadPayments()]);
+    await paymentFlow.invalidatePaymentQueries();
     setProfileRefreshKey((k) => k + 1);
   };
 
   const handleSubscribePersonal = (
     _personalId: string,
     _planId: string,
-    paymentData: {
-      brCode: string;
-      brCodeBase64: string;
-      amount: number;
-      paymentId: string;
-      pixId: string;
-      expiresAt?: string;
-      planName: string;
-      originalPrice: number;
-      appliedCoupon?: { code: string; discountString: string };
-    },
+    paymentData: StudentPixPaymentPayload,
   ) => {
     setPersonalPixModal({
       open: true,
@@ -425,15 +425,14 @@ function StudentHomeContent() {
 
   const handlePersonalPixConfirmed = async () => {
     setPersonalPixModal(null);
+    await paymentFlow.invalidatePaymentQueries();
     setProfileRefreshKey((k) => k + 1);
   };
 
   const handleCancelPersonalAssignment = async (assignmentId: string) => {
     try {
-      await apiClient.post(
-        `/api/students/personals/assignments/${assignmentId}/cancel`,
-        {},
-      );
+      await cancelPersonalAssignment(assignmentId);
+      await paymentFlow.invalidatePaymentQueries();
       toast({
         title: "Desvinculado",
         description: "Você foi desvinculado deste personal.",
@@ -452,6 +451,27 @@ function StudentHomeContent() {
         title: "Erro",
         description: String(msg),
       });
+    }
+  };
+
+  const handleCancelPixPayment = async (paymentId: string) => {
+    try {
+      await cancelStudentPayment(paymentId);
+      await paymentFlow.invalidatePaymentQueries();
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : err instanceof Error
+            ? err.message
+            : "Erro ao cancelar pagamento";
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: String(msg),
+      });
+      throw err;
     }
   };
 
@@ -478,9 +498,28 @@ function StudentHomeContent() {
     });
   };
 
+  const studentHomeUnits = (
+    (storeWeeklyPlan as unknown as WeeklyPlanData | null)?.slots
+      ? ([
+          {
+            id: (storeWeeklyPlan as unknown as WeeklyPlanData).id,
+            title: (storeWeeklyPlan as unknown as WeeklyPlanData).title,
+            description: "",
+            workouts: (storeWeeklyPlan as unknown as WeeklyPlanData).slots
+              .filter(
+                (slot: PlanSlotData) =>
+                  slot.type === "workout" && slot.workout,
+              )
+              .map((slot: PlanSlotData) => slot.workout!),
+            color: "#58CC02",
+            icon: "💪",
+          },
+        ] as Unit[])
+      : asArray<Unit>(storeUnits)
+  ) as Unit[];
+
   return (
     <motion.div
-      key={tab}
       initial={isMounted ? { opacity: 0 } : false}
       animate={isMounted ? { opacity: 1 } : false}
       transition={{ duration: 0.2 }}
@@ -488,12 +527,39 @@ function StudentHomeContent() {
       suppressHydrationWarning
     >
       {tab === "home" && (
-        <div className="mx-auto max-w-2xl space-y-6">
+        <>
+          <HomeTabBootstrapBridge />
+          <StudentHomeScreen
+            userName={currentUser?.name}
+            displayProgress={displayProgress}
+            showLevelProgress={Boolean(progress)}
+            workoutHistory={currentWorkoutHistory}
+            units={studentHomeUnits}
+            dailyNutrition={
+              (storeDailyNutrition ?? null) as unknown as DailyNutrition | null
+            }
+            currentWeight={currentWeight ?? null}
+            weightGain={currentWeightGain ?? null}
+            hasWeightLossGoal={profile?.hasWeightLossGoal ?? false}
+            weightHistory={currentWeightHistory}
+            campaignsSlot={
+              <BoostCampaignCarousel
+                gyms={currentGymLocations}
+                onViewGymProfile={handleViewGymProfile}
+                onViewPersonalProfile={handleViewPersonalProfile}
+              />
+            }
+          />
+          {false ? (
+            <div
+              className="mx-auto max-w-2xl space-y-6"
+              data-testid={studentHomeScreenId}
+            >
           <FadeIn>
             <div className="text-center">
               <h1 className="mb-2 text-3xl font-bold text-duo-text">
                 {currentUser?.name
-                  ? `Olá, ${currentUser.name.split(" ")[0]}!`
+                  ? `Olá, ${currentUser?.name?.split(" ")[0] ?? "Atleta"}!`
                   : "Olá, Atleta!"}
               </h1>
               <p className="text-sm text-duo-gray-dark">
@@ -515,15 +581,21 @@ function StudentHomeContent() {
           {progress && (
             <WhileInView delay={0.4}>
               <LevelProgressCard.Simple
-                currentLevel={progress.currentLevel}
-                totalXP={progress.totalXP}
-                xpToNextLevel={progress.xpToNextLevel}
+                currentLevel={progress?.currentLevel ?? displayProgress.currentLevel}
+                totalXP={progress?.totalXP ?? displayProgress.totalXP}
+                xpToNextLevel={
+                  progress?.xpToNextLevel ?? displayProgress.xpToNextLevel
+                }
               />
             </WhileInView>
           )}
 
           {/* Cards de Estatísticas Principais */}
-          <DuoStatsGrid.Root columns={2} className="gap-4">
+          <DuoStatsGrid.Root
+            columns={2}
+            className="gap-4"
+            data-testid={createTestSelector(studentHomeScreenId, "metrics")}
+          >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -589,8 +661,8 @@ function StudentHomeContent() {
           {currentWeight != null && (
             <WhileInView delay={0.45}>
               <WeightProgressCard.Simple
-                currentWeight={currentWeight}
-                weightGain={currentWeightGain}
+                currentWeight={currentWeight ?? null}
+                weightGain={currentWeightGain ?? null}
                 hasWeightLossGoal={profile?.hasWeightLossGoal ?? false}
                 weightHistory={currentWeightHistory}
               />
@@ -620,7 +692,7 @@ function StudentHomeContent() {
                         icon: "💪",
                       },
                     ] as Unit[])
-                  : ((storeUnits ?? []) as unknown as Unit[])
+                  : asArray<Unit>(storeUnits)
               }
               workoutHistory={currentWorkoutHistory}
             />
@@ -644,7 +716,9 @@ function StudentHomeContent() {
               />
             </WhileInView>
           )}
-        </div>
+            </div>
+          ) : null}
+        </>
       )}
 
       {tab === "learn" && (
@@ -666,20 +740,6 @@ function StudentHomeContent() {
             (currentSubscription ??
               undefined) as StudentPaymentsPageProps["subscription"]
           }
-          startTrial={async () => {
-            // Usar axios client (API → syncManager → Store)
-            // syncManager gerencia offline/online automaticamente
-            const { apiClient } = await import("@/lib/api/client");
-            const response = await apiClient.post<{
-              error?: string;
-              success?: boolean;
-            }>("/api/subscriptions/start-trial");
-            // Após sucesso, recarregar subscription do store
-            if (response.data.success) {
-              await loadSubscription();
-            }
-            return response.data;
-          }}
         />
       )}
 
@@ -704,53 +764,53 @@ function StudentHomeContent() {
             preSelectedCoupon={preSelectedCoupon}
           />
         ) : (
-          <PersonalMapWithLeaflet
-            onViewPersonal={(id) => setPersonalId(id)}
-          />
+          <PersonalMapWithLeaflet onViewPersonal={(id) => setPersonalId(id)} />
         ))}
 
       {tab === "gyms" &&
         (gymId ? (
-          <GymProfileView
-            gymId={gymId}
-            onBack={() => {
-              setGymId(null);
-              setPreSelectedPlan(null);
-              setPreSelectedCoupon(null);
-            }}
-            onJoinPlan={handleJoinGym}
-            onChangePlan={handleChangePlan}
-            onCancelMembership={handleCancelMembership}
-            onViewPersonal={(id) => {
-              setTab("personals");
-              setPersonalId(id);
-              setGymId(null);
-            }}
-            profileRefreshKey={profileRefreshKey}
-            preSelectedPlan={preSelectedPlan}
-            preSelectedCoupon={preSelectedCoupon}
-          />
+          <>
+            <GymsTabBootstrapBridge />
+            <GymProfileView
+              gymId={gymId}
+              onBack={() => {
+                setGymId(null);
+                setPreSelectedPlan(null);
+                setPreSelectedCoupon(null);
+              }}
+              onJoinPlan={handleJoinGym}
+              onChangePlan={handleChangePlan}
+              onCancelMembership={handleCancelMembership}
+              onViewPersonal={(id) => {
+                setTab("personals");
+                setPersonalId(id);
+                setGymId(null);
+              }}
+              profileRefreshKey={profileRefreshKey}
+              preSelectedPlan={preSelectedPlan}
+              preSelectedCoupon={preSelectedCoupon}
+            />
+          </>
         ) : (
-          <GymMapWithLeaflet
-            gyms={currentGymLocations}
-            dayPasses={currentDayPasses}
-            memberships={currentMemberships}
-            onPurchaseDayPass={handlePurchaseDayPass}
-            onJoinPlan={handleJoinGym}
-            onChangePlan={handleChangePlan}
-            onViewGymProfile={handleViewGymProfile}
-          />
+          <>
+            <GymsTabBootstrapBridge />
+            <GymMapWithLeaflet
+              gyms={currentGymLocations}
+              dayPasses={currentDayPasses}
+              memberships={currentMemberships}
+              onPurchaseDayPass={handlePurchaseDayPass}
+              onJoinPlan={handleJoinGym}
+              onChangePlan={handleChangePlan}
+              onViewGymProfile={handleViewGymProfile}
+            />
+          </>
         ))}
 
       {pixModal && (
         <PixQrModal
           isOpen={pixModal.open}
           onClose={() => setPixModal(null)}
-          onCancelPayment={async () => {
-            await apiClient.patch(`/api/payments/${pixModal.paymentId}`, {
-              status: "canceled",
-            });
-          }}
+          onCancelPayment={() => handleCancelPixPayment(pixModal.paymentId)}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
@@ -768,12 +828,8 @@ function StudentHomeContent() {
           onSimulateSuccess={handlePixConfirmed}
           pollConfig={{
             type: "check",
-            check: async () => {
-              const res = await apiClient.get<{ status: string }>(
-                `/api/payments/${pixModal.paymentId}`,
-              );
-              return res.data.status === "paid";
-            },
+            check: async () =>
+              (await getStudentPaymentStatus(pixModal.paymentId)) === "paid",
           }}
           onPaymentConfirmed={handlePixConfirmed}
           paymentConfirmedToast={{
@@ -804,12 +860,9 @@ function StudentHomeContent() {
           onSimulateSuccess={handlePersonalPixConfirmed}
           pollConfig={{
             type: "check",
-            check: async () => {
-              const res = await apiClient.get<{ status: string }>(
-                `/api/students/personals/payments/${personalPixModal.paymentId}`,
-              );
-              return res.data.status === "paid";
-            },
+            check: async () =>
+              (await getPersonalPaymentStatus(personalPixModal.paymentId)) ===
+              "paid",
           }}
           onPaymentConfirmed={handlePersonalPixConfirmed}
           paymentConfirmedToast={{

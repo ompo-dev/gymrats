@@ -38,8 +38,7 @@ function WorkoutModalSimple() {
     actions,
   } = useWorkoutExecution();
 
-  const { isRunning, elapsedTime, calories, heartRate, setIsRunning } =
-    cardioState;
+  const { isRunning, elapsedTime, setIsRunning } = cardioState;
   const {
     workoutModal,
     weightTrackerModal,

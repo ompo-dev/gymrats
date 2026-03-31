@@ -24,7 +24,7 @@ async function runSql(cmd, description) {
       msg.includes("does not exist") ||
       msg.includes("não existe")
     ) {
-      console.log(`⚠️  ${description} (ignorado: ${msg.split('\n')[0]})`);
+      console.log(`⚠️  ${description} (ignorado: ${msg.split("\n")[0]})`);
       return true;
     }
     throw err;
@@ -33,13 +33,15 @@ async function runSql(cmd, description) {
 
 async function applyMigration() {
   try {
-    console.log("📦 Atualizando restrição UNIQUE em student_personal_assignments...\n");
+    console.log(
+      "📦 Atualizando restrição UNIQUE em student_personal_assignments...\n",
+    );
 
     // Tentar remover a constraint antiga. O nome padrão do Prisma é table_field1_field2_key
     // Para StudentPersonalAssignment mapeado para student_personal_assignments
     await runSql(
       `ALTER TABLE "student_personal_assignments" DROP CONSTRAINT IF EXISTS "student_personal_assignments_studentId_personalId_key"`,
-      "Removendo restrição UNIQUE antiga (studentId, personalId)"
+      "Removendo restrição UNIQUE antiga (studentId, personalId)",
     );
 
     // Adicionar a nova restrição UNIQUE
@@ -47,7 +49,7 @@ async function applyMigration() {
     // O Prisma 6 (que parece ser o caso pelo output anterior) gera UNIQUE normal se não especificado.
     await runSql(
       `ALTER TABLE "student_personal_assignments" ADD CONSTRAINT "student_personal_assignments_studentId_personalId_gymId_key" UNIQUE ("studentId", "personalId", "gymId")`,
-      "Adicionando nova restrição UNIQUE (studentId, personalId, gymId)"
+      "Adicionando nova restrição UNIQUE (studentId, personalId, gymId)",
     );
 
     console.log("\n✅ Restrição UNIQUE atualizada com sucesso!");

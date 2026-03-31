@@ -1,21 +1,21 @@
 "use client";
 
-import { useMemo } from "react";
-import {
-  PERSONAL_PLANS_CONFIG,
-  centsToReais,
-} from "@/lib/access-control/plans-config";
-import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
+import { useCallback, useMemo } from "react";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
+import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { usePersonalFinancial } from "@/hooks/use-personal-financial";
+import {
+  centsToReais,
+  PERSONAL_PLANS_CONFIG,
+} from "@/lib/access-control/plans-config";
 
 interface PersonalFinancialSubscriptionTabProps {
   onRefresh?: () => Promise<void>;
 }
 
 export function PersonalFinancialSubscriptionTab({
-  onRefresh,
+  onRefresh: _onRefresh,
 }: PersonalFinancialSubscriptionTabProps = {}) {
   const {
     subscription,
@@ -28,7 +28,7 @@ export function PersonalFinancialSubscriptionTab({
     handlePixConfirmed,
     isSubmitting,
     isCanceling,
-    loadSection,
+    refreshFinancial,
   } = usePersonalFinancial();
 
   const plans = useMemo(
@@ -66,6 +66,37 @@ export function PersonalFinancialSubscriptionTab({
       }
     : null;
 
+  const refreshSubscription = useCallback(
+    async () => refreshFinancial(),
+    [refreshFinancial],
+  );
+
+  const handlePaymentSuccess = useCallback(
+    async () => refreshSubscription(),
+    [refreshSubscription],
+  );
+
+  const handleSimulationSuccess = useCallback(
+    async () => refreshSubscription(),
+    [refreshSubscription],
+  );
+
+  const handlePaymentConfirmed = useCallback(async () => {
+    await handlePixConfirmed();
+  }, [handlePixConfirmed]);
+
+  const pollConfig = useMemo(
+    () => ({
+      type: "subscription" as const,
+      refetch: refreshSubscription,
+      currentStatus: subscription?.status,
+      initialStatus: "pending_payment",
+      targetStatus: "active",
+      intervalMs: 3000,
+    }),
+    [refreshSubscription, subscription?.status],
+  );
+
   const handleCancel = async () => {
     setCancelDialogOpen(true);
   };
@@ -87,7 +118,7 @@ export function PersonalFinancialSubscriptionTab({
           );
         }}
         onCancel={handleCancel}
-        onPaymentSuccess={async () => loadSection("subscription")}
+        onPaymentSuccess={handlePaymentSuccess}
         plans={plans}
         showPlansWhen="always"
         texts={{
@@ -110,19 +141,9 @@ export function PersonalFinancialSubscriptionTab({
           amount={pixModal.amount}
           expiresAt={pixModal.expiresAt}
           simulatePixUrl={`/api/personals/subscription/simulate-pix?pixId=${encodeURIComponent(pixModal.pixId)}`}
-          onSimulateSuccess={() => loadSection("subscription")}
-          pollConfig={{
-            type: "subscription",
-            refetch: () => loadSection("subscription"),
-            currentStatus: subscription?.status,
-            initialStatus: "pending_payment",
-            targetStatus: "active",
-            intervalMs: 3000,
-          }}
-          onPaymentConfirmed={async () => {
-            handlePixConfirmed();
-            await onRefresh?.();
-          }}
+          onSimulateSuccess={handleSimulationSuccess}
+          pollConfig={pollConfig}
+          onPaymentConfirmed={handlePaymentConfirmed}
           paymentConfirmedToast={{
             title: "Pagamento confirmado!",
             description: "Sua assinatura foi ativada.",

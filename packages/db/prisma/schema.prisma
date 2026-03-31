@@ -32,6 +32,7 @@ model User {
   activeGymId    String? // Academia atualmente selecionada
   accounts       Account[]
   sessions       Session[]
+  mobileInstallations MobileInstallation[]
   gymPreference  GymUserPreference? // Preferências do usuário para academias
   paymentMethods PaymentMethod[] // Métodos de pagamento salvos
 
@@ -93,6 +94,28 @@ model Session {
   expires      DateTime? // Mantido para compatibilidade, mapeado de expiresAt
 
   @@map("sessions")
+}
+
+model MobileInstallation {
+  id             String   @id
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform       String
+  expoPushToken  String?
+  pushPermission String   @default("undetermined")
+  capabilities   Json?
+  appVersion     String?
+  deviceName     String?
+  locale         String?
+  timezone       String?
+  active         Boolean  @default(true)
+  lastSeenAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, active])
+  @@index([expoPushToken])
+  @@map("mobile_installations")
 }
 
 // Modelo antigo (mantido para compatibilidade, pode ser removido depois)
@@ -157,6 +180,11 @@ model Student {
   activeWeeklyPlanId String?      @unique
   activeWeeklyPlan   WeeklyPlan?  @relation("ActivePlan", fields: [activeWeeklyPlanId], references: [id])
   weeklyPlans        WeeklyPlan[] @relation("LibraryPlans")
+
+  // Plano alimentar (Biblioteca e Ativo)
+  activeNutritionPlanId String?          @unique
+  activeNutritionPlan   NutritionPlan?   @relation("ActiveNutritionPlan", fields: [activeNutritionPlanId], references: [id])
+  nutritionPlans        NutritionPlan[]  @relation("LibraryNutritionPlans")
 
   weekOverride DateTime? // Override para reset manual (início da "semana atual" do user)
 
@@ -746,6 +774,75 @@ model DietPlan {
   @@map("diet_plans")
 }
 
+model NutritionPlan {
+  id                  String   @id @default(cuid())
+  studentId           String
+  student             Student  @relation("LibraryNutritionPlans", fields: [studentId], references: [id], onDelete: Cascade)
+  title               String   @default("Meu Plano Alimentar")
+  description         String?
+  totalCalories       Int      @default(0)
+  targetProtein       Float    @default(0)
+  targetCarbs         Float    @default(0)
+  targetFats          Float    @default(0)
+  isLibraryTemplate   Boolean  @default(false)
+  createdById         String?
+  creatorType         String? // "GYM" | "PERSONAL" | "STUDENT"
+  sourceLibraryPlanId String?
+
+  activeForStudent        Student?            @relation("ActiveNutritionPlan")
+  meals                   NutritionPlanMeal[]
+  dailyNutritionSnapshots DailyNutrition[]    @relation("NutritionSnapshotSource")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@map("nutrition_plans")
+}
+
+model NutritionPlanMeal {
+  id              String        @id @default(cuid())
+  nutritionPlanId String
+  nutritionPlan   NutritionPlan @relation(fields: [nutritionPlanId], references: [id], onDelete: Cascade)
+  name            String
+  type            String // breakfast, lunch, dinner, snack
+  calories        Int
+  protein         Float
+  carbs           Float
+  fats            Float
+  time            String?
+  order           Int           @default(0)
+
+  foods NutritionPlanFoodItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nutritionPlanId])
+  @@map("nutrition_plan_meals")
+}
+
+model NutritionPlanFoodItem {
+  id                  String            @id @default(cuid())
+  nutritionPlanMealId String
+  nutritionPlanMeal   NutritionPlanMeal @relation(fields: [nutritionPlanMealId], references: [id], onDelete: Cascade)
+  foodId              String?
+  foodName            String
+  servings            Float
+  calories            Int
+  protein             Float
+  carbs               Float
+  fats                Float
+  servingSize         String
+  order               Int               @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nutritionPlanMealId])
+  @@map("nutrition_plan_food_items")
+}
+
 model Meal {
   id          String   @id @default(cuid())
   dietPlanId  String
@@ -781,11 +878,13 @@ model DietPlanCompletion {
 // ============================================
 
 model DailyNutrition {
-  id          String   @id @default(cuid())
-  studentId   String
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  date        DateTime @default(now())
-  waterIntake Int      @default(0) // ml
+  id                    String         @id @default(cuid())
+  studentId             String
+  student               Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date                  DateTime       @default(now())
+  waterIntake           Int            @default(0) // ml
+  sourceNutritionPlanId String?
+  sourceNutritionPlan   NutritionPlan? @relation("NutritionSnapshotSource", fields: [sourceNutritionPlanId], references: [id], onDelete: SetNull)
 
   meals NutritionMeal[]
 
@@ -1473,4 +1572,63 @@ model BoostCampaignEngagement {
   @@index([campaignId])
   @@index([studentId])
   @@map("boost_campaign_engagements")
+}
+
+model TelemetryEvent {
+  id             String   @id @default(cuid())
+  eventType      String
+  domain         String
+  actorId        String?
+  journey        String?
+  requestId      String?
+  releaseId      String?
+  featureFlagSet String?
+  metricName     String?
+  metricValue    Float?
+  status         String?
+  payload        Json?
+  occurredAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([eventType, occurredAt])
+  @@index([domain, occurredAt])
+  @@index([releaseId, occurredAt])
+  @@map("telemetry_events")
+}
+
+model TelemetryRollupMinute {
+  id            String   @id @default(cuid())
+  bucketStart   DateTime
+  eventType     String
+  domain        String
+  releaseId     String?
+  requestCount  Int      @default(0)
+  errorCount    Int      @default(0)
+  avgLatencyMs  Float    @default(0)
+  p50LatencyMs  Float    @default(0)
+  p95LatencyMs  Float    @default(0)
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([bucketStart, eventType, domain, releaseId])
+  @@index([bucketStart, domain])
+  @@map("telemetry_rollups_minute")
+}
+
+model BusinessEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  domain     String
+  actorId    String?
+  requestId  String?
+  releaseId  String?
+  status     String?
+  payload    Json?
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([eventType, occurredAt])
+  @@index([domain, occurredAt])
+  @@map("business_events")
 }

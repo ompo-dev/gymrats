@@ -43,6 +43,7 @@ function CardioConfigModalSimple({
           className="relative w-full max-w-md mx-4 rounded-3xl border-2 border-[var(--duo-border)] bg-[var(--duo-bg-card)] p-6 sm:p-8 shadow-2xl"
         >
           <button
+            type="button"
             onClick={onClose}
             className="absolute right-4 top-4 rounded-xl p-2 transition-colors hover:bg-[var(--duo-bg-elevated)]"
           >

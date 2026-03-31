@@ -37,7 +37,7 @@ interface WorkoutNodeRestProps extends WorkoutNodeBaseProps {
   previousUnitsWorkouts?: never;
 }
 
-type WorkoutNodeProps = WorkoutNodeWorkoutProps | WorkoutNodeRestProps;
+export type WorkoutNodeProps = WorkoutNodeWorkoutProps | WorkoutNodeRestProps;
 
 function WorkoutNodeSimple(props: WorkoutNodeProps) {
   const { position } = props;
@@ -135,8 +135,7 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
   const computedLocked = allPreviousCompleted
     ? false // Desbloquear se todos anteriores estão completos
     : workout.locked; // Usar locked do backend caso contrário
-  const isLocked =
-    lockOverride !== undefined ? lockOverride : computedLocked;
+  const isLocked = lockOverride !== undefined ? lockOverride : computedLocked;
 
   const useMockProgress =
     mockProgressPercent !== undefined && mockProgressPercent !== null;
@@ -156,7 +155,8 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
     (isFirst && allPreviousUnitsCompleted) ||
     (!isFirst && allPreviousInUnitCompleted);
 
-  const inProgress = !isCompleted && !isDisabled && canShowProgress && hasProgress;
+  const inProgress =
+    !isCompleted && !isDisabled && canShowProgress && hasProgress;
 
   const isCurrent = !isLocked && !isDisabled && !isCompleted && !inProgress;
 

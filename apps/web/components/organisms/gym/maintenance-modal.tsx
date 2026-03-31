@@ -4,10 +4,7 @@ import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MaintenanceRecord } from "@/lib/types";
-import {
-  formatCurrencyInput,
-  parseCurrencyBR,
-} from "@/lib/utils/currency";
+import { formatCurrencyInput, parseCurrencyBR } from "@/lib/utils/currency";
 
 interface MaintenanceModalProps {
   isOpen: boolean;
@@ -28,7 +25,7 @@ export function MaintenanceModal({
   equipmentId,
   onSuccess,
 }: MaintenanceModalProps) {
-  const { actions, loaders } = useGym("actions", "loaders");
+  const actions = useGym("actions");
   const [form, setForm] = useState({
     type: "preventive",
     description: "",
@@ -49,23 +46,14 @@ export function MaintenanceModal({
 
     try {
       const costNum = form.cost ? parseCurrencyBR(form.cost) : undefined;
-      await actions.createMaintenance(equipmentId, {
+      const record = await actions.createMaintenance(equipmentId, {
         type: form.type,
         description: form.description,
         performedBy: form.performedBy,
         cost: costNum != null && costNum > 0 ? costNum : undefined,
         nextScheduled: form.nextScheduled,
       });
-      await loaders.loadSection("equipment");
-      onSuccess({
-        id: `${Date.now()}`,
-        date: new Date(),
-        type: form.type,
-        description: form.description,
-        performedBy: form.performedBy,
-        cost: form.cost ? parseCurrencyBR(form.cost) : undefined,
-        nextScheduled: form.nextScheduled ? new Date(form.nextScheduled) : null,
-      } as MaintenanceRecord);
+      onSuccess(record);
       onClose();
       setForm({
         type: "preventive",

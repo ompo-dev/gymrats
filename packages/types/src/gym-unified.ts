@@ -1,5 +1,7 @@
 import type {
+  BoostCampaign,
   CheckIn,
+  Coupon,
   Equipment,
   Expense,
   FinancialSummary,
@@ -16,6 +18,7 @@ export interface GymSubscriptionSnapshot {
   status: string;
   basePrice: number;
   pricePerStudent: number;
+  pricePerPersonal: number;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
@@ -25,6 +28,7 @@ export interface GymSubscriptionSnapshot {
   isTrial: boolean;
   daysRemaining: number | null;
   activeStudents: number;
+  activePersonals: number;
   totalAmount: number;
   billingPeriod?: "monthly" | "annual";
 }
@@ -37,6 +41,28 @@ export interface GymPendingAction {
   retries: number;
 }
 
+export interface GymResourceSnapshot {
+  status: "idle" | "loading" | "ready" | "error";
+  lastStartedAt: Date | null;
+  lastFetchedAt: Date | null;
+  error: string | null;
+}
+
+export interface BalanceWithdrawSnapshot {
+  balanceReais: number;
+  balanceCents: number;
+  withdraws: Array<{
+    id: string;
+    amount: number;
+    pixKey: string;
+    pixKeyType: string;
+    externalId: string;
+    status: string;
+    createdAt: Date;
+    completedAt: Date | null;
+  }>;
+}
+
 export interface GymMetadata {
   lastSync: Date | null;
   isLoading: boolean;
@@ -44,6 +70,7 @@ export interface GymMetadata {
   errors: Record<string, string | null>;
   pendingActions: GymPendingAction[];
   telemetry: Record<string, number>;
+  resources: Record<string, GymResourceSnapshot>;
 }
 
 export interface GymUnifiedData {
@@ -56,6 +83,11 @@ export interface GymUnifiedData {
   membershipPlans: MembershipPlan[];
   payments: Payment[];
   expenses: Expense[];
+  coupons: Coupon[];
+  campaigns: BoostCampaign[];
+  balanceWithdraws: BalanceWithdrawSnapshot;
+  studentDetails: Record<string, StudentData | null>;
+  studentPayments: Record<string, Payment[]>;
   subscription: GymSubscriptionSnapshot | null;
   metadata: GymMetadata;
 }
@@ -70,6 +102,9 @@ export type GymDataSection =
   | "membershipPlans"
   | "payments"
   | "expenses"
+  | "coupons"
+  | "campaigns"
+  | "balanceWithdraws"
   | "subscription";
 
 export const initialGymData: GymUnifiedData = {
@@ -82,6 +117,15 @@ export const initialGymData: GymUnifiedData = {
   membershipPlans: [],
   payments: [],
   expenses: [],
+  coupons: [],
+  campaigns: [],
+  balanceWithdraws: {
+    balanceReais: 0,
+    balanceCents: 0,
+    withdraws: [],
+  },
+  studentDetails: {},
+  studentPayments: {},
   subscription: null,
   metadata: {
     lastSync: null,
@@ -90,5 +134,6 @@ export const initialGymData: GymUnifiedData = {
     errors: {},
     pendingActions: [],
     telemetry: {},
+    resources: {},
   },
 };

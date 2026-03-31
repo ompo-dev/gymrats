@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DuoButton, DuoInput } from "@/components/duo";
 import { Modal } from "@/components/organisms/modals/modal";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
+import { usePaymentsStore } from "@/stores/payments-store";
 
 /** Config para detecção via check assíncrono (payment, boost) */
 export interface PixQrModalPollCheckConfig {
@@ -13,6 +13,7 @@ export interface PixQrModalPollCheckConfig {
   /** Retorna true quando pagamento confirmado */
   check: () => Promise<boolean>;
   intervalMs?: number;
+  backoffMs?: number[];
   maxDurationMs?: number;
 }
 
@@ -132,7 +133,10 @@ export function PixQrBlock({
   expiresAt,
 }: PixQrBlockProps) {
   const { toast } = useToast();
-  const [isSimulating, setIsSimulating] = useState(false);
+  const simulatePix = usePaymentsStore((state) => state.simulatePix);
+  const isSimulating = usePaymentsStore((state) =>
+    simulatePixUrl ? !!state.simulatingByUrl[simulatePixUrl] : false,
+  );
   const { secondsRemaining, isExpired } = usePixCountdown(expiresAt);
   const valueReais = (amount / 100).toFixed(2);
 
@@ -147,9 +151,8 @@ export function PixQrBlock({
 
   const simulatePayment = useCallback(async () => {
     if (!simulatePixUrl) return;
-    setIsSimulating(true);
     try {
-      await apiClient.post(simulatePixUrl, {});
+      await simulatePix(simulatePixUrl);
       toast({
         title: "Pagamento simulado!",
         description: "Aguardando confirmação...",
@@ -158,8 +161,8 @@ export function PixQrBlock({
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { error?: string } } }).response
-              ?.data?.error
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
           : err instanceof Error
             ? err.message
             : "Erro ao simular";
@@ -168,10 +171,8 @@ export function PixQrBlock({
         title: "Erro ao simular",
         description: String(msg),
       });
-    } finally {
-      setIsSimulating(false);
     }
-  }, [simulatePixUrl, onSimulateSuccess, toast]);
+  }, [onSimulateSuccess, simulatePix, simulatePixUrl, toast]);
 
   return (
     <>
@@ -218,17 +219,18 @@ export function PixQrBlock({
           ) : (
             <p className="text-xs text-duo-fg-muted">Valor a pagar</p>
           )}
-          {valueSlot?.strikethrough != null && valueSlot.strikethrough > amount && (
-            <p className="text-xs text-duo-gray-dark font-semibold line-through">
-              De R$ {(valueSlot.strikethrough / 100).toFixed(2)}
-            </p>
-          )}
+          {valueSlot?.strikethrough != null &&
+            valueSlot.strikethrough > amount && (
+              <p className="text-xs text-duo-gray-dark font-semibold line-through">
+                De R$ {(valueSlot.strikethrough / 100).toFixed(2)}
+              </p>
+            )}
           <p className="text-2xl font-bold text-duo-green">R$ {valueReais}</p>
           {valueSlot?.badge && (
             <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border-2 border-duo-green bg-duo-green/10 px-2.5 py-1 text-xs font-bold text-duo-green">
-                <span>Cupom: {valueSlot.badge.code}</span>
-                <span className="opacity-60">•</span>
-                <span>-{valueSlot.badge.discountString}</span>
+              <span>Cupom: {valueSlot.badge.code}</span>
+              <span className="opacity-60">•</span>
+              <span>-{valueSlot.badge.discountString}</span>
             </div>
           )}
         </div>
@@ -291,6 +293,21 @@ export function PixQrModal({
   const hasClosedRef = useRef(false);
   const [referralCode, setReferralCode] = useState("");
   const [isApplyingReferral, setIsApplyingReferral] = useState(false);
+  const checkPollConfig = pollConfig?.type === "check" ? pollConfig : null;
+  const subscriptionPollConfig =
+    pollConfig?.type === "subscription" ? pollConfig : null;
+  const checkPoll = checkPollConfig?.check;
+  const checkPollIntervalMs = checkPollConfig?.intervalMs;
+  const checkPollBackoffSignature = checkPollConfig?.backoffMs?.join(",") ?? "";
+  const checkPollMaxDurationMs = checkPollConfig?.maxDurationMs;
+  const paymentConfirmedTitle = paymentConfirmedToast.title;
+  const paymentConfirmedDescription = paymentConfirmedToast.description;
+
+  useEffect(() => {
+    if (!isOpen) {
+      hasClosedRef.current = false;
+    }
+  }, [isOpen]);
 
   /** Fechamento pelo usuário (X ou clique fora): cancela cobrança e depois fecha. Não usado ao fechar após pagamento confirmado. */
   const handleUserClose = useCallback(async () => {
@@ -303,21 +320,26 @@ export function PixQrModal({
 
   // Poll tipo "check" (payment, boost)
   useEffect(() => {
-    if (
-      !isOpen ||
-      !pollConfig ||
-      pollConfig.type !== "check" ||
-      !onPaymentConfirmed
-    )
-      return;
+    if (!isOpen || !checkPoll || !onPaymentConfirmed) return;
 
-    const { check, intervalMs = 8000, maxDurationMs = 20 * 60 * 1000 } =
-      pollConfig;
+    const check = checkPoll;
+    const intervalMs = checkPollIntervalMs ?? 8000;
+    const backoffMs =
+      checkPollBackoffSignature.length > 0
+        ? checkPollBackoffSignature
+            .split(",")
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value))
+        : [2000, 5000, 10000];
+    const maxDurationMs = checkPollMaxDurationMs ?? 20 * 60 * 1000;
     const startedAt = Date.now();
+    let timeoutId: number | null = null;
+    let attempt = 0;
+    let cancelled = false;
 
     const checkAndClose = async () => {
       if (Date.now() - startedAt > maxDurationMs || hasClosedRef.current)
-        return;
+        return true;
       try {
         const confirmed = await check();
         if (confirmed && !hasClosedRef.current) {
@@ -325,94 +347,127 @@ export function PixQrModal({
           onPaymentConfirmed();
           onClose();
           toast({
-            title: paymentConfirmedToast.title,
-            description: paymentConfirmedToast.description,
+            title: paymentConfirmedTitle,
+            description: paymentConfirmedDescription,
           });
+          return true;
         }
       } catch {
         // Silencioso
       }
+      return false;
     };
 
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") checkAndClose();
-    }, intervalMs);
+    const scheduleNextPoll = () => {
+      if (cancelled || hasClosedRef.current) {
+        return;
+      }
+
+      const nextDelay =
+        backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? intervalMs;
+      timeoutId = window.setTimeout(async () => {
+        if (document.visibilityState !== "visible") {
+          scheduleNextPoll();
+          return;
+        }
+
+        const confirmed = await checkAndClose();
+        if (!confirmed) {
+          attempt += 1;
+          scheduleNextPoll();
+        }
+      }, nextDelay);
+    };
 
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") checkAndClose();
+      if (document.visibilityState === "visible") {
+        attempt = 0;
+        void checkAndClose().then((confirmed) => {
+          if (!confirmed) {
+            if (timeoutId != null) {
+              window.clearTimeout(timeoutId);
+            }
+            scheduleNextPoll();
+          }
+        });
+      }
     };
+
+    scheduleNextPoll();
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      if (timeoutId != null) {
+        window.clearTimeout(timeoutId);
+      }
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [
     isOpen,
-    pollConfig,
+    checkPoll,
+    checkPollIntervalMs,
+    checkPollBackoffSignature,
+    checkPollMaxDurationMs,
     onPaymentConfirmed,
     onClose,
     toast,
-    paymentConfirmedToast,
+    paymentConfirmedTitle,
+    paymentConfirmedDescription,
   ]);
 
   // Poll tipo "subscription" (refetch + currentStatus)
   useEffect(() => {
-    if (
-      !isOpen ||
-      !pollConfig ||
-      pollConfig.type !== "subscription" ||
-      !onPaymentConfirmed
-    )
-      return;
+    if (!isOpen || !subscriptionPollConfig || !onPaymentConfirmed) return;
 
-    const {
-      refetch,
-      currentStatus,
-      initialStatus = "pending",
-      targetStatus = "active",
-      intervalMs = 8000,
-    } = pollConfig;
+    const refetch = subscriptionPollConfig.refetch;
+    const intervalMs = subscriptionPollConfig.intervalMs ?? 8000;
 
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") refetch();
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isOpen, pollConfig]);
+  }, [
+    isOpen,
+    onPaymentConfirmed,
+    subscriptionPollConfig?.refetch,
+    subscriptionPollConfig?.intervalMs,
+  ]);
 
   // Fechar quando subscription ficar active
   useEffect(() => {
     if (
-      !pollConfig ||
-      pollConfig.type !== "subscription" ||
+      !subscriptionPollConfig ||
       hasClosedRef.current ||
       !isOpen ||
       !onPaymentConfirmed
     )
       return;
 
-    const { currentStatus, initialStatus = "pending", targetStatus = "active" } =
-      pollConfig;
-    if (
-      currentStatus === targetStatus &&
-      initialStatus !== targetStatus
-    ) {
+    const currentStatus = subscriptionPollConfig.currentStatus;
+    const initialStatus = subscriptionPollConfig.initialStatus ?? "pending";
+    const targetStatus = subscriptionPollConfig.targetStatus ?? "active";
+
+    if (currentStatus === targetStatus && initialStatus !== targetStatus) {
       hasClosedRef.current = true;
       onPaymentConfirmed();
       onClose();
       toast({
-        title: paymentConfirmedToast.title,
-        description: paymentConfirmedToast.description,
+        title: paymentConfirmedTitle,
+        description: paymentConfirmedDescription,
       });
     }
   }, [
     isOpen,
-    pollConfig,
+    subscriptionPollConfig?.currentStatus,
+    subscriptionPollConfig?.initialStatus,
+    subscriptionPollConfig?.targetStatus,
     onPaymentConfirmed,
     onClose,
     toast,
-    paymentConfirmedToast,
+    paymentConfirmedTitle,
+    paymentConfirmedDescription,
   ]);
 
   const handleApplyReferral = useCallback(async () => {
@@ -444,7 +499,7 @@ export function PixQrModal({
     } finally {
       setIsApplyingReferral(false);
     }
-  }, [referralSlot, referralCode, toast, onClose]);
+  }, [referralSlot, referralCode, toast]);
 
   return (
     <Modal.Root isOpen={isOpen} onClose={handleUserClose} maxWidth="max-w-sm">

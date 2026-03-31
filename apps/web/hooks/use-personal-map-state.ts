@@ -2,11 +2,7 @@
 
 import { create } from "zustand";
 
-export type PersonalMapFilter =
-  | "all"
-  | "subscribed"
-  | "near"
-  | "remote";
+export type PersonalMapFilter = "all" | "subscribed" | "near" | "remote";
 
 interface PersonalMapState {
   selectedPersonalId: string | null;

@@ -1,0 +1,12 @@
+appId: com.gymrats.mobile
+---
+- launchApp
+- assertVisible: "Ajustes"
+- tapOn: "Ajustes"
+- scrollUntilVisible:
+    element: "URL da aplicacao web"
+    direction: DOWN
+- assertVisible: "URL da aplicacao web"
+- assertVisible: "URL da API"
+- assertVisible: "Salvar ambiente e abrir app"
+- tapOn: "Voltar"

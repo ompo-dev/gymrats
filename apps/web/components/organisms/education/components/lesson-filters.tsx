@@ -44,6 +44,7 @@ function LessonFiltersSimple({
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => onSearchChange("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-duo-gray-dark transition-colors hover:bg-gray-100 hover:text-duo-text"
               >

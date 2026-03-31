@@ -6,7 +6,7 @@
  * - Optimistic updates automáticos (UI instantânea)
  * - Sincronização automática via syncManager (offline/online)
  * - Funciona offline com dados em cache
- * - Dados carregados automaticamente pelo useStudentInitializer
+ * - Dados remotos reconciliados pelo bootstrap bridge do student
  */
 
 "use client";
@@ -19,7 +19,9 @@ import { useUIStore } from "@/stores";
 
 export function useNutritionHandlers() {
   // Usar hook unificado com seletor direto do Zustand para garantir reatividade
-  const storeNutrition = useStudent("dailyNutrition") as DailyNutrition | null;
+  const storeNutrition = useStudent(
+    "dailyNutrition",
+  ) as unknown as DailyNutrition | null;
   const { updateNutrition } = useStudent("actions");
 
   // Fallback para dados iniciais se store ainda não carregou
@@ -184,9 +186,8 @@ export function useNutritionHandlers() {
   // Sincronização agora é feita automaticamente pelo updateNutrition do store
   // que usa syncManager para gerenciar offline/online automaticamente
 
-  // NOTA: Carregamento de nutrição agora é feito pelo useLoadPrioritized na página diet
-  // Não precisamos mais carregar aqui para evitar duplicação de requisições
-  // O useStudentInitializer no layout e useLoadPrioritized nas páginas já cuidam disso
+  // O bootstrap bridge da pagina de dieta já garante a reconciliacao remota.
+  // Aqui mantemos apenas a atualizacao otimista e a sincronizacao local do store.
 
   const handleMealComplete = async (mealId: string) => {
     toggleMealComplete(mealId);

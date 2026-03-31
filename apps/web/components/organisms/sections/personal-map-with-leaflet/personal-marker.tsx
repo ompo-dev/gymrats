@@ -3,6 +3,7 @@
 import L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
 import type { PersonalLocation } from "@/lib/types";
+import type { StudentPersonalListItem } from "@/lib/types/student-discovery";
 
 function createPersonalIcon(primaryColor: string) {
   return new L.DivIcon({
@@ -21,7 +22,11 @@ function createPersonalIcon(primaryColor: string) {
 }
 
 interface PersonalMarkerProps {
-  personal: PersonalLocation;
+  personal: StudentPersonalListItem & {
+    address?: string;
+    coordinates: NonNullable<PersonalLocation["coordinates"]>;
+    activeCampaigns?: PersonalLocation["activeCampaigns"];
+  };
   isSelected: boolean;
   onClick: () => void;
 }
@@ -50,9 +55,7 @@ export function PersonalMarker({
       <Popup>
         <div className="min-w-[160px]">
           <p className="font-bold text-sm">{name}</p>
-          {address && (
-            <p className="text-xs text-gray-600 mt-0.5">{address}</p>
-          )}
+          {address && <p className="text-xs text-gray-600 mt-0.5">{address}</p>}
           {distance != null && (
             <p className="text-xs text-gray-500 mt-1">
               {distance.toFixed(1)} km

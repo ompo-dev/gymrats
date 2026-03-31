@@ -1,66 +1,31 @@
 "use client";
 
 import { Building2, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { apiClient } from "@/lib/api/client";
-
-type MembershipData = {
-  id: string;
-  status: string;
-  gym: {
-    id: string;
-    name: string;
-    image?: string | null;
-    logo?: string | null;
-    address?: string | null;
-  };
-  plan: {
-    id: string;
-    name: string;
-    type: string;
-    price: number;
-  } | null;
-};
+import { useStudentMemberships } from "@/hooks/use-student-bootstrap";
 
 export function MyAcademiasCard() {
   const router = useRouter();
-  const [memberships, setMemberships] = useState<MembershipData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { memberships, isLoading } = useStudentMemberships();
+
+  const uniqueMemberships = useMemo(() => {
+    const raw = Array.isArray(memberships) ? memberships : [];
+    const seen = new Set<string>();
+    return raw.filter((membership) => {
+      if (seen.has(membership.gymId)) return false;
+      seen.add(membership.gymId);
+      return true;
+    });
+  }, [memberships]);
+
+  const loading = isLoading && uniqueMemberships.length === 0;
 
   const handleViewAcademias = () => {
     router.push("/student?tab=gyms");
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    apiClient
-      .get<{ memberships: MembershipData[] }>("/api/students/memberships")
-      .then((res) => {
-        if (!cancelled) {
-          const raw = res.data.memberships || [];
-          // Deduplica por academia (mantém apenas a mais recente de cada)
-          const seen = new Set<string>();
-          const unique = raw.filter((m) => {
-            if (seen.has(m.gym.id)) return false;
-            seen.add(m.gym.id);
-            return true;
-          });
-          setMemberships(unique);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setMemberships([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   if (loading) {
     return (
@@ -71,12 +36,12 @@ export function MyAcademiasCard() {
             <h2 className="font-bold text-duo-fg">Minhas Academias</h2>
           </div>
         </DuoCard.Header>
-        <p className="text-sm text-duo-fg-muted py-4">Carregando...</p>
+        <p className="py-4 text-sm text-duo-fg-muted">Carregando...</p>
       </DuoCard.Root>
     );
   }
 
-  if (memberships.length === 0) {
+  if (uniqueMemberships.length === 0) {
     return (
       <DuoCard.Root variant="default" padding="md">
         <DuoCard.Header>
@@ -84,18 +49,14 @@ export function MyAcademiasCard() {
             <Building2 className="h-5 w-5 text-duo-blue" />
             <h2 className="font-bold text-duo-fg">Minhas Academias</h2>
           </div>
-          <DuoButton
-            size="sm"
-            variant="outline"
-            onClick={handleViewAcademias}
-          >
+          <DuoButton size="sm" variant="outline" onClick={handleViewAcademias}>
             Encontrar academias
             <ChevronRight className="h-4 w-4" />
           </DuoButton>
         </DuoCard.Header>
-        <p className="text-sm text-duo-fg-muted py-4">
-          Você ainda não está matriculado em nenhuma academia. Explore e
-          encontre a academia ideal para você.
+        <p className="py-4 text-sm text-duo-fg-muted">
+          Voce ainda nao esta matriculado em nenhuma academia. Explore e
+          encontre a academia ideal para voce.
         </p>
       </DuoCard.Root>
     );
@@ -114,18 +75,18 @@ export function MyAcademiasCard() {
         </DuoButton>
       </DuoCard.Header>
       <div className="space-y-3">
-        {memberships.map((m) => (
+        {uniqueMemberships.map((membership) => (
           <AcademyListItemCard
-            key={m.id}
-            image={m.gym.logo || m.gym.image || "/placeholder.svg"}
-            name={m.gym.name}
+            key={membership.id}
+            image={membership.gymLogo || "/placeholder.svg"}
+            name={membership.gymName}
             onClick={handleViewAcademias}
             badge={{
-              label: m.status === "active" ? "ATIVA" : "PENDENTE",
-              variant: m.status === "active" ? "green" : "yellow",
+              label: membership.status === "active" ? "ATIVA" : "PENDENTE",
+              variant: membership.status === "active" ? "green" : "yellow",
             }}
-            planName={m.plan?.name}
-            address={m.gym.address ?? undefined}
+            planName={membership.planName}
+            address={membership.gymAddress ?? undefined}
           />
         ))}
       </div>

@@ -17,8 +17,6 @@ import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { Features } from "@/lib/access-control/features";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
-import { apiClient } from "@/lib/api/client";
-import { getAuthToken } from "@/lib/auth/token-client";
 import type {
   PlanSlotData,
   Unit,
@@ -27,6 +25,7 @@ import type {
   WorkoutExercise,
   WorkoutSession,
 } from "@/lib/types";
+import { useAssistantTransportStore } from "@/stores/assistant-transport-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { WorkoutPreviewCard } from "./workout-preview-card";
 
@@ -126,7 +125,11 @@ export function WorkoutChat({
   const effectiveWeeklyPlan =
     mode === "gym" ? weeklyPlanOverride : storeWeeklyPlan;
   const unitsArray =
-    mode === "gym" ? [] : Array.isArray(storeUnits) ? (storeUnits as Unit[]) : [];
+    mode === "gym"
+      ? []
+      : Array.isArray(storeUnits)
+        ? (storeUnits as Unit[])
+        : [];
   const slotsArray: PlanSlotData[] = Array.isArray(effectiveWeeklyPlan?.slots)
     ? (effectiveWeeklyPlan?.slots as unknown as PlanSlotData[])
     : [];
@@ -150,7 +153,10 @@ export function WorkoutChat({
   const _actions = useStudent("actions");
   const loaders =
     mode === "gym"
-      ? { loadWeeklyPlan: loadWeeklyPlanOverride, loadWorkouts: loadWorkoutsOverride }
+      ? {
+          loadWeeklyPlan: loadWeeklyPlanOverride,
+          loadWorkouts: loadWorkoutsOverride,
+        }
       : storeLoaders;
   const { can } = useAbility();
   const isGymMode = mode === "gym";
@@ -207,7 +213,7 @@ export function WorkoutChat({
       ? weeklyPlanRef.current
       : useStudentUnifiedStore.getState().data.weeklyPlan;
   const getLatestUnits = () =>
-    mode === "gym" ? [] : useStudentUnifiedStore.getState().data.units ?? [];
+    mode === "gym" ? [] : (useStudentUnifiedStore.getState().data.units ?? []);
   const getProfile = () =>
     mode === "gym"
       ? profileOverride
@@ -314,7 +320,9 @@ export function WorkoutChat({
         }
         const currentUnits = getLatestUnits();
         const currentUnit = currentUnits.find((u: Unit) => u.id === unitId);
-        const currentWorkouts = isGymMode ? workouts : currentUnit?.workouts || [];
+        const currentWorkouts = isGymMode
+          ? workouts
+          : currentUnit?.workouts || [];
 
         // Buscar pelo título ORIGINAL (antes da modificação) - isso é crítico!
         const workoutFromDb = currentWorkouts.find(
@@ -370,9 +378,10 @@ export function WorkoutChat({
 
           for (const preview of workoutsToCreate) {
             try {
-              await apiClient.post(
-                processUrl,
-                {
+              await useAssistantTransportStore.getState().postJson({
+                key: `workout-process-create:${preview.title}`,
+                url: processUrl,
+                body: {
                   parsedPlan: {
                     intent: "create",
                     action: "create_workouts",
@@ -381,10 +390,8 @@ export function WorkoutChat({
                   },
                   unitId: unitId ?? null,
                 },
-                {
-                  timeout: 120000,
-                },
-              );
+                timeoutMs: 120000,
+              });
               console.log(
                 `[handleApprove] ✅ Workout criado: ${preview.title}`,
               );
@@ -411,10 +418,10 @@ export function WorkoutChat({
           const updatedSlot = planSlotId
             ? updatedWeeklyPlan?.slots.find((s) => s.id === planSlotId)
             : null;
+          const updatedSlotWorkout = updatedSlot?.workout;
           const updatedWorkouts =
-            (updatedUnit?.workouts ?? updatedSlot?.workout)
-              ? [updatedSlot?.workout!]
-              : [];
+            updatedUnit?.workouts ??
+            (updatedSlotWorkout ? [updatedSlotWorkout] : []);
 
           // Atualizar targetWorkoutId se necessário após criar os novos
           if (
@@ -500,17 +507,18 @@ export function WorkoutChat({
         processPayload.unitId = unitId;
       }
 
-      const processResponse = await apiClient.post(
-        processUrl,
-        processPayload,
-        {
-          timeout: 120000,
-        },
-      );
+      const processResponse = await useAssistantTransportStore
+        .getState()
+        .postJson({
+          key: `workout-process:${planSlotId ?? unitId ?? "root"}`,
+          url: processUrl,
+          body: processPayload,
+          timeoutMs: 120000,
+        });
 
       console.log(
         "[WorkoutChat] ✅ Treino processado com sucesso:",
-        processResponse.data,
+        processResponse,
       );
 
       // Recarregar dados do store após processamento
@@ -728,8 +736,7 @@ export function WorkoutChat({
     }
   }, [planSlotId, workouts]);
 
-  // Scroll para última mensagem
-  // biome-ignore lint/correctness/useExhaustiveDependencies: precisamos reagir à mudança de mensagens
+  // Scroll para a ultima mensagem
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -752,6 +759,7 @@ export function WorkoutChat({
 
     const userMessage = inputMessage.trim();
     const currentReference = reference; // Guardar referência antes de limpar
+    const streamRequestKey = `workout-chat:${planSlotId ?? unitId ?? "root"}`;
     setInputMessage("");
     setReference(null); // Limpar referência após enviar
 
@@ -819,25 +827,11 @@ export function WorkoutChat({
         })),
       }));
 
-      // Usar SSE (Server-Sent Events) para streaming da resposta
-      // No browser, sempre usar mesma origem (URL relativa) para evitar drift de porta
-      const API_BASE_URL =
-        typeof window !== "undefined"
-          ? ""
-          : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-      const token = getAuthToken();
-
-      // Criar URL com parâmetros (SSE não suporta POST body, então usamos query params ou headers)
-      const response = await fetch(`${API_BASE_URL}${chatStreamUrl}`, {
-        method: "POST",
-        cache: "no-store",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
+      // Usar URL absoluta da API para suportar frontend em Vercel e backend no Railway.
+      const response = await useAssistantTransportStore.getState().openSse({
+        key: streamRequestKey,
+        url: chatStreamUrl,
+        body: {
           message: messageForAI,
           conversationHistory,
           unitId: unitId ?? undefined,
@@ -848,9 +842,8 @@ export function WorkoutChat({
           reference: currentReference || undefined,
           previewWorkouts:
             previewWorkouts.length > 0 ? previewWorkouts : undefined,
-        }),
+        },
       });
-
       if (!response.ok) {
         const fallbackText = await response.text();
         throw new Error(
@@ -1016,6 +1009,25 @@ export function WorkoutChat({
 
       // Se recebeu dados completos, atualizar estado
       if (parsedData) {
+        if (previewWorkouts.length === 0 && parsedData.workouts.length > 0) {
+          setPreviewWorkouts(parsedData.workouts);
+          setMessages((prev) => {
+            if (prev.some((msg) => msg.workoutPreview)) {
+              return prev;
+            }
+
+            return [
+              ...prev,
+              ...parsedData.workouts.map((workout, index) => ({
+                role: "assistant" as const,
+                content: "",
+                timestamp: new Date(),
+                workoutPreview: workout,
+                workoutPreviewIndex: index,
+              })),
+            ];
+          });
+        }
         // add_exercise: mesclar novos exercícios no workout existente (não substituir)
         // O workout_progress pode ter substituído o preview com só os novos - usar workouts do store como base
         if (
@@ -1292,6 +1304,7 @@ export function WorkoutChat({
         setMessages((prev) => [...prev, errorMessage]);
       }
     } finally {
+      useAssistantTransportStore.getState().finishRequest(streamRequestKey);
       setIsProcessing(false);
     }
   };

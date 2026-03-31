@@ -62,7 +62,7 @@ export function createProfileSlice(set: StudentSetState, get: StudentGetState) {
       }));
 
       try {
-        await apiClient.post("/api/students/profile", updates as any);
+        await apiClient.post("/api/students/profile", updates);
       } catch (error) {
         console.error("Erro ao atualizar perfil:", error);
         set((state) => ({
@@ -93,7 +93,7 @@ export function createProfileSlice(set: StudentSetState, get: StudentGetState) {
           weight,
           date: date.toISOString(),
           notes: notes ?? null,
-        } as any);
+        });
       } catch (error) {
         console.error("Erro ao adicionar peso:", error);
         set((state) => ({

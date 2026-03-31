@@ -5,10 +5,7 @@ import { useEffect, useRef } from "react";
 import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
-import {
-  confirmAbacatePayment,
-  createAbacateBilling,
-} from "@/lib/actions/payments/abacate-pay";
+import { confirmAbacatePayment } from "@/lib/actions/payments/abacate-pay";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
 import { PlansSelector } from "./subscription/plans-selector";
@@ -22,6 +19,7 @@ export interface SubscriptionPlan {
   annualPrice: number;
   features: string[];
   perStudentPrice?: number; // Preço por aluno/mês (apenas para gym, plano mensal)
+  perPersonalPrice?: number; // Preço por personal filiado/mês (apenas para gym)
 }
 
 export interface SubscriptionSectionProps {
@@ -31,6 +29,10 @@ export interface SubscriptionSectionProps {
   subscription?:
     | (StudentSubscriptionData & {
         activeStudents?: number;
+        activePersonals?: number;
+        basePrice?: number;
+        pricePerStudent?: number;
+        pricePerPersonal?: number;
         totalAmount?: number;
       })
     | null;
@@ -107,7 +109,6 @@ function SubscriptionSectionSimple({
   const {
     selectedPlan,
     selectedBillingPeriod,
-    isProcessingPayment,
     setSelectedPlan,
     setSelectedBillingPeriod,
     setIsProcessingPayment,
@@ -132,7 +133,9 @@ function SubscriptionSectionSimple({
       });
 
       // Para gym: webhook ativa a assinatura. Refetch com polling até obter dados atualizados.
-      if (userType === "gym" && onPaymentSuccess) {
+      if (userType !== "student") {
+        if (!onPaymentSuccess) return;
+
         for (let i = 0; i < 10; i++) {
           if (cancelled) return;
           await onPaymentSuccess();
@@ -261,7 +264,8 @@ function SubscriptionSectionSimple({
     userType === "personal"
       ? false
       : subscription == null ||
-        ("canStartTrial" in subscription && subscription.canStartTrial !== false);
+        ("canStartTrial" in subscription &&
+          subscription.canStartTrial !== false);
 
   const daysRemaining = subscription?.daysRemaining ?? null;
   const isTrialEnding =
@@ -360,30 +364,9 @@ function SubscriptionSectionSimple({
   const handleSubscribe = async () => {
     if (!selectedPlanData) return;
 
-    // Se o componente pai forneceu um callback, usar ele (mantém consistência)
-    if (onSubscribe) {
-      await onSubscribe(selectedPlanData.id, selectedBillingPeriod, null);
-      return;
-    }
-
-    // Fallback para comportamento padrão (checkout direto)
     setIsProcessingPayment(true);
     try {
-      console.log(
-        "[Subscription] Iniciando checkout direto para:",
-        selectedPlanData.id,
-        selectedBillingPeriod,
-      );
-      const result = await createAbacateBilling(
-        selectedPlanData.id,
-        selectedBillingPeriod,
-      );
-
-      if (result?.url) {
-        window.location.href = result.url;
-      } else {
-        throw new Error("URL de checkout não recebida do servidor.");
-      }
+      await onSubscribe(selectedPlanData.id, selectedBillingPeriod, null);
     } catch (error) {
       console.error("[Subscription] Erro no checkout:", error);
       const message =

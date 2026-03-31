@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1.7
+
+FROM oven/bun:1.3.6 AS base
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+
+FROM base AS source
+COPY . .
+RUN bun install --frozen-lockfile
+RUN bun x prisma generate --schema packages/db/prisma/schema.prisma
+
+FROM source AS api-builder
+ENV NODE_ENV=production
+ENV GYMRATS_RUNTIME_ROLE=api
+RUN bun run --cwd apps/api build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=4000
+ENV GYMRATS_RUNTIME_ROLE=api
+COPY --from=api-builder /app /app
+EXPOSE 4000
+CMD ["bun", "apps/api/dist/index.js"]

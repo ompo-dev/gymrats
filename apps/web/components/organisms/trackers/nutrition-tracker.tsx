@@ -28,10 +28,14 @@ export interface NutritionTrackerProps {
   onDeleteMeal?: (mealId: string) => void;
   onDeleteFood?: (mealId: string, foodId: string) => void;
   onToggleWaterGlass?: (index: number) => void;
+  onOpenLibrary?: () => void;
+  libraryButtonLabel?: string;
   /** Modo somente leitura: oculta botões de adicionar/editar/excluir */
   readOnly?: boolean;
   /** Bloqueia apenas a edição da hidratação */
   waterReadOnly?: boolean;
+  showCompletionControls?: boolean;
+  showHydration?: boolean;
 }
 
 function NutritionTrackerSimple({
@@ -42,8 +46,12 @@ function NutritionTrackerSimple({
   onDeleteMeal,
   onDeleteFood,
   onToggleWaterGlass,
+  onOpenLibrary,
+  libraryButtonLabel = "Biblioteca",
   readOnly = false,
   waterReadOnly = false,
+  showCompletionControls = true,
+  showHydration = true,
 }: NutritionTrackerProps) {
   const [expandedFoodId, setExpandedFoodId] = useState<string | null>(null);
 
@@ -116,52 +124,53 @@ function NutritionTrackerSimple({
         />
       </DuoStatsGrid.Root>
 
-      {nutrition.waterIntake === 0 ? (
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Droplets className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]" />
-              <h2 className="font-bold text-[var(--duo-fg)]">Hidratação</h2>
-            </div>
-            <span className="text-sm font-bold text-[var(--duo-fg-muted)]">
-              {nutrition.waterIntake}ml / {nutrition.targetWater}ml
-            </span>
-          </DuoCard.Header>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, type: "spring" }}
-            className="flex flex-col items-center justify-center space-y-4 py-8 text-center"
-          >
-            <Droplets className="h-12 w-12 text-duo-blue" />
-            <p className="text-lg font-bold text-[var(--duo-fg)]">
-              Hidrate-se!
-            </p>
-            <p className="text-sm text-[var(--duo-fg-muted)]">
-              A água é essencial para seu desempenho e recuperação. Comece
-              registrando seu primeiro copo de água.
-            </p>
-            {!isWaterReadOnly && (
-              <DuoButton
-                onClick={() => handleToggleWaterGlass(0)}
-                variant="primary"
-                className="w-fit"
-              >
-                <Droplets className="h-4 w-4 mr-2" />
-                Registrar Copo
-              </DuoButton>
-            )}
-          </motion.div>
-        </DuoCard.Root>
-      ) : (
-        <WaterIntakeCard.Simple
-          current={nutrition.waterIntake}
-          target={nutrition.targetWater}
-          glasses={waterGlasses}
-          onToggleGlass={handleToggleWaterGlass}
-          readOnly={isWaterReadOnly}
-        />
-      )}
+      {showHydration &&
+        (nutrition.waterIntake === 0 ? (
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
+              <div className="flex items-center gap-2">
+                <Droplets className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]" />
+                <h2 className="font-bold text-[var(--duo-fg)]">Hidratação</h2>
+              </div>
+              <span className="text-sm font-bold text-[var(--duo-fg-muted)]">
+                {nutrition.waterIntake}ml / {nutrition.targetWater}ml
+              </span>
+            </DuoCard.Header>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, type: "spring" }}
+              className="flex flex-col items-center justify-center space-y-4 py-8 text-center"
+            >
+              <Droplets className="h-12 w-12 text-duo-blue" />
+              <p className="text-lg font-bold text-[var(--duo-fg)]">
+                Hidrate-se!
+              </p>
+              <p className="text-sm text-[var(--duo-fg-muted)]">
+                A água é essencial para seu desempenho e recuperação. Comece
+                registrando seu primeiro copo de água.
+              </p>
+              {!isWaterReadOnly && (
+                <DuoButton
+                  onClick={() => handleToggleWaterGlass(0)}
+                  variant="primary"
+                  className="w-fit"
+                >
+                  <Droplets className="h-4 w-4 mr-2" />
+                  Registrar Copo
+                </DuoButton>
+              )}
+            </motion.div>
+          </DuoCard.Root>
+        ) : (
+          <WaterIntakeCard.Simple
+            current={nutrition.waterIntake}
+            target={nutrition.targetWater}
+            glasses={waterGlasses}
+            onToggleGlass={handleToggleWaterGlass}
+            readOnly={isWaterReadOnly}
+          />
+        ))}
 
       <DuoCard.Root variant="default" padding="md">
         <DuoCard.Header>
@@ -172,10 +181,17 @@ function NutritionTrackerSimple({
             </h2>
           </div>
           {!readOnly && (
-            <DuoButton variant="white" size="sm" onClick={onAddMeal}>
-              <Plus className="h-4 w-4" />
-              Adicionar
-            </DuoButton>
+            <div className="flex items-center gap-2">
+              {onOpenLibrary && (
+                <DuoButton variant="outline" size="sm" onClick={onOpenLibrary}>
+                  {libraryButtonLabel}
+                </DuoButton>
+              )}
+              <DuoButton variant="white" size="sm" onClick={onAddMeal}>
+                <Plus className="h-4 w-4" />
+                Adicionar
+              </DuoButton>
+            </div>
           )}
         </DuoCard.Header>
         {nutrition.meals.length === 0 ? (
@@ -194,14 +210,25 @@ function NutritionTrackerSimple({
               Adicione sua primeira refeição e veja sua evolução.
             </p>
             {!readOnly && (
-              <DuoButton
-                onClick={onAddMeal}
-                variant="primary"
-                className="w-fit"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Refeição
-              </DuoButton>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {onOpenLibrary && (
+                  <DuoButton
+                    onClick={onOpenLibrary}
+                    variant="outline"
+                    className="w-fit"
+                  >
+                    {libraryButtonLabel}
+                  </DuoButton>
+                )}
+                <DuoButton
+                  onClick={onAddMeal}
+                  variant="primary"
+                  className="w-fit"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Refeição
+                </DuoButton>
+              </div>
             )}
           </motion.div>
         ) : (
@@ -250,6 +277,7 @@ function NutritionTrackerSimple({
                       expandedFoodId={expandedFoodId}
                       onToggleFoodExpand={handleToggleFood}
                       readOnly={readOnly}
+                      showCompletionControls={showCompletionControls}
                     />
                   </motion.div>
                 );

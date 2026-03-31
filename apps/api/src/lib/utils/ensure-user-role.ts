@@ -1,0 +1,111 @@
+/**
+ * Garante que o usuário tenha role STUDENT ou GYM e o registro correspondente.
+ * Usado no onboarding quando o usuário é PENDING - cadastra apenas ao concluir.
+ */
+
+import { db } from "@/lib/db";
+
+export type EnsureRoleResult =
+  | { ok: true; studentId?: string; gymId?: string; personalId?: string }
+  | { ok: false; error: string };
+
+export async function ensureStudentRole(
+  userId: string,
+): Promise<EnsureRoleResult> {
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: { role: "STUDENT" },
+    });
+
+    let student = await db.student.findUnique({
+      where: { userId },
+    });
+
+    if (!student) {
+      student = await db.student.create({
+        data: { userId },
+      });
+    }
+
+    return { ok: true, studentId: student.id };
+  } catch (error) {
+    console.error("[ensureStudentRole] Erro:", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Erro ao criar perfil",
+    };
+  }
+}
+
+export async function ensureGymRole(
+  userId: string,
+  userName: string,
+  userEmail: string,
+): Promise<EnsureRoleResult> {
+  try {
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: { role: "GYM" },
+    });
+
+    let gym = await db.gym.findFirst({
+      where: { userId },
+    });
+
+    if (!gym) {
+      gym = await db.gym.create({
+        data: {
+          userId,
+          name: updatedUser.name || userName,
+          address: "",
+          phone: "",
+          email: updatedUser.email || userEmail,
+        },
+      });
+    }
+
+    return { ok: true, gymId: gym.id };
+  } catch (error) {
+    console.error("[ensureGymRole] Erro:", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Erro ao criar perfil",
+    };
+  }
+}
+
+export async function ensurePersonalRole(
+  userId: string,
+  userName: string,
+  userEmail: string,
+): Promise<EnsureRoleResult> {
+  try {
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: { role: "PERSONAL" },
+    });
+
+    let personal = await db.personal.findUnique({
+      where: { userId },
+    });
+
+    if (!personal) {
+      personal = await db.personal.create({
+        data: {
+          userId,
+          name: updatedUser.name || userName,
+          email: updatedUser.email || userEmail,
+        },
+      });
+    }
+
+    return { ok: true, personalId: personal.id };
+  } catch (error) {
+    console.error("[ensurePersonalRole] Erro:", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Erro ao criar perfil",
+    };
+  }
+}

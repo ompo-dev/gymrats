@@ -1,16 +1,18 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
+import { FinancialAdsTab } from "@/components/organisms/gym/financial/financial-ads-tab";
 import { FinancialCouponsTab } from "@/components/organisms/gym/financial/financial-coupons-tab";
 import { FinancialExpensesTab } from "@/components/organisms/gym/financial/financial-expenses-tab";
 import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
 import { FinancialPaymentsTab } from "@/components/organisms/gym/financial/financial-payments-tab";
 import { FinancialSubscriptionTab } from "@/components/organisms/gym/financial/financial-subscription-tab";
-import { FinancialAdsTab } from "@/components/organisms/gym/financial/financial-ads-tab";
+import { useGym } from "@/hooks/use-gym";
+import { useGymFinancialBootstrapBridge } from "@/hooks/use-gym-bootstrap";
 import type {
   BoostCampaign,
   Coupon,
@@ -74,9 +76,26 @@ export default function FinancialPage({
   campaigns = [],
   plans = [],
 }: FinancialPageProps) {
-  const [view, setView] = useQueryState(
-    "view",
-    parseAsString.withDefault("overview"),
+  useGymFinancialBootstrapBridge();
+  const actions = useGym("actions");
+  const {
+    financialSummary: storeFinancialSummary,
+    payments: storePayments = [],
+    coupons: storeCoupons = [],
+    campaigns: storeCampaigns = [],
+    membershipPlans: storePlans = [],
+    expenses: storeExpenses = [],
+    balanceWithdraws,
+    subscription: storeSubscription,
+  } = useGym(
+    "financialSummary",
+    "payments",
+    "coupons",
+    "campaigns",
+    "membershipPlans",
+    "expenses",
+    "balanceWithdraws",
+    "subscription",
   );
   const [subTab, setSubTab] = useQueryState(
     "subTab",
@@ -89,24 +108,61 @@ export default function FinancialPage({
     | "expenses"
     | "subscription"
     | "ads";
-  const [viewMode, setViewMode] = useState<ViewMode>(
-    (subTab || view || "overview") as ViewMode,
-  );
 
-  useEffect(() => {
-    if (subTab) {
-      setViewMode((subTab === "referrals" ? "overview" : subTab) as ViewMode);
-    } else if (view) {
-      setViewMode((view === "referrals" ? "overview" : view) as ViewMode);
-    }
-  }, [subTab, view]);
+  const viewMode = useMemo(
+    () =>
+      ((subTab || "overview") === "referrals"
+        ? "overview"
+        : subTab) as ViewMode,
+    [subTab],
+  );
 
   const handleTabChange = (tab: string) => {
     const newViewMode = (tab === "referrals" ? "overview" : tab) as ViewMode;
-    setViewMode(newViewMode);
-    setView(newViewMode);
-    setSubTab(newViewMode);
+    void setSubTab(newViewMode);
   };
+
+  const hydratedSubscription = useMemo(
+    () =>
+      initialSubscription
+        ? {
+            ...initialSubscription,
+            activePersonals: 0,
+            pricePerPersonal: 0,
+          }
+        : null,
+    [initialSubscription],
+  );
+  const resolvedSubscription = storeSubscription ?? hydratedSubscription;
+
+  useEffect(() => {
+    actions.hydrateInitial({
+      financialSummary,
+      payments,
+      coupons,
+      campaigns,
+      membershipPlans: plans,
+      expenses,
+      balanceWithdraws: {
+        balanceReais,
+        balanceCents,
+        withdraws,
+      },
+      subscription: hydratedSubscription,
+    });
+  }, [
+    actions,
+    balanceCents,
+    balanceReais,
+    campaigns,
+    coupons,
+    expenses,
+    financialSummary,
+    hydratedSubscription,
+    payments,
+    plans,
+    withdraws,
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
@@ -144,33 +200,37 @@ export default function FinancialPage({
 
       {viewMode === "overview" && (
         <FinancialOverviewTab
-          financialSummary={financialSummary}
-          payments={payments}
-          subscription={initialSubscription}
-          balanceReais={balanceReais}
-          balanceCents={balanceCents}
-          withdraws={withdraws}
+          financialSummary={storeFinancialSummary ?? financialSummary}
+          payments={storePayments}
+          subscription={resolvedSubscription}
+          balanceReais={balanceWithdraws?.balanceReais ?? balanceReais}
+          balanceCents={balanceWithdraws?.balanceCents ?? balanceCents}
+          withdraws={balanceWithdraws?.withdraws ?? withdraws}
           fakeWithdraw={fakeWithdraw}
         />
       )}
 
-      {viewMode === "payments" && <FinancialPaymentsTab payments={payments} />}
+      {viewMode === "payments" && (
+        <FinancialPaymentsTab payments={storePayments} />
+      )}
 
-      {viewMode === "coupons" && <FinancialCouponsTab coupons={coupons} />}
+      {viewMode === "coupons" && <FinancialCouponsTab coupons={storeCoupons} />}
 
-      {viewMode === "expenses" && <FinancialExpensesTab expenses={expenses} />}
+      {viewMode === "expenses" && (
+        <FinancialExpensesTab expenses={storeExpenses} />
+      )}
 
       {viewMode === "subscription" && (
         <FinancialSubscriptionTab
-          subscription={initialSubscription || undefined}
+          subscription={resolvedSubscription ?? undefined}
         />
       )}
 
       {viewMode === "ads" && (
         <FinancialAdsTab
-          campaigns={campaigns}
-          coupons={coupons}
-          plans={plans}
+          campaigns={storeCampaigns}
+          coupons={storeCoupons}
+          plans={storePlans}
         />
       )}
     </div>

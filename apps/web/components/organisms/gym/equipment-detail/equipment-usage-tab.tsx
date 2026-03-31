@@ -3,15 +3,18 @@
 import { BarChart3, Clock } from "lucide-react";
 import { DuoCard } from "@/components/duo";
 import type { Equipment } from "@/lib/types";
+import { normalizeEquipmentItem } from "@/lib/utils/gym/normalize-equipment";
 
 export interface EquipmentUsageTabProps {
   equipment: Equipment;
 }
 
 export function EquipmentUsageTab({ equipment }: EquipmentUsageTabProps) {
+  const safeEquipment = normalizeEquipmentItem(equipment);
   const usagePercent = Math.round(
-    (equipment.usageStats.totalUses / 2000) * 100,
+    (safeEquipment.usageStats.totalUses / 2000) * 100,
   );
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <DuoCard.Root variant="highlighted" padding="md">
@@ -22,11 +25,11 @@ export function EquipmentUsageTab({ equipment }: EquipmentUsageTabProps) {
               style={{ color: "var(--duo-secondary)" }}
               aria-hidden
             />
-            <h2 className="font-bold text-duo-fg">Horários Mais Populares</h2>
+            <h2 className="font-bold text-duo-fg">Horarios Mais Populares</h2>
           </div>
         </DuoCard.Header>
         <div className="space-y-3">
-          {equipment.usageStats.popularTimes.map((time) => (
+          {safeEquipment.usageStats.popularTimes.map((time) => (
             <DuoCard.Root key={time} variant="highlighted" size="sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -50,13 +53,13 @@ export function EquipmentUsageTab({ equipment }: EquipmentUsageTabProps) {
               style={{ color: "var(--duo-secondary)" }}
               aria-hidden
             />
-            <h2 className="font-bold text-duo-fg">Métricas de Performance</h2>
+            <h2 className="font-bold text-duo-fg">Metricas de Performance</h2>
           </div>
         </DuoCard.Header>
         <div className="space-y-4">
           <DuoCard.Root variant="default" size="default">
             <p className="text-sm font-bold text-duo-gray-dark">
-              Taxa de Utilização
+              Taxa de Utilizacao
             </p>
             <p className="text-3xl font-bold text-duo-purple">
               {usagePercent}%
@@ -70,11 +73,11 @@ export function EquipmentUsageTab({ equipment }: EquipmentUsageTabProps) {
           </DuoCard.Root>
           <DuoCard.Root variant="blue" size="default">
             <p className="text-sm font-bold text-duo-gray-dark">
-              Eficiência de Uso
+              Eficiencia de Uso
             </p>
             <p className="text-3xl font-bold text-duo-blue">92%</p>
             <p className="text-xs text-duo-gray-dark">
-              Baseado em tempo médio vs recomendado
+              Baseado em tempo medio vs recomendado
             </p>
           </DuoCard.Root>
         </div>

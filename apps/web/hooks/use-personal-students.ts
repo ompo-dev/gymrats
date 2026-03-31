@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -39,7 +39,7 @@ export function usePersonalStudents({
   onRefresh,
 }: UsePersonalStudentsProps) {
   const { toast } = useToast();
-  const { actions, loaders } = usePersonal("actions", "loaders");
+  const { actions, studentDetails } = usePersonal("actions", "studentDetails");
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
   });
@@ -51,44 +51,46 @@ export function usePersonalStudents({
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [studentId, setStudentId] = useQueryState("studentId", parseAsString);
-  const [fetchedAssignment, setFetchedAssignment] =
-    useState<PersonalStudentItem | null>(null);
   const [isLoadingAssignment, setIsLoadingAssignment] = useState(false);
 
   const selectedAssignmentFromList = useMemo(
     () =>
       studentId
-        ? students.find((s) => s?.student?.id === studentId) ?? null
+        ? (students.find((s) => s?.student?.id === studentId) ?? null)
         : null,
     [studentId, students],
   );
 
   const selectedAssignment =
-    selectedAssignmentFromList ?? (studentId ? fetchedAssignment : null);
+    selectedAssignmentFromList ??
+    (studentId
+      ? ((
+          studentDetails as unknown as Record<
+            string,
+            PersonalStudentItem | undefined
+          >
+        )[studentId] ?? null)
+      : null);
 
   useEffect(() => {
     if (!studentId || selectedAssignmentFromList) {
-      setFetchedAssignment(null);
+      setIsLoadingAssignment(false);
       return;
     }
+
     let cancelled = false;
     setIsLoadingAssignment(true);
-    setFetchedAssignment(null);
-    fetch(`/api/personals/students/${studentId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (data.assignment) {
-          setFetchedAssignment(data.assignment as PersonalStudentItem);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingAssignment(false);
-      });
+
+    actions.loadStudentDetail(studentId, true).finally(() => {
+      if (!cancelled) {
+        setIsLoadingAssignment(false);
+      }
+    });
+
     return () => {
       cancelled = true;
     };
-  }, [studentId, selectedAssignmentFromList]);
+  }, [actions, selectedAssignmentFromList, studentDetails, studentId]);
 
   const filteredStudents = useMemo(
     () =>
@@ -115,10 +117,9 @@ export function usePersonalStudents({
       setRemovingId(id);
       try {
         await actions.removeStudent(id);
-        await loaders.loadSection("students");
         toast({
-          title: "Vínculo removido",
-          description: "O aluno deixou de estar atribuído a você.",
+          title: "VÃ­nculo removido",
+          description: "O aluno deixou de estar atribuÃ­do a vocÃª.",
         });
         await onRefresh();
       } catch (err: unknown) {
@@ -138,12 +139,15 @@ export function usePersonalStudents({
         setRemovingId(null);
       }
     },
-    [actions, loaders, toast, onRefresh],
+    [actions, toast, onRefresh],
   );
 
-  const handleOpenDetail = useCallback((id: string) => {
-    setStudentId(id);
-  }, [setStudentId]);
+  const handleOpenDetail = useCallback(
+    (id: string) => {
+      setStudentId(id);
+    },
+    [setStudentId],
+  );
 
   const handleBack = useCallback(() => {
     setStudentId(null);

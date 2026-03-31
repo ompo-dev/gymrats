@@ -1,3 +1,67 @@
+function toOrigin(value) {
+  if (!value) return null;
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeUrl(value) {
+  return value?.replace(/\/$/, "") || null;
+}
+
+function resolveProxyTarget() {
+  const explicitProxyTarget = normalizeUrl(process.env.API_PROXY_TARGET);
+
+  if (explicitProxyTarget) {
+    return explicitProxyTarget;
+  }
+
+  const publicApiUrl = normalizeUrl(process.env.NEXT_PUBLIC_API_URL);
+  const publicApiOrigin = toOrigin(publicApiUrl);
+  const appOrigin = toOrigin(
+    process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL,
+  );
+
+  if (
+    publicApiUrl &&
+    publicApiOrigin &&
+    appOrigin &&
+    publicApiOrigin !== appOrigin
+  ) {
+    return publicApiUrl;
+  }
+
+  return null;
+}
+
+const cspConnectSrc = [
+  "'self'",
+  "wss:",
+  "https:",
+  toOrigin(process.env.NEXT_PUBLIC_APP_URL),
+  toOrigin(process.env.NEXT_PUBLIC_API_URL),
+  toOrigin(process.env.BETTER_AUTH_URL),
+  toOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL),
+].filter(Boolean);
+
+if (process.env.NODE_ENV !== "production") {
+  cspConnectSrc.push("ws:");
+}
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "img-src 'self' blob: data: https:",
+  "font-src 'self' data: https:",
+  `connect-src ${[...new Set(cspConnectSrc)].join(" ")}`,
+  "frame-src 'self' https:",
+  "media-src 'self' https:",
+].join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -35,51 +99,28 @@ const nextConfig = {
       "date-fns",
     ],
   },
-  // Rewrites removidos - o custom-server.ts já roteia /api/* para o Elysia
-  // async rewrites() {
-  //   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  //   return [
-  //     {
-  //       source: "/api/:path*",
-  //       destination: `${apiBase}/api/:path*`,
-  //     },
-  //   ];
-  // },
-  async headers() {
+  async rewrites() {
+    const proxyTarget = resolveProxyTarget();
+
+    if (!proxyTarget) {
+      return [];
+    }
+
     return [
       {
-        source: "/sw.js",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
-          },
-          {
-            key: "Service-Worker-Allowed",
-            value: "/",
-          },
-        ],
+        source: "/api/:path*",
+        destination: `${proxyTarget}/api/:path*`,
       },
-      {
-        source: "/manifest.json",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/manifest+json",
-          },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+    ];
+  },
+  async headers() {
+    return [
       {
         source: "/student/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value:
-              "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
+            value: "private, no-store, no-cache, must-revalidate",
           },
           {
             key: "X-DNS-Prefetch-Control",
@@ -92,8 +133,20 @@ const nextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value:
-              "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
+            value: "private, no-store, no-cache, must-revalidate",
+          },
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+        ],
+      },
+      {
+        source: "/personal/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-store, no-cache, must-revalidate",
           },
           {
             key: "X-DNS-Prefetch-Control",
@@ -126,8 +179,7 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' blob: data: https:; font-src 'self' data: https:; connect-src 'self' wss: https:; frame-src 'self' https:; media-src 'self' https:;",
+            value: contentSecurityPolicy,
           },
         ],
       },

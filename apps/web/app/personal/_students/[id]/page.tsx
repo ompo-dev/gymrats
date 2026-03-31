@@ -4,11 +4,11 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { GymStudentDetail } from "@/components/organisms/gym/gym-student-detail";
+import type { Payment, StudentData } from "@/lib/types";
 import {
   getPersonalStudentById,
   getPersonalStudentPayments,
 } from "../../actions";
-import type { Payment, StudentData } from "@/lib/types";
 
 export default function PersonalStudentDetailPage({
   params,

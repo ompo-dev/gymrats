@@ -2,6 +2,7 @@
  * Slice de sincronização e reset para student-unified-store.
  */
 
+import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 import { initialStudentData } from "@/lib/types/student-unified";
 import type { StudentGetState, StudentSetState } from "./types";
 
@@ -21,9 +22,11 @@ export function createSyncSlice(set: StudentSetState, get: StudentGetState) {
       return;
     },
     reset: () => {
+      clearBootstrapHydrationState("student");
       set({ data: initialStudentData });
     },
     clearCache: () => {
+      clearBootstrapHydrationState("student");
       set({ data: initialStudentData });
     },
   };

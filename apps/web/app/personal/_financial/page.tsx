@@ -47,9 +47,6 @@ export default async function PersonalFinancialPage() {
       plans={plans}
       expenses={expenses}
       financialSummary={financialSummary}
-      balanceReais={0}
-      balanceCents={0}
-      withdraws={[]}
     />
   );
 }

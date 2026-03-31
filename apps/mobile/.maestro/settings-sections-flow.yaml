@@ -1,0 +1,13 @@
+appId: com.gymrats.mobile
+---
+- launchApp
+- assertVisible: "Ajustes"
+- tapOn: "Ajustes"
+- assertVisible: "Central do dispositivo"
+- assertVisible: "Conta e sessao"
+- assertVisible: "Notificacoes"
+- scrollUntilVisible:
+    element: "Widgets"
+    direction: DOWN
+- assertVisible: "Widgets"
+- tapOn: "Voltar"

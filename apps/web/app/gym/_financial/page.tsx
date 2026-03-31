@@ -1,15 +1,18 @@
+import type { ComponentProps } from "react";
 import {
   getGymBalanceWithdraws,
+  getGymBoostCampaigns,
   getGymCoupons,
   getGymExpenses,
   getGymFinancialSummary,
+  getGymMembershipPlans,
   getGymPayments,
   getGymSubscription,
   startGymTrial,
-  getGymBoostCampaigns,
-  getGymMembershipPlans,
 } from "../actions";
 import FinancialPage from "./page-content";
+
+type FinancialPageProps = ComponentProps<typeof FinancialPage>;
 
 /** Em dev (AbacatePay dev mode) saque só persiste no DB. Remover para produção. */
 const FAKE_WITHDRAW = process.env.NEXT_PUBLIC_FAKE_WITHDRAW !== "false";
@@ -44,13 +47,13 @@ export default async function FinancialPageWrapper() {
       coupons={coupons}
       balanceReais={balanceWithdraws.balanceReais}
       balanceCents={balanceWithdraws.balanceCents}
-      withdraws={balanceWithdraws.withdraws}
+      withdraws={balanceWithdraws.withdraws as FinancialPageProps["withdraws"]}
       fakeWithdraw={FAKE_WITHDRAW}
       expenses={expenses}
-      subscription={subscription}
+      subscription={subscription as FinancialPageProps["subscription"]}
       startTrial={startGymTrial}
       campaigns={campaigns}
-      plans={plans}
+      plans={plans as FinancialPageProps["plans"]}
     />
   );
 }

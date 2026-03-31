@@ -29,14 +29,14 @@ export function useAdminRouteGuard(
   const pathname = usePathname();
 
   // ✅ SEGURO: Validar no servidor via useUserSession
-  const { isAdmin, role, isLoading } = useUserSession();
+  const { isAdmin, role, isLoading, hasResolvedSession } = useUserSession();
 
   useEffect(() => {
     // Se allowed é true, não bloqueia
     if (allowed) return;
 
     // Aguardar carregamento da sessão
-    if (isLoading) return;
+    if (isLoading || !hasResolvedSession) return;
 
     // Verificar se é admin (validado no servidor)
     const userIsAdmin = isAdmin || role === "ADMIN";
@@ -48,11 +48,20 @@ export function useAdminRouteGuard(
       );
       router.push(redirectTo);
     }
-  }, [allowed, isAdmin, role, isLoading, pathname, router, redirectTo]);
+  }, [
+    allowed,
+    hasResolvedSession,
+    isAdmin,
+    role,
+    isLoading,
+    pathname,
+    router,
+    redirectTo,
+  ]);
 
   // Retornar se tem acesso
   const userIsAdmin = isAdmin || role === "ADMIN";
-  return allowed || userIsAdmin;
+  return allowed || (hasResolvedSession && userIsAdmin);
 }
 
 /**

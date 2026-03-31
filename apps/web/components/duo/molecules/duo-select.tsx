@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import {
+import React, {
   type HTMLAttributes,
   type ReactNode,
   useEffect,
@@ -9,10 +9,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useCallback,
-  useMemo,
 } from "react";
-import React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +61,7 @@ function DuoSelectSimple({
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const listboxRef = useRef<HTMLUListElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
   const labelId = useId();
 
@@ -235,10 +232,12 @@ function DuoSelectSimple({
           dropdownStyle &&
           typeof document !== "undefined" &&
           createPortal(
-            <ul
+            <div
               ref={listboxRef}
               id={listboxId}
+              role="listbox"
               aria-multiselectable={multiple}
+              aria-labelledby={label ? labelId : undefined}
               className={cn(
                 "fixed z-[9999] max-h-60 overflow-y-auto rounded-xl border-2 border-[var(--duo-border)] py-1",
                 "bg-[var(--duo-bg-card)] shadow-xl shadow-black/20",
@@ -252,21 +251,23 @@ function DuoSelectSimple({
               onMouseDown={(e) => e.stopPropagation()}
             >
               {options.map((option, index) => (
-                <li
+                <button
+                  type="button"
                   key={option.value}
+                  role="option"
                   aria-selected={isSelected(option.value)}
                   aria-disabled={option.disabled}
                   className={cn(
-                    "flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-all duration-150",
+                    "flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-all duration-150",
                     "hover:bg-[var(--duo-bg-elevated)]",
                     isSelected(option.value) &&
                       "bg-[var(--duo-primary)]/10 text-[var(--duo-primary)]",
                     focusedIndex === index && "bg-[var(--duo-bg-elevated)]",
                     option.disabled && "cursor-not-allowed opacity-50",
                   )}
+                  disabled={option.disabled}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={() => {
-                    if (option.disabled) return;
                     onChange?.(option.value);
                     if (!multiple) setIsOpen(false);
                   }}
@@ -293,9 +294,9 @@ function DuoSelectSimple({
                     )}
                   </div>
                   {option.badge}
-                </li>
+                </button>
               ))}
-            </ul>,
+            </div>,
             document.body,
           )}
       </div>

@@ -41,7 +41,9 @@ export function Step1({ formData, setFormData }: PersonalStepProps) {
             type="tel"
             placeholder="(11) 99999-9999"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
           />
         </div>
       </DuoCard.Root>

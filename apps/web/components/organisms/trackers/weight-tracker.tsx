@@ -103,7 +103,6 @@ function WeightTrackerSimple({
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: queremos ressincronizar apenas quando o id do log mudar para não sobrescrever o estado local já editado
   useEffect(() => {
     // Só ressincroniza com o log existente quando o ID mudar
     // (abrir outro exercício / outro log). Isso evita sobrescrever

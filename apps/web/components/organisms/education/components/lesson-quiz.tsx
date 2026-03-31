@@ -112,6 +112,7 @@ function LessonQuizSimple({ lesson, onComplete, onRetry }: LessonQuizProps) {
                       return (
                         <button
                           key={opt.value}
+                          type="button"
                           disabled={showResults}
                           onClick={() => {
                             if (!showResults) {

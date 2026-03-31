@@ -85,17 +85,13 @@ export function AcademyListItemCard({
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-duo-yellow text-duo-yellow" />
                   <span className="font-bold">{rating}</span>
-                  {totalReviews != null && (
-                    <span>({totalReviews})</span>
-                  )}
+                  {totalReviews != null && <span>({totalReviews})</span>}
                 </div>
               )}
               {distance != null && (
                 <div className="flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
-                  <span className="font-bold">
-                    {distance.toFixed(1)} km
-                  </span>
+                  <span className="font-bold">{distance.toFixed(1)} km</span>
                 </div>
               )}
             </div>
@@ -113,7 +109,7 @@ export function AcademyListItemCard({
           )}
         </div>
         {trailingAction && (
-          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="shrink-0" onClickCapture={(e) => e.stopPropagation()}>
             {trailingAction}
           </div>
         )}

@@ -73,25 +73,6 @@ export class ErrorBoundary extends Component<
         ? error
         : new Error(String(error || "Erro desconhecido"));
 
-    // Ignora erros relacionados à atualização do Service Worker
-    const errorMessage = safeError.message || "";
-    const errorStack = safeError.stack || "";
-
-    if (
-      errorMessage.includes("ServiceWorker") ||
-      errorMessage.includes("service worker") ||
-      errorMessage.includes("SW_UPDATED") ||
-      errorStack.includes("sw.js") ||
-      errorStack.includes("ServiceWorker")
-    ) {
-      // Durante atualização do SW, apenas loga e não mostra tela de erro
-      console.log(
-        "ℹ️ Erro relacionado à atualização do Service Worker (ignorado):",
-        safeError.message,
-      );
-      return;
-    }
-
     // Log completo do erro - serializar de forma segura
     try {
       const errorDetails = {
@@ -165,16 +146,8 @@ export class ErrorBoundary extends Component<
   };
 
   generateErrorReport = (): string => {
-    const {
-      error,
-      errorInfo,
-      errorId,
-      timestamp,
-      route,
-      url,
-      userAgent,
-      componentStack,
-    } = this.state;
+    const { error, errorId, timestamp, route, url, userAgent, componentStack } =
+      this.state;
 
     return `
 ═══════════════════════════════════════════════════════════
@@ -250,6 +223,7 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
                 <p className="text-sm text-muted-foreground">ID: {errorId}</p>
               </div>
               <button
+                type="button"
                 onClick={this.handleReset}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-foreground hover:bg-white/20 transition-all"
                 aria-label="Fechar"
@@ -309,6 +283,7 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
               {/* Stack Trace (Expandido) */}
               <div className="rounded-xl bg-white/5 p-4 border border-white/10">
                 <button
+                  type="button"
                   onClick={() => this.setState({ expanded: !expanded })}
                   className="flex w-full items-center justify-between text-sm font-semibold text-foreground/80 hover:text-foreground transition-colors"
                 >
@@ -337,6 +312,7 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
               {this.state.componentStack && (
                 <div className="rounded-xl bg-white/5 p-4 border border-white/10">
                   <button
+                    type="button"
                     onClick={() =>
                       this.setState({ expanded: !this.state.expanded })
                     }
@@ -378,6 +354,7 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
             {/* Actions */}
             <div className="flex items-center gap-3 border-t border-white/10 p-6">
               <button
+                type="button"
                 onClick={this.handleCopy}
                 className={cn(
                   "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all",
@@ -396,12 +373,14 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
                 )}
               </button>
               <button
+                type="button"
                 onClick={this.handleReset}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/30 transition-all border border-primary/30"
               >
                 Tentar Novamente
               </button>
               <button
+                type="button"
                 onClick={this.handleReload}
                 className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all"
               >

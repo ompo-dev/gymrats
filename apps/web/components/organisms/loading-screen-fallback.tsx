@@ -36,9 +36,8 @@ export function LoadingScreenFallback({
       : "Carregando sua academia...";
 
   return (
-    <div
+    <output
       className="flex h-screen items-center justify-center bg-duo-bg"
-      role="status"
       aria-live="polite"
       aria-label={message}
     >
@@ -67,6 +66,6 @@ export function LoadingScreenFallback({
           ))}
         </div>
       </div>
-    </div>
+    </output>
   );
 }

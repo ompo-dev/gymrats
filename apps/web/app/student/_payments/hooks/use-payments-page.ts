@@ -2,15 +2,15 @@
 
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
+import { usePaymentFlow } from "@/hooks/use-payment-flow";
 import { useStudent } from "@/hooks/use-student";
+import { useStudentFinancialBootstrap } from "@/hooks/use-student-bootstrap";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 import {
-  STUDENT_PLANS_CONFIG,
   centsToReais,
+  STUDENT_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
@@ -27,30 +27,28 @@ export interface UsePaymentsPageProps {
 }
 
 export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
-  const { subscription: initialSubscription, startTrial: _startTrial } = props;
-
-  useLoadPrioritized({ context: "payments" });
-
+  const { subscription: initialSubscription } = props;
+  const paymentFlow = usePaymentFlow();
   const { toast } = useToast();
   const [subTab, setSubTab] = useQueryState(
     "subTab",
     parseAsString.withDefault("memberships"),
   );
   const [, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
-
   const {
-    subscription: storeSubscription,
-    memberships: storeMemberships,
-    payments: storePayments,
-    paymentMethods: storePaymentMethods,
-  } = useStudent("subscription", "memberships", "payments", "paymentMethods");
-
+    subscription: bootstrapSubscription,
+    memberships,
+    payments,
+    isLoading: isLoadingFinancial,
+    refetch: refetchFinancial,
+  } = useStudentFinancialBootstrap();
   const {
     subscription: subscriptionData,
     isLoading: isLoadingSubscription,
+    isFirstPayment,
     startTrial: startTrialHook,
     isStartingTrial,
-    createSubscription: _createSubscription,
+    createSubscription: createSubscriptionRequest,
     isCreatingSubscription,
     cancelSubscription,
     isCancelingSubscription,
@@ -60,7 +58,14 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     includeTrialInfo: true,
     enabled: false,
   });
-
+  const actions = useStudent("actions");
+  const {
+    cancelMembership: cancelMembershipAction,
+    loadGymPlans,
+    changeMembershipPlan,
+    applyReferralToSubscription,
+    getStudentPaymentStatus,
+  } = actions;
   const cancelDialogModal = useModalState("cancel-subscription");
 
   const [activeTab, setActiveTab] = useState<PaymentsTab>("memberships");
@@ -100,29 +105,17 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   useEffect(() => {
     if (
       subTab &&
-      ["memberships", "payments", "subscription"].includes(subTab)
+      ["memberships", "payments", "subscription", "referrals"].includes(subTab)
     ) {
       setActiveTab(subTab as PaymentsTab);
     }
   }, [subTab]);
 
-  const subFromStore = storeSubscription as
-    | StudentSubscriptionData
-    | null
-    | undefined;
-  const hasOptimisticUpdate = subFromStore?.id === "temp-trial-id";
-
-  const subscription: StudentSubscriptionData | null = hasOptimisticUpdate
-    ? (subFromStore as StudentSubscriptionData)
-    : subFromStore !== null && subFromStore !== undefined
-      ? (subFromStore as StudentSubscriptionData)
-      : subscriptionData !== undefined && subscriptionData !== null
-        ? subscriptionData
-        : subscriptionData === null && initialSubscription
-          ? initialSubscription
-          : subscriptionData === null
-            ? null
-            : (initialSubscription ?? null);
+  const subscription: StudentSubscriptionData | null =
+    (subscriptionData as StudentSubscriptionData | null | undefined) ??
+    bootstrapSubscription ??
+    initialSubscription ??
+    null;
 
   useEffect(() => {
     if (
@@ -134,6 +127,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   }, [subscription?.daysRemaining]);
 
   const isLoading =
+    isLoadingFinancial ||
     isLoadingSubscription ||
     isStartingTrial ||
     isCreatingSubscription ||
@@ -154,7 +148,9 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       const interval = setInterval(updateDaysRemaining, 60000);
 
       return () => clearInterval(interval);
-    } else if (
+    }
+
+    if (
       subscription?.daysRemaining !== null &&
       subscription?.daysRemaining !== undefined
     ) {
@@ -162,73 +158,27 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     }
   }, [subscription?.trialEnd, subscription?.daysRemaining]);
 
-  const loaders = useStudent("loaders");
-  const {
-    loadSubscription,
-    loadPaymentMethods,
-    loadMemberships,
-    loadPayments,
-  } = loaders;
-
-  // Ao abrir a aba Assinatura, refetch para ter source/enterpriseGymName atualizados
   useEffect(() => {
-    if (activeTab === "subscription" && loadSubscription) {
-      loadSubscription();
+    if (activeTab === "subscription") {
+      void Promise.all([refetchSubscription(), refetchFinancial()]);
     }
-  }, [activeTab, loadSubscription]);
+  }, [activeTab, refetchFinancial, refetchSubscription]);
 
-  const membershipsArray = Array.isArray(storeMemberships)
-    ? storeMemberships
-    : [];
-  const membershipsData = useMemo(() => {
-    if (membershipsArray.length === 0) return [];
-    return (membershipsArray as unknown as StudentGymMembership[]).map(
-      (m: StudentGymMembership) => ({
-        ...m,
-        startDate: m.startDate
-          ? m.startDate instanceof Date
-            ? m.startDate
-            : new Date(m.startDate)
-          : new Date(),
-        nextBillingDate: m.nextBillingDate
-          ? m.nextBillingDate instanceof Date
-            ? m.nextBillingDate
-            : new Date(m.nextBillingDate)
-          : undefined,
-      }),
-    );
-  }, [membershipsArray]);
-
-  const paymentsArray = Array.isArray(storePayments) ? storePayments : [];
-  const paymentsData = useMemo(() => {
-    if (paymentsArray.length === 0) return [];
-    return (paymentsArray as unknown as StudentPayment[]).map(
-      (p: StudentPayment) => ({
-        ...p,
-        date: p.date
-          ? p.date instanceof Date
-            ? p.date
-            : new Date(p.date)
-          : new Date(),
-        dueDate: p.dueDate
-          ? p.dueDate instanceof Date
-            ? p.dueDate
-            : new Date(p.dueDate)
-          : new Date(),
-      }),
-    );
-  }, [paymentsArray]);
-
-  const memberships = membershipsData;
-  const payments = paymentsData;
-  const isLoadingPayments = !storePayments;
+  const isLoadingPayments = isLoadingFinancial && payments.length === 0;
 
   const pendingPayments = payments.filter(
-    (p: StudentPayment) => p.status === "pending" || p.status === "overdue",
+    (payment: StudentPayment) =>
+      payment.status === "pending" || payment.status === "overdue",
   );
   const totalMonthly = memberships
-    .filter((m: StudentGymMembership) => m.status === "active")
-    .reduce((sum: number, m: StudentGymMembership) => sum + m.amount, 0);
+    .filter(
+      (membership: StudentGymMembership) => membership.status === "active",
+    )
+    .reduce(
+      (sum: number, membership: StudentGymMembership) =>
+        sum + membership.amount,
+      0,
+    );
 
   const availablePlans = useMemo(
     () =>
@@ -244,16 +194,13 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 
   const handleCancelMembership = async (membershipId: string) => {
     try {
-      await apiClient.post(
-        `/api/students/memberships/${membershipId}/cancel`,
-        {},
-      );
+      await cancelMembershipAction(membershipId);
+      await paymentFlow.invalidatePaymentQueries();
       toast({
         title: "Plano cancelado",
         description: "Sua mensalidade na academia foi cancelada.",
       });
       setExpandedMembershipId(null);
-      await loadMemberships();
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -272,17 +219,8 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 
   const handleTrocarPlanoClick = async (membership: StudentGymMembership) => {
     try {
-      const res = await apiClient.get<{
-        plans: Array<{
-          id: string;
-          name: string;
-          type: string;
-          price: number;
-          duration: number;
-        }>;
-      }>(`/api/students/gyms/${membership.gymId}/plans`);
-      const otherPlans = (res.data.plans || []).filter(
-        (p) => p.id !== membership.planId,
+      const otherPlans = (await loadGymPlans(membership.gymId)).filter(
+        (plan) => plan.id !== membership.planId,
       );
       if (otherPlans.length === 0) {
         toast({
@@ -310,27 +248,25 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   const handleSelectChangePlan = async (planId: string) => {
-    if (!changePlanMembershipId) return;
+    if (!changePlanMembershipId) {
+      return;
+    }
+
     try {
-      const res = await apiClient.post<{
-        brCode: string;
-        brCodeBase64: string;
-        amount: number;
-        paymentId: string;
-        expiresAt?: string;
-      }>(`/api/students/memberships/${changePlanMembershipId}/change-plan`, {
+      const result = await changeMembershipPlan({
+        membershipId: changePlanMembershipId,
         planId,
       });
+      await paymentFlow.invalidatePaymentQueries();
       setPixModal({
-        paymentId: res.data.paymentId,
-        brCode: res.data.brCode,
-        brCodeBase64: res.data.brCodeBase64,
-        amount: res.data.amount,
-        expiresAt: res.data.expiresAt,
+        paymentId: result.paymentId,
+        brCode: result.brCode,
+        brCodeBase64: result.brCodeBase64,
+        amount: result.amount,
+        expiresAt: result.expiresAt,
       });
       setChangePlanPlans([]);
       setChangePlanMembershipId(null);
-      await Promise.all([loadMemberships(), loadPayments()]);
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -348,24 +284,21 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   const handlePixConfirmed = async () => {
-    await Promise.all([loadMemberships(), loadPayments()]);
+    await Promise.all([
+      paymentFlow.invalidatePaymentQueries(),
+      refetchSubscription(),
+    ]);
   };
 
   const handlePayNowClick = async (payment: StudentPayment) => {
     try {
-      const res = await apiClient.post<{
-        paymentId: string;
-        brCode: string;
-        brCodeBase64: string;
-        amount: number;
-        expiresAt?: string;
-      }>(`/api/students/payments/${payment.id}/pay-now`, {});
+      const result = await paymentFlow.payNow.mutateAsync(payment.id);
       setPixModal({
-        paymentId: res.data.paymentId,
-        brCode: res.data.brCode,
-        brCodeBase64: res.data.brCodeBase64,
-        amount: res.data.amount,
-        expiresAt: res.data.expiresAt,
+        paymentId: result.paymentId,
+        brCode: result.brCode,
+        brCodeBase64: result.brCodeBase64,
+        amount: result.amount,
+        expiresAt: result.expiresAt,
       });
     } catch (err) {
       const msg =
@@ -383,13 +316,23 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     }
   };
 
+  const handleCancelPayment = useCallback(
+    async (paymentId: string) => {
+      await paymentFlow.cancelPayment.mutateAsync(paymentId);
+    },
+    [paymentFlow.cancelPayment],
+  );
+
   const handleStartTrial = async () => {
     try {
       const result = await startTrialHook();
 
       if (result.error) {
         if (result.error.includes("já existe")) {
-          await refetchSubscription();
+          await Promise.all([
+            paymentFlow.invalidatePaymentQueries(),
+            refetchSubscription(),
+          ]);
           setActiveTab("subscription");
           setSubTab("subscription");
           toast({
@@ -407,6 +350,10 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       }
 
       if (result.success) {
+        await Promise.all([
+          paymentFlow.invalidatePaymentQueries(),
+          refetchSubscription(),
+        ]);
         setActiveTab("subscription");
         setSubTab("subscription");
         toast({
@@ -427,16 +374,15 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     }
   };
 
-  const isFirstPayment =
-    (subscription as { isFirstPayment?: boolean } | null | undefined)
-      ?.isFirstPayment ?? true;
-
   const doCreateSubscription = async (
     billingPeriod: "monthly" | "annual",
     referralCode: string | null,
   ) => {
     try {
-      const result = await _createSubscription(billingPeriod, referralCode);
+      const result = await createSubscriptionRequest(
+        billingPeriod,
+        referralCode,
+      );
       const pix = result as {
         pixId?: string;
         brCode?: string;
@@ -446,7 +392,10 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         canApplyReferral?: boolean;
       };
       if (pix.pixId && pix.brCode) {
-        await refetchSubscription();
+        await Promise.all([
+          paymentFlow.invalidatePaymentQueries(),
+          refetchSubscription(),
+        ]);
         return {
           pixId: pix.pixId,
           brCode: pix.brCode,
@@ -476,13 +425,12 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   const handleUpgrade = async (
-    planId: string,
+    _planId: string,
     billingPeriod: "monthly" | "annual",
     referralCode?: string | null,
   ) => {
-    const billingKey = billingPeriod;
     const pixData = await doCreateSubscription(
-      billingKey,
+      billingPeriod,
       referralCode ?? null,
     );
     if (pixData) {
@@ -498,45 +446,47 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     }
   };
 
-  const handleApplyReferralStudent = useCallback(async (referralCode: string) => {
-    const res = await apiClient.post<{
-      pixId?: string;
-      brCode?: string;
-      brCodeBase64?: string;
-      amount?: number;
-      expiresAt?: string;
-      originalAmount?: number;
-      error?: string;
-      referralCodeInvalid?: boolean;
-    }>("/api/subscriptions/apply-referral", {
-      referralCode: referralCode.trim(),
-    });
-    const data = res.data;
-    if (data.error) {
-      return {
-        error: data.error,
-        referralCodeInvalid: data.referralCodeInvalid,
-      };
-    }
-    if (
-      data.pixId &&
-      data.brCode &&
-      data.brCodeBase64 != null &&
-      data.amount != null
-    ) {
-      const newPix = {
-        pixId: data.pixId,
-        brCode: data.brCode,
-        brCodeBase64: data.brCodeBase64,
-        amount: data.amount,
-        expiresAt: data.expiresAt,
-        originalAmount: data.originalAmount,
-      };
-      setSubscriptionPixModal(newPix);
-      return newPix;
-    }
-    return { error: "Resposta inválida" };
-  }, []);
+  const handleApplyReferralStudent = useCallback(
+    async (referralCode: string) => {
+      const data = await applyReferralToSubscription(referralCode);
+      if (data.error) {
+        return {
+          error: data.error,
+          referralCodeInvalid: data.referralCodeInvalid,
+        };
+      }
+
+      if (
+        data.pixId &&
+        data.brCode &&
+        data.brCodeBase64 != null &&
+        data.amount != null
+      ) {
+        const newPix = {
+          pixId: data.pixId,
+          brCode: data.brCode,
+          brCodeBase64: data.brCodeBase64,
+          amount: data.amount,
+          expiresAt: data.expiresAt,
+          originalAmount: data.originalPrice,
+        };
+        setSubscriptionPixModal(newPix);
+        return newPix;
+      }
+
+      return { error: "Resposta inválida" };
+    },
+    [applyReferralToSubscription],
+  );
+
+  const checkSubscriptionIsActive = useCallback(async () => {
+    const latestSubscription = (await refetchSubscription()) as
+      | StudentSubscriptionData
+      | null
+      | undefined;
+    await Promise.all([paymentFlow.invalidatePaymentQueries()]);
+    return latestSubscription?.status === "active";
+  }, [paymentFlow, refetchSubscription]);
 
   const handleCancelConfirm = async () => {
     cancelDialogModal.close();
@@ -549,6 +499,10 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
           description: result.error,
         });
       } else {
+        await Promise.all([
+          paymentFlow.invalidatePaymentQueries(),
+          refetchSubscription(),
+        ]);
         toast({
           title: "Assinatura cancelada",
           description: "Sua assinatura foi cancelada com sucesso.",
@@ -577,7 +531,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   return {
-    // State
     activeTab,
     subscription,
     memberships,
@@ -591,8 +544,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     isCreatingSubscription,
     isCancelingSubscription,
     isTrialActive,
-
-    // UI state
     expandedMembershipId,
     setExpandedMembershipId,
     changePlanPlans,
@@ -605,11 +556,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     setSubscriptionPixModal,
     isFirstPayment,
     refetchSubscription,
-
-    // Modals
     cancelDialogModal,
-
-    // Handlers
     setTab,
     setTabChange,
     handleCancelMembership,
@@ -617,9 +564,12 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     handleSelectChangePlan,
     handlePixConfirmed,
     handlePayNowClick,
+    handleCancelPayment,
     handleStartTrial,
     handleUpgrade,
     handleApplyReferralStudent,
+    checkSubscriptionIsActive,
     handleCancelConfirm,
+    getStudentPaymentStatus,
   };
 }

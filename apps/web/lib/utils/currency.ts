@@ -3,9 +3,7 @@
  */
 
 /** Formata número para exibição: R$ 1.234,56 */
-export function formatCurrencyBR(
-  value: number | undefined | null,
-): string {
+export function formatCurrencyBR(value: number | undefined | null): string {
   if (value == null || Number.isNaN(value)) return "R$ 0,00";
   return Number(value).toLocaleString("pt-BR", {
     style: "currency",

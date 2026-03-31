@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Plus, Trash2, Loader2 } from "lucide-react";
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
+import { Check, Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import {
@@ -13,12 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { PersonalMembershipPlan } from "@/app/personal/actions";
-import {
-  createPersonalMembershipPlan,
-  updatePersonalMembershipPlan,
-  deletePersonalMembershipPlan,
-} from "@/app/personal/actions";
+import { usePersonal } from "@/hooks/use-personal";
 
 interface PlanFormData {
   name: string;
@@ -51,6 +47,7 @@ export function PersonalMembershipPlansPage({
   plans: PersonalMembershipPlan[];
   onRefresh?: () => Promise<void>;
 }) {
+  const actions = usePersonal("actions");
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -85,9 +82,9 @@ export function PersonalMembershipPlansPage({
         };
 
         if (editingId) {
-          await updatePersonalMembershipPlan(editingId, payload);
+          await actions.updateMembershipPlan(editingId, payload);
         } else {
-          await createPersonalMembershipPlan(payload);
+          await actions.createMembershipPlan(payload);
         }
         await onRefresh?.();
         resetForm();
@@ -104,7 +101,7 @@ export function PersonalMembershipPlansPage({
     if (!planToDelete) return;
     startTransition(async () => {
       try {
-        await deletePersonalMembershipPlan(planToDelete);
+        await actions.deleteMembershipPlan(planToDelete);
         await onRefresh?.();
       } catch (error) {
         console.error("Erro ao deletar plano:", error);
@@ -121,12 +118,12 @@ export function PersonalMembershipPlansPage({
     if (Array.isArray(plan.benefits)) {
       benefitsStr = plan.benefits.join(", ");
     } else if (typeof plan.benefits === "string") {
-       try {
-           const parsed = JSON.parse(plan.benefits);
-           if (Array.isArray(parsed)) benefitsStr = parsed.join(", ");
-       } catch {
-           benefitsStr = plan.benefits;
-       }
+      try {
+        const parsed = JSON.parse(plan.benefits);
+        if (Array.isArray(parsed)) benefitsStr = parsed.join(", ");
+      } catch {
+        benefitsStr = plan.benefits;
+      }
     }
     setForm({
       name: plan.name,
@@ -186,7 +183,9 @@ export function PersonalMembershipPlansPage({
               <DuoCard.Root key={plan.id} variant="default" size="default">
                 <div className="mb-2 flex items-start justify-between">
                   <div>
-                    <p className="font-bold text-[var(--duo-fg)]">{plan.name}</p>
+                    <p className="font-bold text-[var(--duo-fg)]">
+                      {plan.name}
+                    </p>
                     <p className="text-sm text-[var(--duo-fg-muted)]">
                       {PLAN_TYPES.find((t) => t.value === plan.type)?.label ||
                         plan.type}{" "}
@@ -251,23 +250,15 @@ export function PersonalMembershipPlansPage({
             {editingId ? "Editar Plano" : "Novo Plano"}
           </h3>
           <div className="space-y-3">
+            <DuoInput.Simple
+              label="Nome do Plano"
+              placeholder="Ex: Consultoria Mensal"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            />
             <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
-                Nome do Plano
-              </label>
-              <DuoInput.Simple
-                placeholder="Ex: Consultoria Mensal"
-                value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
-                Tipo (duração definida automaticamente)
-              </label>
               <DuoSelect.Simple
+                label="Tipo (duração definida automaticamente)"
                 options={PLAN_TYPES}
                 value={form.type}
                 onChange={updateFormType}
@@ -277,31 +268,23 @@ export function PersonalMembershipPlansPage({
                 {form.type && `${DURATION_BY_TYPE[form.type] ?? 30} dias`}
               </p>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
-                Preço (R$)
-              </label>
-              <DuoInput.Simple
-                type="number"
-                placeholder="0.00"
-                value={form.price}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, price: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
-                Benefícios (separados por vírgula)
-              </label>
-              <DuoInput.Simple
-                placeholder="Treino personalizado, Avaliação física..."
-                value={form.benefits}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, benefits: e.target.value }))
-                }
-              />
-            </div>
+            <DuoInput.Simple
+              label="Preço (R$)"
+              type="number"
+              placeholder="0.00"
+              value={form.price}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, price: e.target.value }))
+              }
+            />
+            <DuoInput.Simple
+              label="Benefícios (separados por vírgula)"
+              placeholder="Treino personalizado, Avaliação física..."
+              value={form.benefits}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, benefits: e.target.value }))
+              }
+            />
           </div>
           <div className="mt-6 flex gap-2">
             <DuoButton variant="outline" fullWidth onClick={resetForm}>

@@ -5,6 +5,5 @@ export type { MealCardProps } from "./meal-card";
 export { MealCard } from "./meal-card";
 export type { RecordCardProps } from "./record-card";
 export { RecordCard } from "./record-card";
-export { StepCard } from "./step-card";
 export type { WaterIntakeCardProps } from "./water-intake-card";
 export { WaterIntakeCard } from "./water-intake-card";

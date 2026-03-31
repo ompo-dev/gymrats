@@ -1,0 +1,1249 @@
+import { db } from "@/lib/db";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
+import {
+  calculateReps,
+  calculateRest,
+  calculateSets,
+  generateAlternatives,
+} from "@/lib/services/personalized-workout-generator";
+import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
+import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
+import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
+import { requireStudent } from "../middleware/auth.middleware";
+import {
+  createUnitSchema,
+  createWeeklyPlanSchema,
+  createWorkoutExerciseSchema,
+  createWorkoutSchema,
+  updateUnitSchema,
+  updateWeeklyPlanSchema,
+  updateWorkoutExerciseSchema,
+  updateWorkoutSchema,
+} from "../schemas/workouts.schemas";
+import {
+  badRequestResponse,
+  internalErrorResponse,
+  notFoundResponse,
+  successResponse,
+  unauthorizedResponse,
+} from "../utils/response.utils";
+
+// ==========================================
+// UNITS
+// ==========================================
+
+export async function createUnitHandler(
+  request: NextRequest,
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const body = await request.json();
+    const validation = createUnitSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse("Dados inválidos", validation.error);
+    }
+
+    const { title, description } = validation.data;
+    const studentId = auth.user.student.id;
+
+    // Get max order
+    const lastUnit = await db.unit.findFirst({
+      where: { studentId },
+      orderBy: { order: "desc" },
+    });
+    const order = lastUnit ? lastUnit.order + 1 : 0;
+
+    const unit = await db.unit.create({
+      data: {
+        studentId,
+        title,
+        description,
+        order,
+      },
+    });
+
+    return successResponse(
+      { data: unit, message: "Plano criado com sucesso" },
+      201,
+    );
+  } catch (error) {
+    console.error("Error creating unit:", error);
+    return internalErrorResponse("Erro ao criar plano de treino");
+  }
+}
+
+export async function updateUnitHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const { id } = await params;
+    const body = await request.json();
+    const validation = updateUnitSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse("Dados inválidos", validation.error);
+    }
+
+    const unit = await db.unit.findUnique({
+      where: { id },
+    });
+
+    if (!unit) return notFoundResponse("Plano não encontrado");
+
+    if (unit.studentId !== auth.user.student.id) {
+      return unauthorizedResponse(
+        "Você não tem permissão para editar este plano",
+      );
+    }
+
+    const updatedUnit = await db.unit.update({
+      where: { id },
+      data: validation.data,
+    });
+
+    return successResponse({
+      data: updatedUnit,
+      message: "Plano atualizado com sucesso",
+    });
+  } catch (error) {
+    console.error("Error updating unit:", error);
+    return internalErrorResponse("Erro ao atualizar plano");
+  }
+}
+
+export async function deleteUnitHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const { id } = await params;
+
+    const unit = await db.unit.findUnique({
+      where: { id },
+    });
+
+    if (!unit) return notFoundResponse("Plano não encontrado");
+
+    if (unit.studentId !== auth.user.student.id) {
+      return unauthorizedResponse(
+        "Você não tem permissão para excluir este plano",
+      );
+    }
+
+    await db.unit.delete({
+      where: { id },
+    });
+
+    return successResponse({ message: "Plano excluído com sucesso" });
+  } catch (error) {
+    console.error("Error deleting unit:", error);
+    return internalErrorResponse("Erro ao excluir plano");
+  }
+}
+
+// ==========================================
+// WEEKLY PLAN
+// ==========================================
+
+export async function createWeeklyPlanHandler(
+  request: NextRequest,
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const body = await request.json().catch(() => ({}));
+    const validation = createWeeklyPlanSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse("Dados inválidos", validation.error);
+    }
+
+    const studentId = auth.user.student.id;
+
+    const existing = await db.weeklyPlan.findFirst({
+      where: { studentId },
+    });
+
+    if (existing) {
+      return successResponse({
+        data: existing,
+        message: "Plano semanal já existe",
+      });
+    }
+
+    const { title } = validation.data;
+
+    const weeklyPlan = await db.weeklyPlan.create({
+      data: {
+        studentId,
+        title: title || "Meu Plano Semanal",
+        slots: {
+          create: Array.from({ length: 7 }, (_, i) => ({
+            dayOfWeek: i,
+            type: "rest",
+            order: i,
+          })),
+        },
+      },
+      include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+    });
+
+    return successResponse(
+      { data: weeklyPlan, message: "Plano semanal criado com sucesso" },
+      201,
+    );
+  } catch (error) {
+    console.error("Error creating weekly plan:", error);
+    return internalErrorResponse("Erro ao criar plano semanal");
+  }
+}
+
+export async function updateWeeklyPlanHandler(
+  request: NextRequest,
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const body = await request.json().catch(() => ({}));
+    const validation = updateWeeklyPlanSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse("Dados inválidos", validation.error);
+    }
+
+    const studentId = auth.user.student.id;
+
+    const studentData = await db.student.findUnique({
+      where: { id: studentId },
+      select: { activeWeeklyPlanId: true },
+    });
+
+    const activePlanId = studentData?.activeWeeklyPlanId;
+
+    let weeklyPlan = activePlanId
+      ? await db.weeklyPlan.findUnique({
+          where: { id: activePlanId },
+          include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+        })
+      : null;
+
+    if (!weeklyPlan) {
+      weeklyPlan = await db.weeklyPlan.create({
+        data: {
+          studentId,
+          title: validation.data.title || "Meu Plano Semanal",
+          slots: {
+            create: Array.from({ length: 7 }, (_, i) => ({
+              dayOfWeek: i,
+              type: "rest",
+              order: i,
+            })),
+          },
+        },
+        include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+      });
+    }
+
+    if (
+      validation.data.title !== undefined ||
+      validation.data.description !== undefined
+    ) {
+      weeklyPlan = await db.weeklyPlan.update({
+        where: { id: weeklyPlan.id },
+        data: {
+          ...(validation.data.title !== undefined && {
+            title: validation.data.title,
+          }),
+          ...(validation.data.description !== undefined && {
+            description: validation.data.description,
+          }),
+        },
+        include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+      });
+    }
+
+    if (validation.data.slots) {
+      for (const slotData of validation.data.slots) {
+        await db.planSlot.upsert({
+          where: {
+            weeklyPlanId_dayOfWeek: {
+              weeklyPlanId: weeklyPlan.id,
+              dayOfWeek: slotData.dayOfWeek,
+            },
+          },
+          create: {
+            weeklyPlanId: weeklyPlan.id,
+            dayOfWeek: slotData.dayOfWeek,
+            type: slotData.type,
+            workoutId: slotData.workoutId ?? null,
+            order: slotData.dayOfWeek,
+          },
+          update: {
+            type: slotData.type,
+            workoutId: slotData.workoutId ?? null,
+          },
+        });
+      }
+    }
+
+    const updated = await db.weeklyPlan.findUnique({
+      where: { id: weeklyPlan.id },
+      include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+    });
+
+    return successResponse({
+      data: updated,
+      message: "Plano semanal atualizado com sucesso",
+    });
+  } catch (error) {
+    console.error("Error updating weekly plan:", error);
+    return internalErrorResponse("Erro ao atualizar plano semanal");
+  }
+}
+
+// ==========================================
+// WORKOUTS
+// ==========================================
+
+export async function createWorkoutHandler(
+  request: NextRequest,
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const body = await request.json();
+    const validation = createWorkoutSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse("Dados inválidos", validation.error);
+    }
+
+    const { unitId, planSlotId, ...workoutData } = validation.data;
+    const studentId = auth.user.student.id;
+
+    let order = 0;
+    let libraryPlanToSyncId: string | null = null;
+
+    if (planSlotId) {
+      const planSlot = await db.planSlot.findUnique({
+        where: { id: planSlotId },
+        include: { weeklyPlan: true },
+      });
+
+      if (!planSlot) return notFoundResponse("Slot não encontrado");
+      if (planSlot.weeklyPlan.studentId !== studentId) {
+        return unauthorizedResponse(
+          "Você não pode adicionar treinos a este slot",
+        );
+      }
+
+      order = planSlot.dayOfWeek;
+      if (
+        (planSlot.weeklyPlan as { isLibraryTemplate?: boolean })
+          .isLibraryTemplate
+      ) {
+        libraryPlanToSyncId = planSlot.weeklyPlan.id;
+      }
+    } else if (unitId) {
+      const unit = await db.unit.findUnique({
+        where: { id: unitId },
+      });
+
+      if (!unit) return notFoundResponse("Plano não encontrado");
+
+      if (unit.studentId !== studentId) {
+        return unauthorizedResponse(
+          "Você não pode adicionar treinos a este plano",
+        );
+      }
+
+      const lastWorkout = await db.workout.findFirst({
+        where: { unitId },
+        orderBy: { order: "desc" },
+      });
+      order = lastWorkout ? lastWorkout.order + 1 : 0;
+    }
+
+    const workout = await db.workout.create({
+      data: {
+        unitId: unitId ?? null,
+        order,
+        ...workoutData,
+        muscleGroup: workoutData.muscleGroup || "",
+        estimatedTime: workoutData.estimatedTime || 0,
+      },
+    });
+
+    if (planSlotId) {
+      await db.planSlot.update({
+        where: { id: planSlotId },
+        data: { type: "workout", workoutId: workout.id },
+      });
+    }
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
+    return successResponse(
+      { data: workout, message: "Treino criado com sucesso" },
+      201,
+    );
+  } catch (error) {
+    console.error("Error creating workout:", error);
+    return internalErrorResponse("Erro ao criar treino");
+  }
+}
+
+export async function updateWorkoutHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const { id } = await params;
+    const body = await request.json();
+    const validation = updateWorkoutSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse("Dados inválidos", validation.error);
+    }
+
+    const workout = await db.workout.findUnique({
+      where: { id },
+      include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
+    });
+
+    if (!workout) return notFoundResponse("Treino não encontrado");
+
+    const ownsWorkout =
+      (workout.unit && workout.unit.studentId === auth.user.student.id) ||
+      (workout.planSlot &&
+        workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
+
+    if (!ownsWorkout) {
+      return unauthorizedResponse("Você não pode editar este treino");
+    }
+
+    const updatedWorkout = await db.workout.update({
+      where: { id },
+      data: validation.data,
+    });
+
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
+    return successResponse({
+      data: updatedWorkout,
+      message: "Treino atualizado com sucesso",
+    });
+  } catch (error) {
+    console.error("Error updating workout:", error);
+    return internalErrorResponse("Erro ao atualizar treino");
+  }
+}
+
+export async function deleteWorkoutHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const { id } = await params;
+
+    const workout = await db.workout.findUnique({
+      where: { id },
+      include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
+    });
+
+    if (!workout) return notFoundResponse("Treino não encontrado");
+
+    const ownsWorkout =
+      (workout.unit && workout.unit.studentId === auth.user.student.id) ||
+      (workout.planSlot &&
+        workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
+
+    if (!ownsWorkout) {
+      return unauthorizedResponse("Você não pode excluir este treino");
+    }
+
+    if (workout.planSlot) {
+      await db.planSlot.update({
+        where: { id: workout.planSlot.id },
+        data: { type: "rest", workoutId: null },
+      });
+    }
+
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
+
+    await db.workout.delete({
+      where: { id },
+    });
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
+    return successResponse({ message: "Treino excluído com sucesso" });
+  } catch (error) {
+    console.error("Error deleting workout:", error);
+    if ((error as { code?: string })?.code === "P2025") {
+      return notFoundResponse("Treino não encontrado para exclusão");
+    }
+    return internalErrorResponse("Erro ao excluir treino");
+  }
+}
+
+// ==========================================
+// EXERCISES
+// ==========================================
+
+export async function createExerciseHandler(
+  request: NextRequest,
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const body = await request.json();
+    console.log(
+      "[createExerciseHandler] Body recebido:",
+      JSON.stringify(body, null, 2),
+    );
+
+    const validation = createWorkoutExerciseSchema.safeParse(body);
+
+    if (!validation.success) {
+      console.error("[createExerciseHandler] Erro de validação:", {
+        body,
+        errors: validation.error.errors,
+        formattedErrors: validation.error.errors.map((e) => ({
+          path: e.path.join("."),
+          message: e.message,
+          code: e.code,
+        })),
+      });
+      return badRequestResponse(
+        "Dados inválidos",
+        validation.error.errors.map((e) => ({
+          path: e.path.join("."),
+          message: e.message,
+          code: e.code,
+        })),
+      );
+    }
+
+    const { workoutId, ...exerciseData } = validation.data;
+
+    // Check if workout exists and belongs to student
+    const workout = await db.workout.findUnique({
+      where: { id: workoutId },
+      include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
+    });
+
+    if (!workout) return notFoundResponse("Treino não encontrado");
+
+    const ownsWorkout =
+      (workout.unit && workout.unit.studentId === auth.user.student.id) ||
+      (workout.planSlot &&
+        workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
+
+    if (!ownsWorkout) {
+      return unauthorizedResponse(
+        "Você não pode adicionar exercícios a este treino",
+      );
+    }
+
+    // Validar que name foi fornecido
+    if (!exerciseData.name) {
+      return badRequestResponse("Nome do exercício é obrigatório");
+    }
+
+    // Buscar perfil do aluno para calcular sets/reps/rest baseado nas preferências
+    const student = await db.student.findUnique({
+      where: { id: auth.user.student.id },
+      include: { profile: true },
+    });
+
+    if (!student?.profile) {
+      return badRequestResponse("Perfil do aluno não encontrado");
+    }
+
+    // Buscar exercício no database educacional
+    // Tentar buscar por ID primeiro (se fornecido e não null)
+    let exerciseInfo: ExerciseInfo | null = null;
+
+    if (exerciseData.educationalId && exerciseData.educationalId !== null) {
+      exerciseInfo =
+        exerciseDatabase.find((ex) => ex.id === exerciseData.educationalId) ??
+        null;
+    }
+
+    // Se não encontrou por ID, tentar buscar por nome (case-insensitive e removendo acentos)
+    if (!exerciseInfo) {
+      const searchName = exerciseData.name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+
+      exerciseInfo =
+        exerciseDatabase.find((ex) => {
+          const exName = ex.name
+            .toLowerCase()
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+
+          // Busca exata ou por similaridade (contém o nome ou é contido pelo nome)
+          return (
+            exName === searchName ||
+            exName.includes(searchName) ||
+            searchName.includes(exName)
+          );
+        }) ?? null;
+    }
+
+    // Se ainda não encontrou, criar um novo exercício virtual usando os dados fornecidos
+    // Isso permite adicionar exercícios que não estão no database educacional
+    if (!exerciseInfo) {
+      console.log(
+        "[createExerciseHandler] Exercício não encontrado no database, criando virtual:",
+        {
+          name: exerciseData.name,
+          educationalId: exerciseData.educationalId,
+        },
+      );
+
+      // Gerar ID baseado no nome (slug) se não fornecido
+      const generatedId =
+        exerciseData.educationalId ||
+        exerciseData.name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
+      // Helper para normalizar arrays (aceita string JSON, array ou null)
+      const normalizeArray = (
+        value: string | string[] | null | undefined,
+      ): string[] => {
+        if (value == null) return [];
+        if (Array.isArray(value)) return value;
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      };
+
+      // Helper para inferir grupo muscular baseado no nome
+      const inferMuscleGroup = (name: string): MuscleGroup[] => {
+        const normalized = name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+        // Mapear nomes comuns para grupos musculares
+        if (
+          normalized.includes("peito") ||
+          normalized.includes("supino") ||
+          normalized.includes("crucifixo")
+        ) {
+          return ["peito" as MuscleGroup];
+        }
+        if (
+          normalized.includes("costas") ||
+          normalized.includes("remada") ||
+          normalized.includes("puxada") ||
+          normalized.includes("barra fixa")
+        ) {
+          return ["costas" as MuscleGroup];
+        }
+        if (
+          normalized.includes("pernas") ||
+          normalized.includes("perna") ||
+          normalized.includes("agachamento") ||
+          normalized.includes("leg press") ||
+          normalized.includes("extensora") ||
+          normalized.includes("flexora") ||
+          normalized.includes("afundo")
+        ) {
+          return ["pernas" as MuscleGroup];
+        }
+        if (
+          normalized.includes("quadriceps") ||
+          normalized.includes("quadríceps")
+        ) {
+          return ["pernas" as MuscleGroup];
+        }
+        if (
+          normalized.includes("posterior") ||
+          normalized.includes("stiff") ||
+          normalized.includes("gluteo") ||
+          normalized.includes("glúteo")
+        ) {
+          return ["pernas", "gluteos"] as MuscleGroup[];
+        }
+        if (
+          normalized.includes("ombros") ||
+          normalized.includes("desenvolvimento") ||
+          normalized.includes("elevacao") ||
+          normalized.includes("elevação") ||
+          normalized.includes("lateral") ||
+          normalized.includes("frontal")
+        ) {
+          return ["ombros" as MuscleGroup];
+        }
+        if (
+          normalized.includes("triceps") ||
+          normalized.includes("tríceps") ||
+          normalized.includes("pulley") ||
+          normalized.includes("testa") ||
+          normalized.includes("frances") ||
+          normalized.includes("francês")
+        ) {
+          return ["bracos" as MuscleGroup];
+        }
+        if (
+          normalized.includes("biceps") ||
+          normalized.includes("bíceps") ||
+          normalized.includes("rosca")
+        ) {
+          return ["bracos" as MuscleGroup];
+        }
+        if (
+          normalized.includes("abdominal") ||
+          normalized.includes("abdomen") ||
+          normalized.includes("core") ||
+          normalized.includes("prancha")
+        ) {
+          return ["core" as MuscleGroup];
+        }
+        return ["core" as MuscleGroup]; // fallback - full-body não existe em MuscleGroup
+      };
+
+      // Helper para inferir equipamento baseado no nome
+      const inferEquipment = (name: string): string[] => {
+        const normalized = name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+        if (
+          normalized.includes("maquina") ||
+          normalized.includes("máquina") ||
+          normalized.includes("cadeira") ||
+          normalized.includes("extensora") ||
+          normalized.includes("flexora") ||
+          normalized.includes("leg press")
+        ) {
+          return ["Máquina"];
+        }
+        if (
+          normalized.includes("barra") ||
+          normalized.includes("supino") ||
+          normalized.includes("agachamento") ||
+          normalized.includes("terra")
+        ) {
+          return ["Barra", "Anilhas"];
+        }
+        if (
+          normalized.includes("halter") ||
+          normalized.includes("elevacao") ||
+          normalized.includes("elevação") ||
+          normalized.includes("rosca")
+        ) {
+          return ["Halteres"];
+        }
+        if (
+          normalized.includes("cabo") ||
+          normalized.includes("pulley") ||
+          normalized.includes("polia")
+        ) {
+          return ["Cabo", "Polia"];
+        }
+        if (
+          normalized.includes("paralelas") ||
+          normalized.includes("barra fixa")
+        ) {
+          return ["Barras Paralelas"];
+        }
+        return [];
+      };
+
+      // Normalizar arrays (se vierem vazios, usar inferência)
+      const primaryMuscles = normalizeArray(
+        exerciseData.primaryMuscles ?? undefined,
+      );
+      const secondaryMuscles = normalizeArray(
+        exerciseData.secondaryMuscles ?? undefined,
+      );
+      const equipment = normalizeArray(exerciseData.equipment ?? undefined);
+
+      // Criar exercício virtual com dados fornecidos ou inferidos
+      exerciseInfo = {
+        id: generatedId,
+        name: exerciseData.name,
+        primaryMuscles:
+          primaryMuscles.length > 0
+            ? (primaryMuscles as MuscleGroup[])
+            : inferMuscleGroup(exerciseData.name),
+        secondaryMuscles:
+          secondaryMuscles.length > 0
+            ? (secondaryMuscles as MuscleGroup[])
+            : [],
+        difficulty: exerciseData.difficulty || "intermediario",
+        equipment:
+          equipment.length > 0 ? equipment : inferEquipment(exerciseData.name),
+        // Se não vierem instruções, criar básicas baseadas no nome
+        instructions:
+          normalizeArray(exerciseData.instructions ?? undefined).length > 0
+            ? normalizeArray(exerciseData.instructions ?? undefined)
+            : [
+                `Execute ${exerciseData.name} com forma correta`,
+                "Mantenha o movimento controlado",
+                "Use peso adequado",
+              ],
+        tips:
+          normalizeArray(exerciseData.tips ?? undefined).length > 0
+            ? normalizeArray(exerciseData.tips ?? undefined)
+            : [
+                "Mantenha a forma correta",
+                "Controle o movimento",
+                "Use amplitude completa",
+              ],
+        commonMistakes:
+          normalizeArray(exerciseData.commonMistakes ?? undefined).length > 0
+            ? normalizeArray(exerciseData.commonMistakes ?? undefined)
+            : [
+                "Não usar amplitude completa",
+                "Peso excessivo",
+                "Forma incorreta",
+              ],
+        benefits:
+          normalizeArray(exerciseData.benefits ?? undefined).length > 0
+            ? normalizeArray(exerciseData.benefits ?? undefined)
+            : [
+                "Desenvolvimento muscular",
+                "Aumento de força",
+                "Melhora de condicionamento",
+              ],
+        scientificEvidence: exerciseData.scientificEvidence ?? undefined,
+      };
+
+      console.log("[createExerciseHandler] Exercício virtual criado:", {
+        id: exerciseInfo.id,
+        name: exerciseInfo.name,
+      });
+    } else {
+      console.log("[createExerciseHandler] Exercício encontrado no database:", {
+        id: exerciseInfo.id,
+        name: exerciseInfo.name,
+      });
+    }
+
+    // Calcular sets, reps e rest baseado nas preferências do aluno (igual ao generate)
+    const profile = {
+      preferredSets: student.profile.preferredSets ?? undefined,
+      preferredRepRange: student.profile.preferredRepRange as
+        | "forca"
+        | "hipertrofia"
+        | "resistencia"
+        | undefined,
+      restTime: student.profile.restTime as
+        | "curto"
+        | "medio"
+        | "longo"
+        | undefined,
+      activityLevel: student.profile.activityLevel ?? undefined,
+      fitnessLevel: student.profile.fitnessLevel as
+        | "iniciante"
+        | "intermediario"
+        | "avancado"
+        | undefined,
+      goals: student.profile.goals
+        ? (JSON.parse(student.profile.goals) as string[])
+        : undefined,
+    };
+
+    // Calcular valores baseado nas preferências do aluno
+    const calculatedSets =
+      exerciseData.sets ||
+      calculateSets(
+        profile.preferredSets,
+        profile.activityLevel,
+        profile.fitnessLevel,
+      );
+    const calculatedReps =
+      exerciseData.reps ||
+      calculateReps(profile.preferredRepRange, profile.goals);
+    const calculatedRest =
+      exerciseData.rest !== undefined
+        ? exerciseData.rest
+        : calculateRest(profile.restTime, profile.preferredRepRange);
+
+    // Helper para normalizar arrays (aceita string JSON, array ou já está normalizado)
+    const _normalizeArray = (
+      value: string | string[] | undefined | null,
+    ): string[] => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value === "string") {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
+    // Guard: exerciseInfo deve estar definido neste ponto
+    if (!exerciseInfo) {
+      return badRequestResponse("Erro ao processar exercício");
+    }
+
+    // Popular dados educacionais (sempre usar dados do exerciseInfo encontrado/criado)
+    // Se o cliente enviou dados, eles foram usados na criação do exerciseInfo
+    // Se não, usamos dados do database educacional
+    const educationalExerciseData = {
+      name: exerciseData.name || exerciseInfo.name, // Usar nome fornecido ou do database
+      sets: calculatedSets,
+      reps: calculatedReps,
+      rest: calculatedRest,
+      // SEMPRE usar dados do exerciseInfo (seja do database ou criado com dados do cliente)
+      primaryMuscles:
+        exerciseInfo.primaryMuscles && exerciseInfo.primaryMuscles.length > 0
+          ? JSON.stringify(exerciseInfo.primaryMuscles)
+          : null,
+      secondaryMuscles:
+        exerciseInfo.secondaryMuscles &&
+        exerciseInfo.secondaryMuscles.length > 0
+          ? JSON.stringify(exerciseInfo.secondaryMuscles)
+          : null,
+      difficulty: exerciseInfo.difficulty || null,
+      equipment:
+        exerciseInfo.equipment && exerciseInfo.equipment.length > 0
+          ? JSON.stringify(exerciseInfo.equipment)
+          : null,
+      instructions:
+        exerciseInfo.instructions && exerciseInfo.instructions.length > 0
+          ? JSON.stringify(exerciseInfo.instructions)
+          : null,
+      tips:
+        exerciseInfo.tips && exerciseInfo.tips.length > 0
+          ? JSON.stringify(exerciseInfo.tips)
+          : null,
+      commonMistakes:
+        exerciseInfo.commonMistakes && exerciseInfo.commonMistakes.length > 0
+          ? JSON.stringify(exerciseInfo.commonMistakes)
+          : null,
+      benefits:
+        exerciseInfo.benefits && exerciseInfo.benefits.length > 0
+          ? JSON.stringify(exerciseInfo.benefits)
+          : null,
+      scientificEvidence: exerciseInfo.scientificEvidence || null,
+      educationalId: exerciseInfo.id, // Sempre usar o ID do exercício encontrado ou criado
+    };
+
+    // Get max order in workout
+    const lastExercise = await db.workoutExercise.findFirst({
+      where: { workoutId },
+      orderBy: { order: "desc" },
+    });
+    const order = lastExercise ? lastExercise.order + 1 : 0;
+
+    // Criar exercício com todos os dados (educacionais + sets/reps/rest calculados)
+    const exercise = await db.workoutExercise.create({
+      data: {
+        workoutId,
+        ...educationalExerciseData, // Dados educacionais + sets/reps/rest calculados
+        notes: exerciseData.notes || null,
+        videoUrl: exerciseData.videoUrl || null,
+        order,
+      },
+    });
+
+    // Buscar alternativas para o exercício automaticamente
+    // Isso garante que exercícios adicionados manualmente também tenham alternativas
+    try {
+      // Se já temos exerciseInfo (buscado acima) e perfil do aluno, gerar alternativas
+      if (student?.profile && exerciseInfo) {
+        // Preparar limitações (mesma lógica do gerador de workouts)
+        const physicalLimitations = student.profile.physicalLimitations
+          ? JSON.parse(student.profile.physicalLimitations)
+          : [];
+        const motorLimitations = student.profile.motorLimitations
+          ? JSON.parse(student.profile.motorLimitations)
+          : [];
+        const medicalConditions = student.profile.medicalConditions
+          ? JSON.parse(student.profile.medicalConditions)
+          : [];
+        const limitations = [
+          ...physicalLimitations,
+          ...motorLimitations,
+          ...medicalConditions,
+        ];
+
+        // Gerar alternativas
+        const alternatives = generateAlternatives(
+          exerciseInfo,
+          student.profile.gymType as
+            | "academia-completa"
+            | "academia-basica"
+            | "home-gym"
+            | "peso-corporal"
+            | null,
+          limitations,
+        );
+
+        // Criar alternativas no banco de dados
+        if (alternatives.length > 0) {
+          await db.alternativeExercise.createMany({
+            data: alternatives.map((alt, index) => ({
+              workoutExerciseId: exercise.id,
+              name: alt.name,
+              reason: alt.reason,
+              educationalId: alt.educationalId || null,
+              order: index,
+            })),
+          });
+        }
+      }
+    } catch (altError) {
+      // Log erro mas não falhar a criação do exercício
+      // As alternativas podem ser adicionadas depois através do endpoint PATCH /api/workouts/generate
+      console.error(
+        "[createExerciseHandler] Erro ao adicionar alternativas:",
+        altError,
+      );
+    }
+
+    // Buscar exercício com alternativas para retornar completo
+    const exerciseWithAlternatives = await db.workoutExercise.findUnique({
+      where: { id: exercise.id },
+      include: { alternatives: true },
+    });
+
+    // Transformar dados educacionais de JSON strings para arrays (igual ao generate)
+    // Helper para parsear JSON com segurança
+    const safeParse = (value: string | null | undefined): string[] | null => {
+      if (!value) return null;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    };
+
+    const transformedExercise = exerciseWithAlternatives
+      ? {
+          ...exerciseWithAlternatives,
+          primaryMuscles: safeParse(exerciseWithAlternatives.primaryMuscles),
+          secondaryMuscles: safeParse(
+            exerciseWithAlternatives.secondaryMuscles,
+          ),
+          equipment: safeParse(exerciseWithAlternatives.equipment),
+          instructions: safeParse(exerciseWithAlternatives.instructions),
+          tips: safeParse(exerciseWithAlternatives.tips),
+          commonMistakes: safeParse(exerciseWithAlternatives.commonMistakes),
+          benefits: safeParse(exerciseWithAlternatives.benefits),
+          alternatives: exerciseWithAlternatives.alternatives || [],
+        }
+      : null;
+
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
+    return successResponse(
+      {
+        data: transformedExercise,
+        message: "Exercício adicionado com sucesso",
+      },
+      201,
+    );
+  } catch (error) {
+    console.error("Error creating exercise:", error);
+    return internalErrorResponse("Erro ao adicionar exercício");
+  }
+}
+
+export async function updateExerciseHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const { id } = await params;
+    const body = await request.json();
+    const validation = updateWorkoutExerciseSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse("Dados inválidos", validation.error);
+    }
+
+    const exercise = await db.workoutExercise.findUnique({
+      where: { id },
+      include: {
+        workout: {
+          include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
+        },
+      },
+    });
+
+    if (!exercise) return notFoundResponse("Exercício não encontrado");
+
+    if (!exercise.workout) {
+      return internalErrorResponse("Exercício sem treino vinculado");
+    }
+
+    const ownsWorkout =
+      (exercise.workout.unit &&
+        exercise.workout.unit.studentId === auth.user.student.id) ||
+      (exercise.workout.planSlot &&
+        exercise.workout.planSlot.weeklyPlan.studentId ===
+          auth.user.student.id);
+
+    if (!ownsWorkout) {
+      return unauthorizedResponse("Você não pode editar este exercício");
+    }
+
+    // Normalizar dados educacionais (arrays → JSON strings)
+    const normalizedData = normalizeEducationalData(validation.data);
+
+    const updatedExercise = await db.workoutExercise.update({
+      where: { id },
+      data: normalizedData,
+    });
+
+    const libraryPlanToSyncId = (
+      exercise.workout.planSlot?.weeklyPlan as {
+        isLibraryTemplate?: boolean;
+      } | null
+    )?.isLibraryTemplate
+      ? (exercise.workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
+    return successResponse({
+      data: updatedExercise,
+      message: "Exercício atualizado com sucesso",
+    });
+  } catch (error) {
+    console.error("Error updating exercise:", error);
+    return internalErrorResponse("Erro ao atualizar exercício");
+  }
+}
+
+export async function deleteExerciseHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) return auth.response;
+
+    const { id } = await params;
+
+    const exercise = await db.workoutExercise.findUnique({
+      where: { id },
+      include: {
+        workout: {
+          include: {
+            unit: true,
+            planSlot: { include: { weeklyPlan: true } },
+          },
+        },
+      },
+    });
+
+    if (!exercise) return notFoundResponse("Exercício não encontrado");
+
+    if (!exercise.workout) {
+      console.error("Exercício sem treino vinculado", { exerciseId: id });
+      return internalErrorResponse(
+        "Erro de inconsistência de dados. Contate o suporte.",
+      );
+    }
+
+    const workout = exercise.workout;
+    const studentId = auth.user.student.id;
+
+    // Verificar ownership: unit OU planSlot (weeklyPlan)
+    const ownsViaUnit = workout.unit && workout.unit.studentId === studentId;
+    const ownsViaPlanSlot =
+      workout.planSlot && workout.planSlot.weeklyPlan.studentId === studentId;
+
+    if (!ownsViaUnit && !ownsViaPlanSlot) {
+      return unauthorizedResponse("Você não pode excluir este exercício");
+    }
+
+    await db.workoutExercise.delete({
+      where: { id },
+    });
+
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
+    return successResponse({ message: "Exercício excluído com sucesso" });
+  } catch (error) {
+    console.error("Error deleting exercise:", error);
+    // Verificar se é erro de Prisma (ex: registro não existe ou constraint)
+    if ((error as { code?: string }).code === "P2025") {
+      return notFoundResponse("Exercício não encontrado para exclusão");
+    }
+    return internalErrorResponse("Erro ao excluir exercício");
+  }
+}

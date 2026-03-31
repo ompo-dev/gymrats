@@ -1,6 +1,8 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { invalidateQueryDomains } from "@/hooks/use-bootstrap-refresh";
 import { useGymsList } from "@/hooks/use-gyms-list";
 
 export interface CreateGymFormData {
@@ -20,50 +22,33 @@ const INITIAL_FORM: CreateGymFormData = {
 };
 
 export function useAcademiasPage() {
+  const queryClient = useQueryClient();
   const {
     gyms,
     activeGymId,
     setActiveGymId,
     canCreateMultipleGyms,
-    refreshGyms,
     isLoading,
+    isCreating,
+    createError,
+    createGym,
   } = useGymsList();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
   const [formData, setFormData] = useState<CreateGymFormData>(INITIAL_FORM);
 
   const handleSelectGym = async (gymId: string) => {
     await setActiveGymId(gymId);
+    await invalidateQueryDomains(queryClient, ["gym", "payments"]);
   };
 
   const handleCreateGym = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCreating(true);
-    setCreateError("");
-
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const response = await apiClient.post<{ error?: string }>(
-        "/api/gyms/create",
-        formData,
-      );
-
-      if (response.data.error) {
-        throw new Error(response.data.error || "Erro ao criar academia");
-      }
-
+      await createGym(formData);
       setFormData(INITIAL_FORM);
-      await refreshGyms();
       setShowCreateDialog(false);
-    } catch (error) {
-      setCreateError(
-        error instanceof Error ? error.message : "Erro ao criar academia",
-      );
-    } finally {
-      setIsCreating(false);
-    }
+    } catch {}
   };
 
   const openCreateDialog = () => setShowCreateDialog(true);

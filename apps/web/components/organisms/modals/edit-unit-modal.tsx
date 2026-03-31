@@ -41,7 +41,6 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
     setTitle,
     description,
     setDescription,
-    isEditingUnitInputs,
     setIsEditingUnitInputs,
     workoutTitle,
     setWorkoutTitle,

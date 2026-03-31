@@ -10,6 +10,7 @@
 import { create } from "zustand";
 
 import { apiClient } from "@/lib/api/client";
+import { waitForJobCompletion } from "@/lib/api/job-client";
 import type {
   DailyNutrition,
   DifficultyLevel,
@@ -24,6 +25,10 @@ import type {
 import type {
   StudentData,
   StudentDataSection,
+  StudentJoinGymResult,
+  StudentPaymentPlanOption,
+  StudentPixPaymentPayload,
+  StudentReferralApplyResult,
   WorkoutCompletionData,
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
@@ -62,6 +67,23 @@ export interface StudentUnifiedState {
   loadStudentCore: () => Promise<void>; // Profile + Weight
   loadWorkouts: (force?: boolean) => Promise<void>; // Units (legado)
   loadWeeklyPlan: (force?: boolean) => Promise<void>; // Plano semanal 7 slots
+  loadActiveNutritionPlan: () => Promise<void>;
+  loadNutritionLibraryPlans: () => Promise<void>;
+  createWeeklyPlan: () => Promise<void>;
+  updateWeeklyPlan: (payload: {
+    title?: string;
+    description?: string;
+  }) => Promise<void>;
+  resetWeeklyPlan: () => Promise<void>;
+  addWeeklyPlanWorkout: (payload: {
+    planSlotId: string;
+    title: string;
+    description?: string;
+    muscleGroup?: string;
+    difficulty?: string;
+    estimatedTime?: number;
+    type?: string;
+  }) => Promise<string>;
   loadNutrition: () => Promise<void>; // Nutrition
   loadFinancial: () => Promise<void>; // Subscription + Payments
   // Métodos individuais (mantidos para compatibilidade)
@@ -75,6 +97,7 @@ export interface StudentUnifiedState {
   loadMemberships: () => Promise<void>;
   loadPayments: () => Promise<void>;
   loadPaymentMethods: () => Promise<void>;
+  loadReferral: () => Promise<void>;
   loadDayPasses: () => Promise<void>;
   loadFriends: () => Promise<void>;
   loadGymLocations: () => Promise<void>;
@@ -91,12 +114,59 @@ export interface StudentUnifiedState {
   updateSubscription: (
     subscription: Partial<StudentData["subscription"]> | null,
   ) => Promise<void>;
+  createNutritionLibraryPlan: (data: {
+    title?: string;
+    description?: string | null;
+    meals?: import("@/lib/types").Meal[];
+  }) => Promise<string>;
+  updateNutritionLibraryPlan: (
+    planId: string,
+    data: {
+      title?: string;
+      description?: string | null;
+      meals?: import("@/lib/types").Meal[];
+    },
+  ) => Promise<void>;
+  deleteNutritionLibraryPlan: (planId: string) => Promise<void>;
+  activateNutritionLibraryPlan: (planId: string) => Promise<void>;
+  updateReferralPixKey: (payload: {
+    pixKey: string;
+    pixKeyType: string;
+  }) => Promise<void>;
+  requestReferralWithdraw: (amountCents: number) => Promise<void>;
   addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
+  joinGym: (payload: {
+    gymId: string;
+    planId: string;
+    couponId?: string | null;
+  }) => Promise<StudentJoinGymResult>;
+  loadGymPlans: (gymId: string) => Promise<StudentPaymentPlanOption[]>;
+  changeMembershipPlan: (payload: {
+    membershipId: string;
+    planId: string;
+  }) => Promise<StudentPixPaymentPayload>;
+  cancelMembership: (membershipId: string) => Promise<void>;
+  cancelPersonalAssignment: (assignmentId: string) => Promise<void>;
+  subscribeToPersonal: (payload: {
+    personalId: string;
+    planId: string;
+    couponId?: string | null;
+  }) => Promise<StudentPixPaymentPayload>;
+  payStudentPayment: (paymentId: string) => Promise<StudentPixPaymentPayload>;
+  cancelStudentPayment: (paymentId: string) => Promise<void>;
+  getStudentPaymentStatus: (paymentId: string) => Promise<string>;
+  getPersonalPaymentStatus: (paymentId: string) => Promise<string>;
+  applyReferralToSubscription: (
+    referralCode: string,
+  ) => Promise<StudentReferralApplyResult>;
 
   // === ACTIONS - LIBRARY ===
   loadLibraryPlans: () => Promise<void>;
-  createLibraryPlan: (data: any) => Promise<string>;
-  updateLibraryPlan: (planId: string, data: any) => Promise<void>;
+  createLibraryPlan: (data: LibraryPlanPayload) => Promise<string>;
+  updateLibraryPlan: (
+    planId: string,
+    data: LibraryPlanPayload,
+  ) => Promise<void>;
   deleteLibraryPlan: (planId: string) => Promise<void>;
   activateLibraryPlan: (planId: string) => Promise<void>;
 
@@ -152,6 +222,8 @@ export interface StudentUnifiedState {
   reset: () => void;
   clearCache: () => void;
 }
+
+type LibraryPlanPayload = Record<string, unknown>;
 
 // ============================================
 // STORE
@@ -217,59 +289,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           }));
         } catch (error) {
           console.error("[loadAll] Erro ao carregar dados:", error);
-          const err = error as { code?: string; message?: string };
-          // Se for timeout, tentar carregamento incremental como fallback
-          if (
-            err?.code === "ECONNABORTED" ||
-            err?.message?.includes("timeout")
-          ) {
-            console.warn(
-              "[loadAll] Timeout detectado, tentando carregamento incremental...",
-            );
-
-            try {
-              // Carregar dados essenciais primeiro
-              await get().loadEssential();
-              await get().loadStudentCore();
-
-              // Tentar carregar o resto em background
-              Promise.all([
-                get().loadWorkouts(),
-                get().loadWorkoutHistory(),
-                get().loadPersonalRecords(),
-                get().loadNutrition(),
-                get().loadFinancial(),
-              ]).catch((err) => {
-                console.error(
-                  "[loadAll] Erro ao carregar dados adicionais:",
-                  err,
-                );
-              });
-
-              set((state) => ({
-                data: {
-                  ...state.data,
-                  metadata: {
-                    ...state.data.metadata,
-                    isLoading: false,
-                    isInitialized: true,
-                    lastSync: new Date(),
-                    errors: {
-                      loadAll: "Timeout - dados carregados incrementalmente",
-                    },
-                  },
-                },
-              }));
-
-              return;
-            } catch (incrementalError) {
-              console.error(
-                "[loadAll] Erro no carregamento incremental:",
-                incrementalError,
-              );
-            }
-          }
-
           set((state) => ({
             data: {
               ...state.data,
@@ -305,20 +324,11 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           // FASE 1: Carregar seções prioritárias (em paralelo)
           // Atualiza store incrementalmente conforme cada uma carrega
-          console.log(
-            `[loadAllPrioritized] Carregando prioridades: ${priorities.join(
-              ", ",
-            )}`,
-          );
-
           await loadSectionsIncremental(set, priorities);
 
           // Se onlyPriorities for true (padrão), só carrega as prioridades
           // Isso evita recarregar tudo quando navegar entre páginas
           if (onlyPriorities) {
-            console.log(
-              "[loadAllPrioritized] Apenas prioridades solicitadas, finalizando.",
-            );
             return;
           }
 
@@ -329,6 +339,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             "student",
             "progress",
             "units",
+            "activeNutritionPlan",
+            "nutritionLibraryPlans",
             "profile",
             "weightHistory",
             "workoutHistory",
@@ -337,6 +349,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             "memberships",
             "payments",
             "paymentMethods",
+            "referral",
             "dayPasses",
             "friends",
             "gymLocations",
@@ -348,15 +361,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           );
 
           if (remainingSections.length > 0) {
-            console.log(
-              `[loadAllPrioritized] FASE 2: Carregando resto em background: ${remainingSections.join(
-                ", ",
-              )}`,
-            );
-
             // Carregar em background sem bloquear (não aguardar)
             loadSectionsIncremental(set, remainingSections).catch((error) => {
-              console.warn(
+              console.error(
                 "[loadAllPrioritized] Erro ao carregar seções restantes:",
                 error,
               );
@@ -429,14 +436,15 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       loadFinancial: async () => {
-        // Carrega dados financeiros (Subscription + Payments)
+        // Carrega dados financeiros por seções para evitar encadear loaders legados.
         try {
-          await Promise.all([
-            get().loadSubscription(),
-            get().loadPayments(),
-            get().loadMemberships(),
-            get().loadPaymentMethods(),
-            get().loadDayPasses(),
+          await loadSectionsIncremental(set, [
+            "subscription",
+            "payments",
+            "memberships",
+            "paymentMethods",
+            "referral",
+            "dayPasses",
           ]);
         } catch (error) {
           console.error("[loadFinancial] Erro:", error);
@@ -477,6 +485,170 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
       },
 
+      createWeeklyPlan: async () => {
+        await apiClient.post("/api/workouts/weekly-plan", {});
+        await get().loadWeeklyPlan(true);
+      },
+
+      updateWeeklyPlan: async (payload) => {
+        const previousWeeklyPlan = get().data.weeklyPlan;
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            weeklyPlan: state.data.weeklyPlan
+              ? {
+                  ...state.data.weeklyPlan,
+                  ...payload,
+                }
+              : state.data.weeklyPlan,
+          },
+        }));
+
+        try {
+          await apiClient.patch("/api/workouts/weekly-plan", payload);
+          await get().loadWeeklyPlan(true);
+        } catch (error) {
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
+          throw error;
+        }
+      },
+
+      resetWeeklyPlan: async () => {
+        const previousWeeklyPlan = get().data.weeklyPlan;
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            weeklyPlan: state.data.weeklyPlan
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) => ({
+                    ...slot,
+                    locked: false,
+                    completed: slot.type === "rest",
+                    completedAt:
+                      slot.type === "rest" ? slot.completedAt : undefined,
+                  })),
+                }
+              : state.data.weeklyPlan,
+          },
+        }));
+
+        try {
+          await apiClient.patch("/api/students/week-reset");
+          await get().loadWeeklyPlan(true);
+        } catch (error) {
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
+          throw error;
+        }
+      },
+
+      addWeeklyPlanWorkout: async (payload) => {
+        const previousWeeklyPlan = get().data.weeklyPlan;
+        const targetSlot = previousWeeklyPlan?.slots.find(
+          (slot) => slot.id === payload.planSlotId,
+        );
+
+        if (!previousWeeklyPlan || !targetSlot) {
+          throw new Error("Dia do plano semanal nao encontrado.");
+        }
+
+        const tempId = `temp-weekly-workout-${Date.now()}`;
+        const optimisticWorkout: WorkoutSession = {
+          id: tempId,
+          title: payload.title,
+          description: payload.description || "",
+          type: (payload.type as WorkoutType) || "strength",
+          muscleGroup: (payload.muscleGroup as MuscleGroup) || "peito",
+          difficulty: (payload.difficulty as DifficultyLevel) || "iniciante",
+          exercises: [],
+          xpReward: 50,
+          estimatedTime: payload.estimatedTime || 0,
+          locked: false,
+          completed: false,
+        };
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            weeklyPlan: state.data.weeklyPlan
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) =>
+                    slot.id === payload.planSlotId
+                      ? {
+                          ...slot,
+                          type: "workout",
+                          workout: optimisticWorkout,
+                          locked: false,
+                          completed: false,
+                          completedAt: undefined,
+                        }
+                      : slot,
+                  ),
+                }
+              : state.data.weeklyPlan,
+          },
+        }));
+
+        try {
+          const response = await apiClient.post(
+            "/api/workouts/manage",
+            payload as Record<string, unknown>,
+          );
+          const workoutData = (
+            response as { data?: { data?: { id?: string }; id?: string } }
+          ).data;
+          const realId = workoutData?.data?.id ?? workoutData?.id ?? tempId;
+
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: state.data.weeklyPlan
+                ? {
+                    ...state.data.weeklyPlan,
+                    slots: state.data.weeklyPlan.slots.map((slot) =>
+                      slot.id === payload.planSlotId &&
+                      slot.type === "workout" &&
+                      slot.workout?.id === tempId
+                        ? {
+                            ...slot,
+                            workout: {
+                              ...slot.workout,
+                              id: realId,
+                            },
+                          }
+                        : slot,
+                    ),
+                  }
+                : state.data.weeklyPlan,
+            },
+          }));
+
+          await get().loadWeeklyPlan(true);
+          return realId;
+        } catch (error) {
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
+          throw error;
+        }
+      },
+
       // === ACTIONS - LIBRARY ===
       loadLibraryPlans: async () => {
         const section = await loadSection("libraryPlans", true);
@@ -488,14 +660,16 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
       },
 
-      createLibraryPlan: async (data: any) => {
-        const response = await apiClient.post("/api/workouts/library", data);
+      createLibraryPlan: async (data: LibraryPlanPayload) => {
+        const response = await apiClient.post<{
+          data?: { id?: string };
+        }>("/api/workouts/library", data);
         await get().loadLibraryPlans();
-        const apiData = (response as { data?: { id?: string } }).data;
+        const apiData = response.data.data;
         return apiData?.id || "";
       },
 
-      updateLibraryPlan: async (planId: string, data: any) => {
+      updateLibraryPlan: async (planId: string, data: LibraryPlanPayload) => {
         await apiClient.put(`/api/workouts/library/${planId}`, data);
         await get().loadLibraryPlans();
       },
@@ -507,7 +681,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       activateLibraryPlan: async (planId: string) => {
         const state = get();
-        const libraryPlan = state.data.libraryPlans?.find((p) => p.id === planId);
+        const libraryPlan = state.data.libraryPlans?.find(
+          (p) => p.id === planId,
+        );
 
         if (libraryPlan) {
           const optimisticSlots = (libraryPlan.slots ?? []).map((slot) => ({
@@ -529,7 +705,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }
 
         try {
-          await apiClient.post("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
+          const response = await apiClient.post<{
+            jobId?: string;
+          }>("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
+          const jobId = response.data.jobId;
+          if (jobId) {
+            await waitForJobCompletion(jobId);
+          }
           await get().loadWeeklyPlan(true);
         } catch (error) {
           if (libraryPlan) {
@@ -551,7 +733,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          await apiClient.put("/api/students/progress", updates as any);
+          await apiClient.put("/api/students/progress", updates);
         } catch (error) {
           console.error("Erro ao atualizar progresso:", error);
           // Reverter para o estado anterior em caso de erro
@@ -639,10 +821,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          const response = await apiClient.post(
-            "/api/workouts/units",
-            data as any,
-          );
+          const response = await apiClient.post("/api/workouts/units", data);
           const apiData =
             (response as { data?: { id?: string } }).data ?? undefined;
           if (apiData?.id) {
@@ -687,7 +866,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          await apiClient.put(`/api/workouts/units/${unitId}`, data as any);
+          await apiClient.put(`/api/workouts/units/${unitId}`, data);
         } catch (error) {
           console.error("Erro ao atualizar unit:", error);
           set((state) => ({
@@ -757,10 +936,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          const response = await apiClient.post(
-            "/api/workouts/manage",
-            data as any,
-          );
+          const response = await apiClient.post("/api/workouts/manage", data);
           const workoutData = (
             response as { data?: { data?: { id?: string }; id?: string } }
           ).data;
@@ -809,6 +985,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       updateWorkout: async (workoutId, data) => {
         const previousUnits = get().data.units;
+        const previousWeeklyPlan = get().data.weeklyPlan;
         set((state) => ({
           data: {
             ...state.data,
@@ -818,17 +995,40 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                 workout.id === workoutId ? { ...workout, ...data } : workout,
               ),
             })),
+            weeklyPlan: state.data.weeklyPlan?.slots
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) => {
+                    if (
+                      slot.type !== "workout" ||
+                      !slot.workout ||
+                      slot.workout.id !== workoutId
+                    ) {
+                      return slot;
+                    }
+
+                    return {
+                      ...slot,
+                      workout: {
+                        ...slot.workout,
+                        ...data,
+                      },
+                    };
+                  }),
+                }
+              : state.data.weeklyPlan,
           },
         }));
 
         try {
-          await apiClient.put(`/api/workouts/manage/${workoutId}`, data as any);
+          await apiClient.put(`/api/workouts/manage/${workoutId}`, data);
         } catch (error) {
           console.error("Erro ao atualizar workout:", error);
           set((state) => ({
             data: {
               ...state.data,
               units: previousUnits,
+              weeklyPlan: previousWeeklyPlan,
             },
           }));
         }
@@ -836,6 +1036,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       deleteWorkout: async (workoutId) => {
         const previousUnits = get().data.units;
+        const previousWeeklyPlan = get().data.weeklyPlan;
         let workoutToDelete: WorkoutSession | null = null;
         let unitId: string | undefined;
 
@@ -856,6 +1057,28 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               ...unit,
               workouts: unit.workouts.filter((w) => w.id !== workoutId),
             })),
+            weeklyPlan: state.data.weeklyPlan?.slots
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) => {
+                    if (
+                      slot.type !== "workout" ||
+                      !slot.workout ||
+                      slot.workout.id !== workoutId
+                    ) {
+                      return slot;
+                    }
+
+                    return {
+                      ...slot,
+                      type: "rest",
+                      workout: undefined,
+                      completed: false,
+                      completedAt: undefined,
+                    };
+                  }),
+                }
+              : state.data.weeklyPlan,
           },
         }));
 
@@ -864,21 +1087,23 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         } catch (error) {
           console.error("Erro ao deletar workout:", error);
           // Reverter optimistic update
-          if (workoutToDelete && unitId) {
-            set((state) => ({
-              data: {
-                ...state.data,
-                units: state.data.units.map((unit) =>
-                  unit.id === unitId
-                    ? {
-                        ...unit,
-                        workouts: [...unit.workouts, workoutToDelete!],
-                      }
-                    : unit,
-                ),
-              },
-            }));
-          }
+          set((state) => ({
+            data: {
+              ...state.data,
+              units:
+                workoutToDelete && unitId
+                  ? state.data.units.map((unit) =>
+                      unit.id === unitId
+                        ? {
+                            ...unit,
+                            workouts: [...unit.workouts, workoutToDelete!],
+                          }
+                        : unit,
+                    )
+                  : previousUnits,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
         }
       },
 
@@ -980,15 +1205,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           };
         });
 
-        if (!found) {
-          throw new Error("Workout não encontrado");
-        }
+        void found;
 
         try {
           const response = await apiClient.post("/api/workouts/exercises", {
             workoutId,
             ...data,
-          } as any);
+          } as Record<string, unknown>);
 
           const rawExerciseData =
             (response as { data?: Record<string, unknown> })?.data?.data ??
@@ -1104,9 +1327,105 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                     return workout;
                   }),
                 })),
+                weeklyPlan: state.data.weeklyPlan?.slots
+                  ? {
+                      ...state.data.weeklyPlan,
+                      slots: state.data.weeklyPlan.slots.map((slot) => {
+                        if (
+                          slot.type !== "workout" ||
+                          !slot.workout ||
+                          slot.workout.id !== workoutId
+                        ) {
+                          return slot;
+                        }
+
+                        return {
+                          ...slot,
+                          workout: {
+                            ...slot.workout,
+                            exercises: slot.workout.exercises.map((exercise) =>
+                              exercise.id === tempId
+                                ? {
+                                    ...exercise,
+                                    id: exerciseId,
+                                    name:
+                                      (exerciseData.name as string) ??
+                                      exercise.name,
+                                    sets:
+                                      typeof exerciseData.sets === "number"
+                                        ? exerciseData.sets
+                                        : exercise.sets,
+                                    reps:
+                                      typeof exerciseData.reps === "string"
+                                        ? exerciseData.reps
+                                        : exercise.reps,
+                                    rest:
+                                      typeof exerciseData.rest === "number"
+                                        ? exerciseData.rest
+                                        : exercise.rest,
+                                    notes:
+                                      (exerciseData.notes as
+                                        | string
+                                        | undefined) ?? exercise.notes,
+                                    videoUrl:
+                                      (exerciseData.videoUrl as
+                                        | string
+                                        | undefined) ?? exercise.videoUrl,
+                                    educationalId:
+                                      (exerciseData.educationalId as
+                                        | string
+                                        | undefined) ?? exercise.educationalId,
+                                    primaryMuscles:
+                                      safeParse(exerciseData.primaryMuscles) ??
+                                      exercise.primaryMuscles,
+                                    secondaryMuscles:
+                                      safeParse(
+                                        exerciseData.secondaryMuscles,
+                                      ) ?? exercise.secondaryMuscles,
+                                    equipment:
+                                      safeParse(exerciseData.equipment) ??
+                                      exercise.equipment,
+                                    instructions:
+                                      safeParse(exerciseData.instructions) ??
+                                      exercise.instructions,
+                                    tips:
+                                      safeParse(exerciseData.tips) ??
+                                      exercise.tips,
+                                    commonMistakes:
+                                      safeParse(exerciseData.commonMistakes) ??
+                                      exercise.commonMistakes,
+                                    benefits:
+                                      safeParse(exerciseData.benefits) ??
+                                      exercise.benefits,
+                                    difficulty:
+                                      (exerciseData.difficulty as WorkoutExercise["difficulty"]) ??
+                                      exercise.difficulty,
+                                    scientificEvidence:
+                                      (exerciseData.scientificEvidence as
+                                        | string
+                                        | undefined) ??
+                                      exercise.scientificEvidence,
+                                    alternatives: Array.isArray(
+                                      exerciseData.alternatives,
+                                    )
+                                      ? (exerciseData.alternatives as WorkoutExercise["alternatives"])
+                                      : (exercise.alternatives ?? []),
+                                  }
+                                : exercise,
+                            ),
+                          },
+                        };
+                      }),
+                    }
+                  : state.data.weeklyPlan,
               },
             }));
           }
+
+          await Promise.allSettled([
+            get().loadWorkouts(true),
+            get().loadWeeklyPlan(true),
+          ]);
         } catch (error) {
           console.error("Erro ao adicionar exercício:", error);
           // Reverter optimistic update
@@ -1124,6 +1443,30 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                     : w,
                 ),
               })),
+              weeklyPlan: state.data.weeklyPlan?.slots
+                ? {
+                    ...state.data.weeklyPlan,
+                    slots: state.data.weeklyPlan.slots.map((slot) => {
+                      if (
+                        slot.type !== "workout" ||
+                        !slot.workout ||
+                        slot.workout.id !== workoutId
+                      ) {
+                        return slot;
+                      }
+
+                      return {
+                        ...slot,
+                        workout: {
+                          ...slot.workout,
+                          exercises: slot.workout.exercises.filter(
+                            (e) => e.id !== tempId,
+                          ),
+                        },
+                      };
+                    }),
+                  }
+                : state.data.weeklyPlan,
             },
           }));
         }
@@ -1149,10 +1492,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          await apiClient.put(
-            `/api/workouts/exercises/${exerciseId}`,
-            data as any,
-          );
+          await apiClient.put(`/api/workouts/exercises/${exerciseId}`, data);
         } catch (error) {
           console.error("Erro ao atualizar exercício:", error);
           set((state) => ({
@@ -1344,7 +1684,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         const state = get();
         if (state.data.activeWorkout?.workoutId === workoutId) {
           // TODO: Salvar no backend
-          console.log("Salvar progresso do workout:", workoutId);
         }
       },
 

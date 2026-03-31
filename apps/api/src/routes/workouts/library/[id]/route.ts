@@ -1,0 +1,34 @@
+import {
+  deleteLibraryPlanHandler,
+  getLibraryPlanDetailHandler,
+  updateLibraryPlanHandler,
+} from "@/lib/api/handlers/training-library.handler";
+import type { NextRequest } from "@/runtime/next-server";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return getLibraryPlanDetailHandler(request, { params });
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return updateLibraryPlanHandler(request, { params });
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return updateLibraryPlanHandler(request, { params });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return deleteLibraryPlanHandler(request, { params });
+}

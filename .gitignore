@@ -21,6 +21,17 @@ db.json
 .env.development.local
 .env.test.local
 .env.production.local
+.env.docker
+apps/*/dist/
+apps/*/tsconfig.tsbuildinfo
+.codex-build/
+storybook-static/
+tests/e2e/.auth/
+test-results/
+apps/mobile/.expo/
+apps/mobile/dist-mobile/
+apps/mobile/android/
+apps/mobile/ios/
 
 # Logs
 logs

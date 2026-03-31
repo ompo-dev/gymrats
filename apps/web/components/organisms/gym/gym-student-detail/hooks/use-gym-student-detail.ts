@@ -3,15 +3,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useGym } from "@/hooks/use-gym";
 import type {
-  DailyNutrition,
   FoodItem,
   Meal,
   MealFoodItem,
   Payment,
   PlanSlotData,
   StudentData,
-  WeeklyPlanData,
 } from "@/lib/types";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import {
+  createStudentDetailKey,
+  useStudentDetailStore,
+} from "@/stores/student-detail-store";
 
 const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -39,82 +42,82 @@ export function useGymStudentDetail({
   variant = "gym",
 }: UseGymStudentDetailProps) {
   const apiBase = getStudentsApiBase(variant);
+  const detailScope = variant === "personal" ? "personal" : "gym";
+  const detailKey = student?.id
+    ? createStudentDetailKey(detailScope, student.id)
+    : null;
   const actions = useGym("actions");
   const [studentPayments, setStudentPayments] = useState(payments);
   const [activeTab, setActiveTab] = useState<StudentDetailTab>("overview");
   const [membershipStatus, setMembershipStatus] = useState<
     "active" | "inactive" | "suspended" | "canceled"
   >(student?.membershipStatus ?? "inactive");
-
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isAssigningPersonal, setIsAssigningPersonal] = useState(false);
-  const [weeklyPlan, setWeeklyPlan] = useState<
-    WeeklyPlanData | null | undefined
-  >(undefined);
-  const [dailyNutrition, setDailyNutrition] = useState<DailyNutrition | null>(
-    null,
-  );
   const [nutritionDate, setNutritionDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
+    getBrazilNutritionDateKey(),
   );
-  const [isLoadingWeeklyPlan, setIsLoadingWeeklyPlan] = useState(false);
-  const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isEditWeeklyPlanOpen, setIsEditWeeklyPlanOpen] = useState(false);
+  const [isNutritionLibraryOpen, setIsNutritionLibraryOpen] = useState(false);
 
-  const fetchWeeklyPlan = useCallback(async () => {
-    if (!student?.id) return;
-    setIsLoadingWeeklyPlan(true);
-    try {
-      const res = await fetch(`${apiBase}/${student.id}/weekly-plan`);
-      const data = await res.json();
-      if (data.success && data.weeklyPlan) {
-        setWeeklyPlan(data.weeklyPlan);
-      } else {
-        setWeeklyPlan(null);
-      }
-    } catch {
-      setWeeklyPlan(null);
-    } finally {
-      setIsLoadingWeeklyPlan(false);
-    }
-  }, [student?.id, apiBase]);
-
-  const fetchNutrition = useCallback(
-    async (date?: string) => {
-      if (!student?.id) return;
-      const d = date ?? nutritionDate;
-      setIsLoadingNutrition(true);
-      try {
-        const res = await fetch(
-          `${apiBase}/${student.id}/nutrition?date=${d}`,
-        );
-        const data = await res.json();
-        if (data.success) {
-          setDailyNutrition({
-            date: data.date,
-            meals: data.meals ?? [],
-            totalCalories: data.totalCalories ?? 0,
-            totalProtein: data.totalProtein ?? 0,
-            totalCarbs: data.totalCarbs ?? 0,
-            totalFats: data.totalFats ?? 0,
-            waterIntake: data.waterIntake ?? 0,
-            targetCalories: data.targetCalories ?? 2000,
-            targetProtein: data.targetProtein ?? 150,
-            targetCarbs: data.targetCarbs ?? 250,
-            targetFats: data.targetFats ?? 65,
-            targetWater: data.targetWater ?? 3000,
-          });
-        } else {
-          setDailyNutrition(null);
-        }
-      } catch {
-        setDailyNutrition(null);
-      } finally {
-        setIsLoadingNutrition(false);
-      }
-    },
-    [student?.id, nutritionDate, apiBase],
+  const weeklyPlan = useStudentDetailStore((state) =>
+    detailKey ? state.weeklyPlans[detailKey] : undefined,
   );
+  const dailyNutrition = useStudentDetailStore((state) =>
+    detailKey
+      ? (state.nutritionByDate[detailKey]?.[nutritionDate] ?? null)
+      : null,
+  );
+  const isLoadingWeeklyPlan = useStudentDetailStore((state) =>
+    detailKey ? Boolean(state.weeklyPlanLoading[detailKey]) : false,
+  );
+  const isLoadingNutrition = useStudentDetailStore((state) =>
+    detailKey ? Boolean(state.nutritionLoading[detailKey]) : false,
+  );
+  const isAssigningPersonal = useStudentDetailStore((state) =>
+    student?.id ? Boolean(state.assigningPersonal[student.id]) : false,
+  );
+  const loadWeeklyPlan = useStudentDetailStore((state) => state.loadWeeklyPlan);
+  const createStudentWeeklyPlan = useStudentDetailStore(
+    (state) => state.createWeeklyPlan,
+  );
+  const loadNutrition = useStudentDetailStore((state) => state.loadNutrition);
+  const saveNutrition = useStudentDetailStore((state) => state.saveNutrition);
+  const saveTargetWater = useStudentDetailStore(
+    (state) => state.updateTargetWater,
+  );
+  const loadActiveNutritionPlan = useStudentDetailStore(
+    (state) => state.loadActiveNutritionPlan,
+  );
+  const loadNutritionLibraryPlans = useStudentDetailStore(
+    (state) => state.loadNutritionLibraryPlans,
+  );
+  const assignPersonal = useStudentDetailStore((state) => state.assignPersonal);
+  const isCurrentNutritionDate = nutritionDate === getBrazilNutritionDateKey();
+
+  useEffect(() => {
+    setStudentPayments((current) => {
+      if (
+        current.length === payments.length &&
+        current.every(
+          (entry, index) =>
+            entry.id === payments[index]?.id &&
+            entry.status === payments[index]?.status &&
+            entry.amount === payments[index]?.amount,
+        )
+      ) {
+        return current;
+      }
+
+      return payments;
+    });
+  }, [payments]);
+
+  useEffect(() => {
+    const nextStatus = student?.membershipStatus ?? "inactive";
+    setMembershipStatus((current) =>
+      current === nextStatus ? current : nextStatus,
+    );
+  }, [student?.membershipStatus]);
 
   const getTargets = useCallback(() => {
     const profile = student?.profile;
@@ -127,73 +130,82 @@ export function useGymStudentDetail({
     };
   }, [student?.profile, dailyNutrition?.targetWater]);
 
-  const calculateTotalsFromCompletedMeals = useCallback((meals: Meal[]) => {
-    const completedMeals = meals.filter((meal) => meal.completed === true);
-    return {
-      totalCalories: completedMeals.reduce(
-        (sum, meal) => sum + (meal.calories || 0),
-        0,
-      ),
-      totalProtein: completedMeals.reduce(
-        (sum, meal) => sum + (meal.protein || 0),
-        0,
-      ),
-      totalCarbs: completedMeals.reduce(
-        (sum, meal) => sum + (meal.carbs || 0),
-        0,
-      ),
-      totalFats: completedMeals.reduce((sum, meal) => sum + (meal.fats || 0), 0),
-    };
-  }, []);
+  const fetchWeeklyPlan = useCallback(async () => {
+    if (!student?.id) return;
+    await loadWeeklyPlan(detailScope, student.id);
+  }, [student?.id, detailScope, loadWeeklyPlan]);
+
+  const fetchNutrition = useCallback(
+    async (date?: string) => {
+      if (!student?.id) return;
+      const resolvedDate = date ?? nutritionDate;
+      await loadNutrition(detailScope, student.id, resolvedDate, getTargets());
+
+      if (resolvedDate === getBrazilNutritionDateKey()) {
+        await Promise.allSettled([
+          loadActiveNutritionPlan(detailScope, student.id),
+          loadNutritionLibraryPlans(detailScope, student.id),
+        ]);
+      }
+    },
+    [
+      student?.id,
+      nutritionDate,
+      detailScope,
+      loadNutrition,
+      getTargets,
+      loadActiveNutritionPlan,
+      loadNutritionLibraryPlans,
+    ],
+  );
 
   const persistNutrition = useCallback(
     async (nextMeals: Meal[], nextWater: number) => {
-      if (!student?.id) return;
-      const totals = calculateTotalsFromCompletedMeals(nextMeals);
-      const targets = getTargets();
-      const nextNutrition: DailyNutrition = {
-        date: nutritionDate,
-        meals: nextMeals,
-        waterIntake: nextWater,
-        ...totals,
-        ...targets,
-      };
-      setDailyNutrition(nextNutrition);
+      if (!student?.id || !isCurrentNutritionDate) return;
       try {
-        await fetch(`${apiBase}/${student.id}/nutrition`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            date: nutritionDate,
-            meals: nextMeals,
-            waterIntake: nextWater,
-          }),
+        await saveNutrition({
+          scope: detailScope,
+          studentId: student.id,
+          date: nutritionDate,
+          meals: nextMeals,
+          waterIntake: nextWater,
+          targets: getTargets(),
         });
       } catch (error) {
         console.error("[GymStudentDetail] Erro ao salvar nutrição:", error);
       }
     },
-    [student?.id, nutritionDate, calculateTotalsFromCompletedMeals, getTargets, apiBase],
+    [
+      student?.id,
+      isCurrentNutritionDate,
+      detailScope,
+      nutritionDate,
+      saveNutrition,
+      getTargets,
+    ],
   );
 
   const updateTargetWater = useCallback(
     async (targetWater: number) => {
-      if (!student?.id) return;
-      const normalized = Math.max(0, Math.round(targetWater));
+      if (!student?.id || !isCurrentNutritionDate) return;
       try {
-        await fetch(`${apiBase}/${student.id}/nutrition`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ targetWater: normalized }),
+        await saveTargetWater({
+          scope: detailScope,
+          studentId: student.id,
+          date: nutritionDate,
+          targetWater,
         });
-        setDailyNutrition((prev) =>
-          prev ? { ...prev, targetWater: normalized } : prev,
-        );
       } catch (error) {
         console.error("[GymStudentDetail] Erro ao salvar meta de água:", error);
       }
     },
-    [student?.id, apiBase],
+    [
+      student?.id,
+      isCurrentNutritionDate,
+      detailScope,
+      nutritionDate,
+      saveTargetWater,
+    ],
   );
 
   const applyNutrition = useCallback(
@@ -201,13 +213,13 @@ export function useGymStudentDetail({
       const nextWater = dailyNutrition?.waterIntake ?? 0;
       await persistNutrition(data.meals, nextWater);
     },
-    [dailyNutrition, persistNutrition],
+    [dailyNutrition?.waterIntake, persistNutrition],
   );
 
   const handleMealComplete = useCallback(
     async (mealId: string) => {
       const baseMeals = dailyNutrition?.meals ?? [];
-      const updatedMeals = baseMeals.map((meal) =>
+      const updatedMeals = baseMeals.map((meal: Meal) =>
         meal.id === mealId ? { ...meal, completed: !meal.completed } : meal,
       );
       const nextWater = dailyNutrition?.waterIntake ?? 0;
@@ -249,7 +261,7 @@ export function useGymStudentDetail({
       mealIds: string[],
     ) => {
       const baseMeals = dailyNutrition?.meals ?? [];
-      const updatedMeals = baseMeals.map((meal) => {
+      const updatedMeals = baseMeals.map((meal: Meal) => {
         if (!mealIds.includes(meal.id)) return meal;
         const newFoods: MealFoodItem[] = foods.map(({ food, servings }) => ({
           id: `food-${Date.now()}-${Math.random()}`,
@@ -264,11 +276,11 @@ export function useGymStudentDetail({
         }));
         const updatedFoods = [...(meal.foods || []), ...newFoods];
         const totals = newFoods.reduce(
-          (sum, f) => ({
-            calories: sum.calories + f.calories,
-            protein: sum.protein + f.protein,
-            carbs: sum.carbs + f.carbs,
-            fats: sum.fats + f.fats,
+          (sum, foodEntry) => ({
+            calories: sum.calories + foodEntry.calories,
+            protein: sum.protein + foodEntry.protein,
+            carbs: sum.carbs + foodEntry.carbs,
+            fats: sum.fats + foodEntry.fats,
           }),
           { calories: 0, protein: 0, carbs: 0, fats: 0 },
         );
@@ -290,7 +302,7 @@ export function useGymStudentDetail({
   const removeMeal = useCallback(
     async (mealId: string) => {
       const baseMeals = dailyNutrition?.meals ?? [];
-      const updatedMeals = baseMeals.filter((meal) => meal.id !== mealId);
+      const updatedMeals = baseMeals.filter((meal: Meal) => meal.id !== mealId);
       const nextWater = dailyNutrition?.waterIntake ?? 0;
       await persistNutrition(updatedMeals, nextWater);
     },
@@ -300,17 +312,25 @@ export function useGymStudentDetail({
   const removeFoodFromMeal = useCallback(
     async (mealId: string, foodId: string) => {
       const baseMeals = dailyNutrition?.meals ?? [];
-      const updatedMeals = baseMeals.map((meal) => {
+      const updatedMeals = baseMeals.map((meal: Meal) => {
         if (meal.id !== mealId) return meal;
         const updatedFoods = (meal.foods || []).filter(
-          (food) => food.id !== foodId,
+          (foodEntry: MealFoodItem) => foodEntry.id !== foodId,
         );
         const totals = updatedFoods.reduce(
-          (sum, food) => ({
-            calories: sum.calories + (food.calories || 0),
-            protein: sum.protein + (food.protein || 0),
-            carbs: sum.carbs + (food.carbs || 0),
-            fats: sum.fats + (food.fats || 0),
+          (
+            sum: {
+              calories: number;
+              protein: number;
+              carbs: number;
+              fats: number;
+            },
+            foodEntry: MealFoodItem,
+          ) => ({
+            calories: sum.calories + (foodEntry.calories || 0),
+            protein: sum.protein + (foodEntry.protein || 0),
+            carbs: sum.carbs + (foodEntry.carbs || 0),
+            fats: sum.fats + (foodEntry.fats || 0),
           }),
           { calories: 0, protein: 0, carbs: 0, fats: 0 },
         );
@@ -335,7 +355,9 @@ export function useGymStudentDetail({
       const current = dailyNutrition?.waterIntake ?? 0;
       const glassAmount = 250;
       const nextWater =
-        index < current / glassAmount ? current - glassAmount : current + glassAmount;
+        index < current / glassAmount
+          ? current - glassAmount
+          : current + glassAmount;
       await persistNutrition(baseMeals, nextWater);
     },
     [dailyNutrition, persistNutrition],
@@ -349,7 +371,7 @@ export function useGymStudentDetail({
 
   useEffect(() => {
     if (activeTab === "diet" && student?.id) {
-      fetchNutrition();
+      void fetchNutrition();
     }
   }, [activeTab, student?.id, fetchNutrition]);
 
@@ -368,20 +390,20 @@ export function useGymStudentDetail({
   };
 
   const togglePaymentStatus = async (paymentId: string) => {
-    const payment = studentPayments.find((p) => p.id === paymentId);
+    const payment = studentPayments.find((entry) => entry.id === paymentId);
     if (!payment) return;
 
     const newStatus = payment.status === "paid" ? "pending" : "paid";
 
     setStudentPayments((prev) =>
-      prev.map((p) =>
-        p.id === paymentId
+      prev.map((entry) =>
+        entry.id === paymentId
           ? {
-              ...p,
+              ...entry,
               status: newStatus,
-              date: newStatus === "paid" ? new Date() : p.date,
+              date: newStatus === "paid" ? new Date() : entry.date,
             }
-          : p,
+          : entry,
       ),
     );
 
@@ -389,29 +411,14 @@ export function useGymStudentDetail({
       await actions.updatePaymentStatus(paymentId, newStatus);
     } catch {
       setStudentPayments((prev) =>
-        prev.map((p) => (p.id === paymentId ? payment : p)),
+        prev.map((entry) => (entry.id === paymentId ? payment : entry)),
       );
     }
   };
 
   const handleAssignPersonal = async (personalId: string) => {
     if (!student?.id || !personalId.trim() || variant === "personal") return;
-    setIsAssigningPersonal(true);
-    try {
-      const response = await fetch(
-        `/api/gym/students/${student.id}/assign-personal`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ personalId: personalId.trim() }),
-        },
-      );
-      if (!response.ok) {
-        throw new Error("Não foi possível atribuir o personal");
-      }
-    } finally {
-      setIsAssigningPersonal(false);
-    }
+    await assignPersonal(student.id, personalId.trim());
   };
 
   const tabOptions = [
@@ -432,15 +439,26 @@ export function useGymStudentDetail({
     setActiveTab("diet");
   };
 
+  const handleNutritionPlansSynced = useCallback(async () => {
+    if (!student?.id) return;
+    await Promise.all([
+      fetchNutrition(nutritionDate),
+      loadActiveNutritionPlan(detailScope, student.id),
+      loadNutritionLibraryPlans(detailScope, student.id),
+    ]);
+  }, [
+    detailScope,
+    fetchNutrition,
+    loadActiveNutritionPlan,
+    loadNutritionLibraryPlans,
+    nutritionDate,
+    student?.id,
+  ]);
+
   const createWeeklyPlan = useCallback(async () => {
     if (!student?.id) return;
-    const res = await fetch(`${apiBase}/${student.id}/weekly-plan`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    if (res.ok) await fetchWeeklyPlan();
-  }, [student?.id, apiBase, fetchWeeklyPlan]);
+    await createStudentWeeklyPlan(detailScope, student.id);
+  }, [student?.id, detailScope, createStudentWeeklyPlan]);
 
   return {
     student,
@@ -475,6 +493,10 @@ export function useGymStudentDetail({
     DAY_NAMES,
     openWorkoutsEditor,
     openDietTab,
+    isNutritionLibraryOpen,
+    setIsNutritionLibraryOpen,
+    isCurrentNutritionDate,
+    handleNutritionPlansSynced,
     createWeeklyPlan,
     studentsApiBase: apiBase,
   };

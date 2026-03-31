@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Moon, Palette, Plus, Sun, Trash2 } from "lucide-react";
-import { type HTMLAttributes, useState } from "react";
+import { type HTMLAttributes, useId, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   duolingoPresets,
@@ -59,6 +59,8 @@ function DuoColorPickerSimple({
   const [isOpen, setIsOpen] = useState(false);
   const [customColor, setCustomColor] = useState("#58CC02");
   const [customName, setCustomName] = useState("");
+  const customNameInputId = useId();
+  const customColorInputId = useId();
 
   const activeBaseId = presetModeMap[activePresetId]?.dark ?? activePresetId;
 
@@ -100,6 +102,7 @@ function DuoColorPickerSimple({
     return (
       <div className={cn("flex items-center gap-2", className)} {...props}>
         <button
+          type="button"
           onClick={toggleColorMode}
           className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--duo-border)] text-[var(--duo-fg-muted)] transition-all hover:scale-110 hover:border-[var(--duo-primary)] hover:text-[var(--duo-primary)]"
           aria-label={colorMode === "light" ? "Modo escuro" : "Modo claro"}
@@ -120,6 +123,7 @@ function DuoColorPickerSimple({
           return (
             <button
               key={baseId}
+              type="button"
               onClick={() => setActivePreset(baseId)}
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-200 hover:scale-110 active:scale-90",
@@ -143,6 +147,7 @@ function DuoColorPickerSimple({
         {customPresets.map((preset) => (
           <button
             key={preset.id}
+            type="button"
             onClick={() => setActivePreset(preset.id)}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-200 hover:scale-110 active:scale-90",
@@ -160,6 +165,7 @@ function DuoColorPickerSimple({
           </button>
         ))}
         <button
+          type="button"
           onClick={() => setIsOpen(true)}
           className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-[var(--duo-fg-muted)] text-[var(--duo-fg-muted)] transition-all duration-200 hover:scale-110 hover:border-[var(--duo-primary)] hover:text-[var(--duo-primary)]"
           aria-label="Adicionar tema personalizado"
@@ -175,10 +181,14 @@ function DuoColorPickerSimple({
         >
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]">
+              <label
+                htmlFor={customNameInputId}
+                className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]"
+              >
                 Nome
               </label>
               <input
+                id={customNameInputId}
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 placeholder="Meu Tema"
@@ -186,11 +196,15 @@ function DuoColorPickerSimple({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]">
+              <label
+                htmlFor={customColorInputId}
+                className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]"
+              >
                 Cor primária
               </label>
               <div className="flex items-center gap-3">
                 <input
+                  id={customColorInputId}
                   type="color"
                   value={customColor}
                   onChange={(e) => setCustomColor(e.target.value)}
@@ -225,6 +239,7 @@ function DuoColorPickerSimple({
           </span>
         </div>
         <button
+          type="button"
           onClick={toggleColorMode}
           className={cn(
             "flex items-center gap-2 rounded-xl border-2 px-3 py-2 transition-all duration-200",
@@ -264,6 +279,7 @@ function DuoColorPickerSimple({
           return (
             <button
               key={baseId}
+              type="button"
               onClick={() => setActivePreset(baseId)}
               className={cn(
                 "relative flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 transition-all duration-200",
@@ -301,6 +317,7 @@ function DuoColorPickerSimple({
           return (
             <button
               key={preset.id}
+              type="button"
               onClick={() => setActivePreset(preset.id)}
               className={cn(
                 "relative flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 transition-all duration-200",
@@ -331,6 +348,7 @@ function DuoColorPickerSimple({
                 />
               )}
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeCustomPreset(preset.id);
@@ -346,6 +364,7 @@ function DuoColorPickerSimple({
       </div>
 
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
         className="flex items-center gap-2 rounded-xl border-2 border-dashed border-[var(--duo-border)] px-3 py-2.5 text-[var(--duo-fg-muted)] transition-all duration-200 hover:border-[var(--duo-primary)] hover:text-[var(--duo-primary)] active:scale-[0.98]"
       >
@@ -361,10 +380,14 @@ function DuoColorPickerSimple({
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]">
+            <label
+              htmlFor={customNameInputId}
+              className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]"
+            >
               Nome
             </label>
             <input
+              id={customNameInputId}
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
               placeholder="Meu Tema"
@@ -372,11 +395,15 @@ function DuoColorPickerSimple({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]">
+            <label
+              htmlFor={customColorInputId}
+              className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg-muted)]"
+            >
               Cor primária
             </label>
             <div className="flex items-center gap-3">
               <input
+                id={customColorInputId}
                 type="color"
                 value={customColor}
                 onChange={(e) => setCustomColor(e.target.value)}

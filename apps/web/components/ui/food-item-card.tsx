@@ -6,7 +6,7 @@ import type { MealFoodItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export interface FoodItemCardProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onClick"> {
   food: MealFoodItem;
   isExpanded: boolean;
   onToggle: () => void;
@@ -22,12 +22,9 @@ export function FoodItemCard({
   ...props
 }: FoodItemCardProps) {
   return (
-    <div
-      className={cn("transition-all", className)}
-      onClick={(e) => e.stopPropagation()}
-      {...props}
-    >
-      <div
+    <div className={cn("transition-all", className)} {...props}>
+      <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           onToggle();
@@ -38,8 +35,6 @@ export function FoodItemCard({
             ? "border-duo-blue bg-duo-blue/5 shadow-sm"
             : "border-duo-border bg-duo-bg-card hover:border-duo-blue hover:shadow-sm",
         )}
-        role="button"
-        tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -82,25 +77,25 @@ export function FoodItemCard({
                 >
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.calories}
+                      {Math.round(food.calories)}
                     </div>
                     <div className="text-xs text-duo-fg-muted">cal</div>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.protein}g
+                      {Math.round(food.protein)}g
                     </div>
                     <div className="text-xs text-duo-fg-muted">prot</div>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.carbs}g
+                      {Math.round(food.carbs)}g
                     </div>
                     <div className="text-xs text-duo-fg-muted">carb</div>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.fats}g
+                      {Math.round(food.fats)}g
                     </div>
                     <div className="text-xs text-duo-fg-muted">gord</div>
                   </div>
@@ -130,7 +125,7 @@ export function FoodItemCard({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </button>
     </div>
   );
 }

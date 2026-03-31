@@ -1,10 +1,18 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoButton } from "@/components/duo";
+import { usePersonal } from "@/hooks/use-personal";
+import { usePersonalBootstrapBridge } from "@/hooks/use-personal-bootstrap";
 import { submitPersonalOnboarding } from "./actions";
 import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
@@ -48,6 +56,10 @@ function Confetti() {
 
 export default function PersonalOnboardingPage() {
   const router = useRouter();
+  const profile = usePersonal("profile");
+  const { refetch: refetchProfile } = usePersonalBootstrapBridge(["profile"], {
+    enabled: false,
+  });
   const [step, setStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -77,11 +89,11 @@ export default function PersonalOnboardingPage() {
 
       isChecking = true;
       try {
-        const { apiClient } = await import("@/lib/api/client");
-        const response = await apiClient.get<{ personal: { id: string } | null }>(
-          "/api/personals",
-        );
-        if (response.data?.personal?.id) {
+        const result = await refetchProfile();
+        const resolvedProfile =
+          (result.data?.data.profile as { id?: string } | null | undefined) ??
+          profile;
+        if (resolvedProfile?.id) {
           window.location.href = "/personal";
           return;
         }
@@ -98,7 +110,7 @@ export default function PersonalOnboardingPage() {
       clearTimeout(timeoutId);
       isChecking = false;
     };
-  }, [isMounted, loading]);
+  }, [isMounted, loading, profile, refetchProfile]);
 
   const canProceed = () => {
     if (step === 1) return formData.name.trim().length >= 2;
@@ -194,8 +206,12 @@ export default function PersonalOnboardingPage() {
           </div>
 
           <AnimatePresence mode="wait">
-            {step === 1 && <Step1 formData={formData} setFormData={setFormData} />}
-            {step === 2 && <Step2 formData={formData} setFormData={setFormData} />}
+            {step === 1 && (
+              <Step1 formData={formData} setFormData={setFormData} />
+            )}
+            {step === 2 && (
+              <Step2 formData={formData} setFormData={setFormData} />
+            )}
           </AnimatePresence>
 
           {error && (
@@ -216,7 +232,11 @@ export default function PersonalOnboardingPage() {
           >
             {step > 1 && (
               <div className="flex-1">
-                <DuoButton onClick={handleBack} variant="white" className="w-full">
+                <DuoButton
+                  onClick={handleBack}
+                  variant="white"
+                  className="w-full"
+                >
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   VOLTAR
                 </DuoButton>

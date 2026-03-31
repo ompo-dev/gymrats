@@ -1,4 +1,4 @@
-import type { StudentPlan, GymPlan, PersonalPlan } from "./types";
+import type { GymPlan, PersonalPlan, StudentPlan } from "./types";
 
 /**
  * plans-config.ts
@@ -24,7 +24,7 @@ export interface GymPlanConfig extends PlanConfig {
     annual: number; // base centavos
   };
   pricePerStudent: number; // centavos
-  pricePerPersonal?: number; // centavos
+  pricePerPersonal?: number; // centavos por personal filiado no plano mensal
 }
 
 export interface PersonalPlanConfig extends PlanConfig {}
@@ -83,7 +83,7 @@ export const GYM_PLANS_CONFIG: Record<GymPlan, GymPlanConfig> = {
       annual: 300000, // R$ 3.000,00
     },
     pricePerStudent: 150, // R$ 1,50
-    pricePerPersonal: 10000, // R$ 100,00
+    pricePerPersonal: 15000, // R$ 150,00
   },
   PREMIUM: {
     id: "premium",
@@ -115,7 +115,7 @@ export const GYM_PLANS_CONFIG: Record<GymPlan, GymPlanConfig> = {
       annual: 700000, // R$ 7.000,00
     },
     pricePerStudent: 50, // R$ 0,50
-    pricePerPersonal: 10000, // R$ 100,00
+    pricePerPersonal: 5000, // R$ 50,00
   },
 };
 

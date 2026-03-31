@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { usePersonal } from "@/hooks/use-personal";
+import { useCallback, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 
 export interface UsePersonalSettingsProps {
   initialProfile: {
@@ -19,8 +19,11 @@ export interface UsePersonalSettingsProps {
   } | null;
 }
 
-export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps) {
-  const { profile, actions, loaders } = usePersonal("profile", "actions", "loaders");
+export function usePersonalSettings({
+  initialProfile,
+}: UsePersonalSettingsProps) {
+  const profile = usePersonalUnifiedStore((state) => state.data.profile);
+  const updateProfile = usePersonalUnifiedStore((state) => state.updateProfile);
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -47,7 +50,7 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
       }
       setSaving(true);
       try {
-        await actions.updateProfile({
+        await updateProfile({
           name: data.name.trim(),
           email: data.email.trim(),
           phone: data.phone?.trim() || null,
@@ -67,8 +70,8 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
       } catch (err) {
         const msg =
           err && typeof err === "object" && "response" in err
-            ? (err as { response?: { data?: { error?: string } } }).response?.data
-                ?.error
+            ? (err as { response?: { data?: { error?: string } } }).response
+                ?.data?.error
             : err instanceof Error
               ? err.message
               : "Erro ao salvar. Tente novamente.";
@@ -83,7 +86,7 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
         setSaving(false);
       }
     },
-    [actions, toast],
+    [toast, updateProfile],
   );
 
   return {
@@ -91,6 +94,5 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
     saving,
     saveError,
     handleSave,
-    loadSection: loaders.loadSection,
   };
 }

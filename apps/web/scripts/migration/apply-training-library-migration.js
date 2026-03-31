@@ -24,19 +24,21 @@ async function applyTrainingLibraryMigration() {
     `);
 
     // 3. Remover index unico antigo do studentId
-    console.log("3. Removendo a constraint UNIQUE do studentId no weekly_plans...");
+    console.log(
+      "3. Removendo a constraint UNIQUE do studentId no weekly_plans...",
+    );
     try {
       await prisma.$executeRawUnsafe(`
         DROP INDEX IF EXISTS "weekly_plans_studentId_key";
       `);
-    } catch (e) {
+    } catch (_e) {
       console.log("   (Aviso): Index único já removido ou não existe.");
     }
 
-    // 4. Migrar os dados existentes: 
+    // 4. Migrar os dados existentes:
     // Para todos os WeeklyPlans existentes que o Estudante ainda não vinculou como Ativo, vincular agora e desmarcar template.
     console.log("4. Migrando planos ativos (1:1 -> Library + Ativo)...");
-    
+
     // Esse update cruza as duas tabelas: atualiza student onde activeWeeklyPlanId esta nulo
     await prisma.$executeRawUnsafe(`
       UPDATE "students" 
@@ -52,7 +54,7 @@ async function applyTrainingLibraryMigration() {
       await prisma.$executeRawUnsafe(`
         CREATE UNIQUE INDEX IF NOT EXISTS "students_activeWeeklyPlanId_key" ON "students"("activeWeeklyPlanId");
       `);
-    } catch (e) {
+    } catch (_e) {
       console.log("   (Aviso): Index já existe.");
     }
 
@@ -61,18 +63,18 @@ async function applyTrainingLibraryMigration() {
       await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS "weekly_plans_studentId_idx" ON "weekly_plans"("studentId");
       `);
-    } catch (e) {
-        console.log("   (Aviso): Index já existe.");
+    } catch (_e) {
+      console.log("   (Aviso): Index já existe.");
     }
 
     // Ligar FK para garantir integridade. Pode falhar se já houver. O prisma DB push fará o resto.
     try {
-        await prisma.$executeRawUnsafe(`
+      await prisma.$executeRawUnsafe(`
           ALTER TABLE "students" ADD CONSTRAINT "students_activeWeeklyPlanId_fkey" 
           FOREIGN KEY ("activeWeeklyPlanId") REFERENCES "weekly_plans"("id") ON DELETE SET NULL ON UPDATE CASCADE;
         `);
-    } catch(e) {
-        // ignora
+    } catch (_e) {
+      // ignora
     }
 
     console.log("✅ Migração da Training Library concluída com sucesso!");

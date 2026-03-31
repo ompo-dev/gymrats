@@ -7,8 +7,14 @@ import type { DailyNutrition, PersonalRecord, UserProgress } from "@/lib/types";
 import type {
   StudentData,
   StudentDataSection,
+  StudentJoinGymResult,
+  StudentPaymentPlanOption,
+  StudentPixPaymentPayload,
+  StudentReferralApplyResult,
   WorkoutCompletionData,
 } from "@/lib/types/student-unified";
+
+type LibraryPlanPayload = Record<string, unknown>;
 
 export interface StudentUnifiedState {
   data: StudentData;
@@ -21,6 +27,23 @@ export interface StudentUnifiedState {
   loadStudentCore: () => Promise<void>;
   loadWorkouts: (force?: boolean) => Promise<void>;
   loadWeeklyPlan: (force?: boolean) => Promise<void>;
+  loadActiveNutritionPlan: () => Promise<void>;
+  loadNutritionLibraryPlans: () => Promise<void>;
+  createWeeklyPlan: () => Promise<void>;
+  updateWeeklyPlan: (payload: {
+    title?: string;
+    description?: string;
+  }) => Promise<void>;
+  resetWeeklyPlan: () => Promise<void>;
+  addWeeklyPlanWorkout: (payload: {
+    planSlotId: string;
+    title: string;
+    description?: string;
+    muscleGroup?: string;
+    difficulty?: string;
+    estimatedTime?: number;
+    type?: string;
+  }) => Promise<string>;
   loadNutrition: () => Promise<void>;
   loadFinancial: () => Promise<void>;
   loadUser: () => Promise<void>;
@@ -28,11 +51,13 @@ export interface StudentUnifiedState {
   loadProfile: () => Promise<void>;
   loadWeightHistory: () => Promise<void>;
   loadWorkoutHistory: () => Promise<void>;
+  loadLibraryPlans: () => Promise<void>;
   loadPersonalRecords: () => Promise<void>;
   loadSubscription: () => Promise<void>;
   loadMemberships: () => Promise<void>;
   loadPayments: () => Promise<void>;
   loadPaymentMethods: () => Promise<void>;
+  loadReferral: () => Promise<void>;
   loadDayPasses: () => Promise<void>;
   loadFriends: () => Promise<void>;
   loadGymLocations: () => Promise<void>;
@@ -47,7 +72,58 @@ export interface StudentUnifiedState {
   updateSubscription: (
     subscription: Partial<StudentData["subscription"]> | null,
   ) => Promise<void>;
+  updateReferralPixKey: (payload: {
+    pixKey: string;
+    pixKeyType: string;
+  }) => Promise<void>;
+  requestReferralWithdraw: (amountCents: number) => Promise<void>;
   addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
+  createLibraryPlan: (data: LibraryPlanPayload) => Promise<string>;
+  updateLibraryPlan: (
+    planId: string,
+    data: LibraryPlanPayload,
+  ) => Promise<void>;
+  deleteLibraryPlan: (planId: string) => Promise<void>;
+  activateLibraryPlan: (planId: string) => Promise<void>;
+  createNutritionLibraryPlan: (data: {
+    title?: string;
+    description?: string | null;
+    meals?: import("@/lib/types").Meal[];
+  }) => Promise<string>;
+  updateNutritionLibraryPlan: (
+    planId: string,
+    data: {
+      title?: string;
+      description?: string | null;
+      meals?: import("@/lib/types").Meal[];
+    },
+  ) => Promise<void>;
+  deleteNutritionLibraryPlan: (planId: string) => Promise<void>;
+  activateNutritionLibraryPlan: (planId: string) => Promise<void>;
+  joinGym: (payload: {
+    gymId: string;
+    planId: string;
+    couponId?: string | null;
+  }) => Promise<StudentJoinGymResult>;
+  loadGymPlans: (gymId: string) => Promise<StudentPaymentPlanOption[]>;
+  changeMembershipPlan: (payload: {
+    membershipId: string;
+    planId: string;
+  }) => Promise<StudentPixPaymentPayload>;
+  cancelMembership: (membershipId: string) => Promise<void>;
+  cancelPersonalAssignment: (assignmentId: string) => Promise<void>;
+  subscribeToPersonal: (payload: {
+    personalId: string;
+    planId: string;
+    couponId?: string | null;
+  }) => Promise<StudentPixPaymentPayload>;
+  payStudentPayment: (paymentId: string) => Promise<StudentPixPaymentPayload>;
+  cancelStudentPayment: (paymentId: string) => Promise<void>;
+  getStudentPaymentStatus: (paymentId: string) => Promise<string>;
+  getPersonalPaymentStatus: (paymentId: string) => Promise<string>;
+  applyReferralToSubscription: (
+    referralCode: string,
+  ) => Promise<StudentReferralApplyResult>;
   createUnit: (data: { title: string; description?: string }) => Promise<void>;
   updateUnit: (
     unitId: string,

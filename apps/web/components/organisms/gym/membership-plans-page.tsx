@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useInvalidateGymBootstrap } from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 
@@ -45,7 +46,8 @@ export function MembershipPlansPage({
 }: {
   plans: MembershipPlan[];
 }) {
-  const { actions, loaders } = useGym("actions", "loaders");
+  const actions = useGym("actions");
+  const refreshGymBootstrap = useInvalidateGymBootstrap();
   const [plans, setPlans] = useState(initialPlans);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export function MembershipPlansPage({
       };
       if (editingId) {
         await actions.updateMembershipPlan(editingId, payload);
+        await refreshGymBootstrap();
         setPlans((prev) =>
           prev.map((p) =>
             p.id === editingId
@@ -93,6 +96,7 @@ export function MembershipPlansPage({
         );
       } else {
         await actions.createMembershipPlan(payload);
+        await refreshGymBootstrap();
         setPlans((prev) => [
           ...prev,
           {
@@ -106,7 +110,6 @@ export function MembershipPlansPage({
           } as MembershipPlan,
         ]);
       }
-      await loaders.loadSection("membershipPlans");
       resetForm();
     } catch (error) {
       console.error("Erro ao salvar plano:", error);
@@ -127,8 +130,8 @@ export function MembershipPlansPage({
 
     try {
       await actions.deleteMembershipPlan(planToDelete);
+      await refreshGymBootstrap();
       setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
-      await loaders.loadSection("membershipPlans");
     } catch (error) {
       console.error("Erro ao deletar plano:", error);
       alert("Erro ao deletar plano");
@@ -252,10 +255,14 @@ export function MembershipPlansPage({
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
+              <label
+                htmlFor="membership-plan-name"
+                className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
+              >
                 Nome do Plano
               </label>
               <DuoInput.Simple
+                id="membership-plan-name"
                 placeholder="Ex: Mensal Básico"
                 value={form.name}
                 onChange={(e) =>
@@ -264,10 +271,14 @@ export function MembershipPlansPage({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
+              <label
+                htmlFor="membership-plan-type"
+                className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
+              >
                 Tipo (duração definida automaticamente)
               </label>
               <DuoSelect.Simple
+                id="membership-plan-type"
                 options={PLAN_TYPES}
                 value={form.type}
                 onChange={updateFormType}
@@ -278,10 +289,14 @@ export function MembershipPlansPage({
               </p>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
+              <label
+                htmlFor="membership-plan-price"
+                className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
+              >
                 Preço (R$)
               </label>
               <DuoInput.Simple
+                id="membership-plan-price"
                 type="number"
                 placeholder="0.00"
                 value={form.price}
@@ -291,10 +306,14 @@ export function MembershipPlansPage({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
+              <label
+                htmlFor="membership-plan-benefits"
+                className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
+              >
                 Benefícios (separados por vírgula)
               </label>
               <DuoInput.Simple
+                id="membership-plan-benefits"
                 placeholder="Acesso total, Avaliação física..."
                 value={form.benefits}
                 onChange={(e) =>

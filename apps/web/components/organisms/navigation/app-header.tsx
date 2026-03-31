@@ -70,6 +70,7 @@ function AppHeaderSimple({ userType, stats, showLogo = true }: AppHeaderProps) {
           >
             {/* Color Picker - teste de temas */}
             <button
+              type="button"
               onClick={() => setThemeModalOpen(true)}
               className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-duo-border bg-duo-bg-card text-duo-primary transition-all hover:border-duo-primary hover:bg-duo-primary/10"
               aria-label="Testar temas"
@@ -79,6 +80,7 @@ function AppHeaderSimple({ userType, stats, showLogo = true }: AppHeaderProps) {
             {/* Streak only for students */}
             {!isTeamView && (
               <button
+                type="button"
                 onClick={() => setStreakModalOpen(true)}
                 className={cn(
                   "flex items-center gap-1.5 rounded-2xl border-2 bg-duo-bg-card transition-all",

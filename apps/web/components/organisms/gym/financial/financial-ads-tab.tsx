@@ -10,29 +10,27 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  createBoostCampaign,
-  deleteBoostCampaign,
-  getBoostCampaignPix,
-} from "@/app/gym/actions";
-import {
-  createPersonalBoostCampaign,
-  deletePersonalBoostCampaign,
-  getPersonalBoostCampaignPix,
-} from "@/app/personal/actions";
-import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { apiClient } from "@/lib/api/client";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
+import {
+  useInvalidateGymBootstrap,
+  useInvalidatePersonalBootstrap,
+} from "@/hooks/use-bootstrap-refresh";
+import { useGym } from "@/hooks/use-gym";
+import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
-import type { BoostCampaign, Coupon, MembershipPlan } from "@/lib/types";
+import type { BoostCampaign, Coupon } from "@/lib/types";
+
+type BoostCampaignPlanOption = {
+  id: string;
+  name: string;
+};
 
 interface FinancialAdsTabProps {
   campaigns?: BoostCampaign[];
   coupons?: Coupon[];
-  plans?: MembershipPlan[];
+  plans?: BoostCampaignPlanOption[];
   variant?: "gym" | "personal";
 }
 
@@ -105,8 +103,26 @@ export function FinancialAdsTab({
   plans = [],
   variant = "gym",
 }: FinancialAdsTabProps) {
-  const router = useRouter();
   const { toast } = useToast();
+  const gymData = useGym("campaigns", "coupons", "membershipPlans", "actions");
+  const personalData = usePersonal(
+    "campaigns",
+    "coupons",
+    "membershipPlans",
+    "actions",
+  );
+  const selectedStore = variant === "personal" ? personalData : gymData;
+  const actions = selectedStore.actions;
+  const invalidateGymBootstrap = useInvalidateGymBootstrap();
+  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
+  const refreshBootstrap =
+    variant === "personal"
+      ? invalidatePersonalBootstrap
+      : invalidateGymBootstrap;
+  const campaignsList =
+    campaigns.length > 0 ? campaigns : selectedStore.campaigns;
+  const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
+  const plansList = plans.length > 0 ? plans : selectedStore.membershipPlans;
 
   // creation modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -148,8 +164,8 @@ export function FinancialAdsTab({
 
   const filteredCampaigns =
     statusFilter === "all"
-      ? campaigns
-      : campaigns.filter((c) => c.status === statusFilter);
+      ? campaignsList
+      : campaignsList.filter((c) => c.status === statusFilter);
 
   const handleCreate = async () => {
     if (!title.trim() || !description.trim()) {
@@ -158,9 +174,7 @@ export function FinancialAdsTab({
     }
     setIsSubmitting(true);
     try {
-      const createFn =
-        variant === "personal" ? createPersonalBoostCampaign : createBoostCampaign;
-      const result = await createFn({
+      const result = await actions.createBoostCampaign({
         title,
         description,
         primaryColor,
@@ -170,58 +184,50 @@ export function FinancialAdsTab({
         amountCents: totalPrice * 100,
         radiusKm,
       });
-
-      if (result.success && result.brCode) {
-        setModalOpen(false);
-        setPixModal({
-          brCode: result.brCode,
-          brCodeBase64: result.brCodeBase64 ?? "",
-          amount: result.amount ?? totalPrice * 100,
-          campaignId: result.campaignId ?? "",
-          campaignTitle: title,
-          expiresAt: result.expiresAt,
-        });
-        setTitle("");
-        setDescription("");
-        setPrimaryColor("#E2FF38");
-        setDurationHours(12);
-        setRadiusKm(5);
-        router.refresh();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "error" in result ? result.error : "Erro ao criar campanha",
-        });
-        setIsSubmitting(false);
-      }
-    } catch {
-      toast({ variant: "destructive", title: "Erro ao criar campanha." });
+      await refreshBootstrap();
+      setModalOpen(false);
+      setPixModal({
+        brCode: result.brCode,
+        brCodeBase64: result.brCodeBase64 ?? "",
+        amount: result.amount ?? totalPrice * 100,
+        campaignId: result.campaignId ?? "",
+        campaignTitle: title,
+        expiresAt: result.expiresAt,
+      });
+      setTitle("");
+      setDescription("");
+      setPrimaryColor("#E2FF38");
+      setDurationHours(12);
+      setRadiusKm(5);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title:
+          error instanceof Error ? error.message : "Erro ao criar campanha.",
+      });
       setIsSubmitting(false);
+      return;
     }
+    setIsSubmitting(false);
   };
 
   const handlePayCampaign = async (campaign: BoostCampaign) => {
     setPayingId(campaign.id);
     try {
-      const getPixFn =
-        variant === "personal"
-          ? getPersonalBoostCampaignPix
-          : getBoostCampaignPix;
-      const result = await getPixFn(campaign.id);
-      if (result.success) {
-        setPixModal({
-          brCode: result.brCode,
-          brCodeBase64: result.brCodeBase64,
-          amount: result.amount,
-          campaignId: campaign.id,
-          campaignTitle: campaign.title,
-          expiresAt: result.expiresAt,
-        });
-      } else {
-        toast({ variant: "destructive", title: result.error });
-      }
-    } catch {
-      toast({ variant: "destructive", title: "Erro ao gerar PIX." });
+      const result = await actions.getBoostCampaignPix(campaign.id);
+      setPixModal({
+        brCode: result.brCode,
+        brCodeBase64: result.brCodeBase64,
+        amount: result.amount,
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        expiresAt: result.expiresAt,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Erro ao gerar PIX.",
+      });
     } finally {
       setPayingId(null);
     }
@@ -230,20 +236,16 @@ export function FinancialAdsTab({
   const handleDelete = async (campaignId: string) => {
     setDeletingId(campaignId);
     try {
-      const deleteFn =
-        variant === "personal"
-          ? deletePersonalBoostCampaign
-          : deleteBoostCampaign;
-      const result = await deleteFn(campaignId);
-      if (result.success) {
-        toast({ title: "Campanha exclu\u00edda." });
-        setConfirmDeleteId(null);
-        router.refresh();
-      } else {
-        toast({ variant: "destructive", title: result.error });
-      }
-    } catch {
-      toast({ variant: "destructive", title: "Erro ao excluir campanha." });
+      await actions.deleteBoostCampaign(campaignId);
+      await refreshBootstrap();
+      toast({ title: "Campanha excluída." });
+      setConfirmDeleteId(null);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title:
+          error instanceof Error ? error.message : "Erro ao excluir campanha.",
+      });
     } finally {
       setDeletingId(null);
     }
@@ -289,10 +291,11 @@ export function FinancialAdsTab({
           </DuoCard.Root>
 
           {/* Filtros */}
-          {campaigns.length > 0 && (
+          {campaignsList.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {STATUS_FILTERS.map((f) => (
                 <button
+                  type="button"
                   key={f.value}
                   onClick={() => setStatusFilter(f.value)}
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all border-2 ${
@@ -304,7 +307,9 @@ export function FinancialAdsTab({
                   {f.label}
                   {f.value !== "all" && (
                     <span className="ml-1 opacity-60">
-                      ({campaigns.filter((c) => c.status === f.value).length})
+                      (
+                      {campaignsList.filter((c) => c.status === f.value).length}
+                      )
                     </span>
                   )}
                 </button>
@@ -365,6 +370,7 @@ export function FinancialAdsTab({
                     {/* Botão de cancelar */}
                     {campaign.status !== "canceled" && (
                       <button
+                        type="button"
                         onClick={() => setConfirmDeleteId(campaign.id)}
                         className="p-1 rounded-lg text-duo-gray-dark hover:text-red-400 hover:bg-red-400/10 transition-colors"
                         title="Cancelar campanha"
@@ -426,280 +432,274 @@ export function FinancialAdsTab({
         </div>
       </DuoCard.Root>
 
-      <AnimatePresence>
-        {modalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
+      {modalOpen && (
+        <div className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center">
+          <button
+            type="button"
+            aria-label="Fechar modal de anúncio"
+            className="absolute inset-0"
             onClick={() => setModalOpen(false)}
+          />
+          <div
+            aria-labelledby="financial-ads-modal-title"
+            aria-modal="true"
+            role="dialog"
+            className="relative z-10 w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
+            style={{
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                maxHeight: "90vh",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {/* Header */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="border-b-2 border-duo-border p-6 shrink-0"
-              >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-duo-text">
-                    Criar Anúncio
-                  </h2>
-                  <DuoButton
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setModalOpen(false)}
-                    className="h-10 w-10 rounded-full"
-                  >
-                    ✕
-                  </DuoButton>
-                </div>
-              </motion.div>
+            {/* Header */}
+            <div className="border-b-2 border-duo-border p-6 shrink-0">
+              <div className="flex items-center justify-between">
+                <h2
+                  id="financial-ads-modal-title"
+                  className="text-2xl font-bold text-duo-text"
+                >
+                  Criar Anúncio
+                </h2>
+                <DuoButton
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setModalOpen(false)}
+                  className="h-10 w-10 rounded-full"
+                >
+                  ✕
+                </DuoButton>
+              </div>
+            </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                {/* Preview */}
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {/* Preview */}
+              <div>
+                <p className="text-sm font-bold text-duo-fg-muted mb-2">
+                  Preview do anúncio
+                </p>
+                <DuoCard.Root
+                  variant="default"
+                  padding="none"
+                  className="overflow-hidden ring-1 ring-black/5"
+                >
+                  <div className="p-5 flex-1 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center border border-duo-border">
+                        <Dumbbell className="w-5 h-5 text-duo-gray-dark" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-duo-text truncate">
+                          {variant === "personal"
+                            ? "Seu perfil"
+                            : "Sua academia"}
+                        </p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Sparkles
+                            className="w-3 h-3"
+                            style={{ color: primaryColor }}
+                          />
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-duo-gray-dark">
+                            Patrocinado
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <h3
+                        className="font-extrabold text-xl leading-snug mb-2 line-clamp-2"
+                        style={{ color: primaryColor }}
+                      >
+                        {title || "Título Chamativo da Promoção"}
+                      </h3>
+                      <p className="text-sm font-medium text-duo-fg-muted line-clamp-2">
+                        {description ||
+                          (variant === "personal"
+                            ? "Mostre por que os alunos devem escolher você..."
+                            : "Mostre por que os alunos devem escolher a sua academia...")}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-duo-border/60">
+                      <div
+                        className="w-full py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90 active:scale-[0.98]"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        Aproveitar Oferta
+                      </div>
+                    </div>
+                  </div>
+                </DuoCard.Root>
+              </div>
+
+              {/* Campos */}
+              <div className="space-y-4">
+                <DuoInput.Simple
+                  label="Título do Anúncio"
+                  placeholder="Ex: Promoção de Verão"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
                 <div>
-                  <p className="text-sm font-bold text-duo-fg-muted mb-2">
-                    Preview do anúncio
-                  </p>
-                  <DuoCard.Root
-                    variant="default"
-                    padding="none"
-                    className="overflow-hidden ring-1 ring-black/5"
+                  <label
+                    htmlFor="campaign-description"
+                    className="text-sm font-bold text-duo-text mb-1 block"
                   >
-                    <div className="p-5 flex-1 flex flex-col gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center border border-duo-border">
-                          <Dumbbell className="w-5 h-5 text-duo-gray-dark" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-duo-text truncate">
-                            {variant === "personal" ? "Seu perfil" : "Sua academia"}
-                          </p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <Sparkles
-                              className="w-3 h-3"
-                              style={{ color: primaryColor }}
-                            />
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-duo-gray-dark">
-                              Patrocinado
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        <h3
-                          className="font-extrabold text-xl leading-snug mb-2 line-clamp-2"
-                          style={{ color: primaryColor }}
-                        >
-                          {title || "Título Chamativo da Promoção"}
-                        </h3>
-                        <p className="text-sm font-medium text-duo-fg-muted line-clamp-2">
-                          {description ||
-                            (variant === "personal"
-                              ? "Mostre por que os alunos devem escolher você..."
-                              : "Mostre por que os alunos devem escolher a sua academia...")}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 pt-4 border-t border-duo-border/60">
-                        <div
-                          className="w-full py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90 active:scale-[0.98]"
-                          style={{ backgroundColor: primaryColor }}
-                        >
-                          Aproveitar Oferta
-                        </div>
-                      </div>
-                    </div>
-                  </DuoCard.Root>
+                    Descrição
+                  </label>
+                  <textarea
+                    id="campaign-description"
+                    className="w-full h-24 rounded-xl border-2 border-duo-border bg-duo-bg p-3 text-duo-text focus:border-duo-primary focus:outline-none transition-colors"
+                    placeholder="Descreva a oferta..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
                 </div>
 
-                {/* Campos */}
-                <div className="space-y-4">
-                  <DuoInput.Simple
-                    label="Título do Anúncio"
-                    placeholder="Ex: Promoção de Verão"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">
-                      Descrição
-                    </label>
-                    <textarea
-                      className="w-full h-24 rounded-xl border-2 border-duo-border bg-duo-bg p-3 text-duo-text focus:border-duo-primary focus:outline-none transition-colors"
-                      placeholder="Descreva a oferta..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                <div>
+                  <label
+                    htmlFor="campaign-primary-color"
+                    className="text-sm font-bold text-duo-text mb-1 block"
+                  >
+                    Cor Primária (opcional)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="campaign-primary-color"
+                      type="color"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 border-duo-border bg-duo-bg"
+                    />
+                    <DuoInput.Simple
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">
-                      Cor Primária (opcional)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 border-duo-border bg-duo-bg"
-                      />
-                      <DuoInput.Simple
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                      />
+                <div>
+                  <p className="text-sm font-bold text-duo-text mb-2 block">
+                    Duração do Anúncio
+                  </p>
+                  <div className="flex items-center justify-between bg-duo-bg border-2 border-duo-border rounded-xl px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={decDuration}
+                      disabled={durationHours <= MIN_HOURS}
+                      className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      −
+                    </button>
+                    <div className="text-center">
+                      <p className="font-bold text-lg text-duo-text">
+                        {formatDuration(durationHours)}
+                      </p>
+                      <p className="text-xs text-duo-gray-dark">
+                        R$ {totalPrice.toFixed(2)}
+                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={incDuration}
+                      className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary"
+                    >
+                      +
+                    </button>
                   </div>
+                  <p className="text-xs text-duo-gray-dark mt-1 text-center">
+                    R$ {stepPrice.toFixed(2)} por cada 12h
+                  </p>
+                </div>
 
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-2 block">
-                      Duração do Anúncio
-                    </label>
-                    <div className="flex items-center justify-between bg-duo-bg border-2 border-duo-border rounded-xl px-4 py-3">
-                      <button
-                        onClick={decDuration}
-                        disabled={durationHours <= MIN_HOURS}
-                        className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        −
-                      </button>
-                      <div className="text-center">
-                        <p className="font-bold text-lg text-duo-text">
-                          {formatDuration(durationHours)}
-                        </p>
-                        <p className="text-xs text-duo-gray-dark">
-                          R$ {totalPrice.toFixed(2)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={incDuration}
-                        className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <p className="text-xs text-duo-gray-dark mt-1 text-center">
-                      R$ {stepPrice.toFixed(2)} por cada 12h
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-2 flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      Alcance (raio)
-                    </label>
-                    <DuoSelect.Simple
-                      value={String(radiusKm)}
-                      onChange={(val) => setRadiusKm(Number(val))}
-                      options={RADIUS_OPTIONS.map((o) => ({
-                        value: String(o.value),
-                        label: o.label,
-                      }))}
-                      placeholder="Raio em km"
-                    />
-                    <p className="text-xs text-duo-gray-dark mt-1">
-                      Alunos dentro deste raio verão o anúncio na home. Multiplicador: x
-                      {radiusMultiplier}.
-                    </p>
-                  </div>
-
+                <div>
+                  <p className="text-sm font-bold text-duo-text mb-2 flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    Alcance (raio)
+                  </p>
                   <DuoSelect.Simple
-                    label="Cupom Vinculado (Opcional)"
-                    value={linkedCouponId}
-                    onChange={(val) => setLinkedCouponId(val)}
-                    options={[
-                      { value: "", label: "Nenhum cupom" },
-                      ...coupons
-                        .filter((c) => c.isActive)
-                        .map((c) => ({
+                    value={String(radiusKm)}
+                    onChange={(val) => setRadiusKm(Number(val))}
+                    options={RADIUS_OPTIONS.map((o) => ({
+                      value: String(o.value),
+                      label: o.label,
+                    }))}
+                    placeholder="Raio em km"
+                  />
+                  <p className="text-xs text-duo-gray-dark mt-1">
+                    Alunos dentro deste raio verão o anúncio na home.
+                    Multiplicador: x{radiusMultiplier}.
+                  </p>
+                </div>
+
+                <DuoSelect.Simple
+                  label="Cupom Vinculado (Opcional)"
+                  value={linkedCouponId}
+                  onChange={(val) => setLinkedCouponId(val)}
+                  options={[
+                    { value: "", label: "Nenhum cupom" },
+                    ...couponsList
+                      .filter((c) => c.isActive)
+                      .map((c) => ({
                         value: c.id,
                         label: `${c.code} (${c.type === "percentage" ? `${c.value}%` : `R$ ${c.value}`})`,
                       })),
-                    ]}
-                  />
+                  ]}
+                />
 
-                  <DuoSelect.Simple
-                    label="Plano Vinculado (Opcional)"
-                    value={linkedPlanId}
-                    onChange={(val) => setLinkedPlanId(val)}
-                    options={[
-                      { value: "", label: "Levar para o perfil da academia" },
-                      ...plans.map((p) => ({ value: p.id, label: p.name })),
-                    ]}
-                  />
-                </div>
+                <DuoSelect.Simple
+                  label="Plano Vinculado (Opcional)"
+                  value={linkedPlanId}
+                  onChange={(val) => setLinkedPlanId(val)}
+                  options={[
+                    { value: "", label: "Levar para o perfil da academia" },
+                    ...plansList.map((p) => ({ value: p.id, label: p.name })),
+                  ]}
+                />
               </div>
+            </div>
 
-              {/* Footer */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.3 }}
-                className="shrink-0 border-t-2 border-duo-border p-6 space-y-4"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-duo-gray-dark">
-                    {formatDuration(durationHours)}
-                  </span>
-                  <span className="font-bold text-duo-text text-xl">
-                    R$ {totalPrice.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex gap-3">
-                  <DuoButton
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => setModalOpen(false)}
-                  >
-                    Cancelar
-                  </DuoButton>
-                  <DuoButton
-                    className="flex-1"
-                    onClick={handleCreate}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Processando..." : `Gerar PIX `}
-                  </DuoButton>
-                </div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {/* Footer */}
+            <div className="shrink-0 border-t-2 border-duo-border p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-duo-gray-dark">
+                  {formatDuration(durationHours)}
+                </span>
+                <span className="font-bold text-duo-text text-xl">
+                  R$ {totalPrice.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex gap-3">
+                <DuoButton
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setModalOpen(false)}
+                >
+                  Cancelar
+                </DuoButton>
+                <DuoButton
+                  className="flex-1"
+                  onClick={handleCreate}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Processando..." : `Gerar PIX `}
+                </DuoButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Modal PIX */}
       {pixModal && (
         <PixQrModal
           isOpen={!!pixModal}
           onClose={() => {
             setPixModal(null);
-            router.refresh();
           }}
           onCancelPayment={async () => {
-            const deleteFn =
-              variant === "personal"
-                ? deletePersonalBoostCampaign
-                : deleteBoostCampaign;
-            await deleteFn(pixModal.campaignId);
+            await actions.deleteBoostCampaign(pixModal.campaignId);
           }}
           title="Pagar Anúncio"
           brCode={pixModal.brCode}
@@ -712,24 +712,19 @@ export function FinancialAdsTab({
               : `/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`
           }
           onSimulateSuccess={async () => {
-            router.refresh();
+            await refreshBootstrap();
           }}
           pollConfig={{
             type: "check",
             check: async () => {
-              const base =
-                variant === "personal"
-                  ? "/api/personals/boost-campaigns"
-                  : "/api/gym/boost-campaigns";
-              const res = await apiClient.get<{ status: string }>(
-                `${base}/${pixModal.campaignId}`,
+              return selectedStore.actions.checkBoostCampaignActive(
+                pixModal.campaignId,
               );
-              return res.data.status === "active";
             },
           }}
           onPaymentConfirmed={() => {
             setPixModal(null);
-            router.refresh();
+            void refreshBootstrap();
           }}
           paymentConfirmedToast={{
             title: "Campanha ativada!",

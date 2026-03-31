@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoButton } from "@/components/duo";
+import { useStudent } from "@/hooks/use-student";
 import { validateConsolidatedStep1 } from "./schemas";
 import { ConsolidatedStep1 } from "./steps/consolidated-step1";
 import { ConsolidatedStep2 } from "./steps/consolidated-step2";
@@ -53,6 +54,8 @@ function Confetti() {
 
 export default function StudentOnboardingPage() {
   const _router = useRouter();
+  const profile = useStudent("profile");
+  const loaders = useStudent("loaders");
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -77,12 +80,12 @@ export default function StudentOnboardingPage() {
       isChecking = true;
 
       try {
-        const { apiClient } = await import("@/lib/api/client");
-        const response = await apiClient.get<{ hasProfile: boolean }>(
-          "/api/students/profile",
-        );
-
-        if (response.data.hasProfile === true) {
+        await loaders.loadProfile();
+        const hasProfile =
+          profile?.height != null &&
+          profile?.weight != null &&
+          profile?.fitnessLevel != null;
+        if (hasProfile) {
           window.location.href = "/student";
           return;
         }
@@ -99,7 +102,14 @@ export default function StudentOnboardingPage() {
       clearTimeout(timeoutId);
       isChecking = false;
     };
-  }, [isMounted, isSubmitting]);
+  }, [
+    isMounted,
+    isSubmitting,
+    loaders,
+    profile?.height,
+    profile?.weight,
+    profile?.fitnessLevel,
+  ]);
 
   // Reseta forceValidation quando o step muda
   useEffect(() => {

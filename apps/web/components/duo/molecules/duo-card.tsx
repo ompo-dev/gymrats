@@ -63,6 +63,8 @@ function DuoCardRoot({
 
   return (
     <div
+      data-slot="duo-card"
+      data-variant={variant}
       className={cn(
         "bg-[var(--duo-bg-card)] transition-all duration-300 ease-out",
         paddingMap[effectivePadding],
@@ -98,6 +100,7 @@ function DuoCardHeader({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      data-slot="duo-card-header"
       className={cn("mb-3 flex items-center justify-between gap-3", className)}
       {...props}
     >
@@ -112,7 +115,7 @@ function DuoCardContent({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("", className)} {...props}>
+    <div data-slot="duo-card-content" className={cn("", className)} {...props}>
       {children}
     </div>
   );
@@ -125,6 +128,7 @@ function DuoCardFooter({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      data-slot="duo-card-footer"
       className={cn(
         "mt-4 flex gap-3 border-t border-[var(--duo-border)] pt-3",
         className,

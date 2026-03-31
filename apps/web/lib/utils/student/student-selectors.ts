@@ -3,7 +3,69 @@
  * Seletores simples gerados automaticamente; compostos explícitos.
  */
 
-import type { StudentData } from "@/lib/types/student-unified";
+import type {
+  StudentData,
+  WeightHistoryItem,
+} from "@/lib/types/student-unified";
+
+export interface StudentSelectorValueMap {
+  user: StudentData["user"];
+  student: StudentData["student"];
+  progress: StudentData["progress"];
+  profile: StudentData["profile"];
+  weightHistory: WeightHistoryItem[];
+  weightGain: StudentData["weightGain"];
+  units: StudentData["units"];
+  weeklyPlan: StudentData["weeklyPlan"];
+  libraryPlans: StudentData["libraryPlans"];
+  workoutHistory: StudentData["workoutHistory"];
+  personalRecords: StudentData["personalRecords"];
+  activeNutritionPlan: StudentData["activeNutritionPlan"];
+  nutritionLibraryPlans: StudentData["nutritionLibraryPlans"];
+  dailyNutrition: StudentData["dailyNutrition"];
+  foodDatabase: StudentData["foodDatabase"];
+  subscription: StudentData["subscription"];
+  memberships: StudentData["memberships"];
+  payments: StudentData["payments"];
+  paymentMethods: StudentData["paymentMethods"];
+  referral: StudentData["referral"];
+  dayPasses: StudentData["dayPasses"];
+  friends: StudentData["friends"];
+  gymLocations: StudentData["gymLocations"];
+  activeWorkout: StudentData["activeWorkout"];
+  metadata: StudentData["metadata"];
+  xp: StudentData["progress"]["totalXP"];
+  totalXP: StudentData["progress"]["totalXP"];
+  todayXP: StudentData["progress"]["todayXP"];
+  currentStreak: StudentData["progress"]["currentStreak"];
+  longestStreak: StudentData["progress"]["longestStreak"];
+  currentLevel: StudentData["progress"]["currentLevel"];
+  level: StudentData["progress"]["currentLevel"];
+  xpToNextLevel: StudentData["progress"]["xpToNextLevel"];
+  workoutsCompleted: StudentData["progress"]["workoutsCompleted"];
+  achievements: StudentData["progress"]["achievements"];
+  name: StudentData["user"]["name"];
+  email: StudentData["user"]["email"];
+  username: StudentData["user"]["username"];
+  memberSince: StudentData["user"]["memberSince"];
+  avatar: string | undefined;
+  age: StudentData["student"]["age"];
+  gender: StudentData["student"]["gender"];
+  phone: StudentData["student"]["phone"];
+  currentWeight: number | null;
+  weight: number | null;
+  height: StudentData["profile"]["height"];
+  fitnessLevel: StudentData["profile"]["fitnessLevel"];
+  goals: StudentData["profile"]["goals"];
+  targetCalories: StudentData["profile"]["targetCalories"];
+  targetProtein: StudentData["profile"]["targetProtein"];
+  targetCarbs: StudentData["profile"]["targetCarbs"];
+  targetFats: StudentData["profile"]["targetFats"];
+  isAdmin: StudentData["user"]["isAdmin"];
+  role: StudentData["user"]["role"];
+}
+
+export type StudentDataSelectorKey = keyof StudentSelectorValueMap;
 
 export function selectUser(d: StudentData) {
   return d.user;
@@ -17,8 +79,17 @@ export function selectProgress(d: StudentData) {
 export function selectProfile(d: StudentData) {
   return d.profile;
 }
-export function selectWeightHistory(d: StudentData) {
-  return d.weightHistory;
+export function selectWeightHistory(d: StudentData): WeightHistoryItem[] {
+  if (Array.isArray(d.weightHistory)) {
+    return d.weightHistory as WeightHistoryItem[];
+  }
+
+  return Array.isArray(
+    (d.weightHistory as { history?: unknown[] } | undefined)?.history,
+  )
+    ? (((d.weightHistory as { history?: unknown[] }).history ??
+        []) as WeightHistoryItem[])
+    : [];
 }
 export function selectWeightGain(d: StudentData) {
   return d.weightGain;
@@ -29,14 +100,29 @@ export function selectUnits(d: StudentData) {
 export function selectWeeklyPlan(d: StudentData) {
   return d.weeklyPlan;
 }
-export function selectWorkoutHistory(d: StudentData) {
-  return d.workoutHistory;
+export function selectWorkoutHistory(
+  d: StudentData,
+): StudentData["workoutHistory"] {
+  return Array.isArray(d.workoutHistory)
+    ? d.workoutHistory
+    : Array.isArray(
+          (d.workoutHistory as { history?: unknown[] } | undefined)?.history,
+        )
+      ? (((d.workoutHistory as { history?: unknown[] }).history ??
+          []) as StudentData["workoutHistory"])
+      : [];
 }
 export function selectPersonalRecords(d: StudentData) {
   return d.personalRecords;
 }
 export function selectDailyNutrition(d: StudentData) {
   return d.dailyNutrition;
+}
+export function selectActiveNutritionPlan(d: StudentData) {
+  return d.activeNutritionPlan;
+}
+export function selectNutritionLibraryPlans(d: StudentData) {
+  return d.nutritionLibraryPlans;
 }
 export function selectFoodDatabase(d: StudentData) {
   return d.foodDatabase;
@@ -52,6 +138,9 @@ export function selectPayments(d: StudentData) {
 }
 export function selectPaymentMethods(d: StudentData) {
   return d.paymentMethods;
+}
+export function selectReferral(d: StudentData) {
+  return d.referral;
 }
 export function selectDayPasses(d: StudentData) {
   return d.dayPasses;
@@ -120,7 +209,9 @@ export function selectPhone(d: StudentData) {
 }
 
 export function selectCurrentWeight(d: StudentData) {
-  return d.profile.weight || (d.weightHistory[0]?.weight ?? null);
+  const weightHistory = selectWeightHistory(d);
+  const profile = d.profile as { weight?: number } | null | undefined;
+  return profile?.weight ?? weightHistory[0]?.weight ?? null;
 }
 export function selectHeight(d: StudentData) {
   return d.profile.height;
@@ -151,10 +242,11 @@ export function selectRole(d: StudentData) {
   return d.user.role;
 }
 
-export const selectorMap: Record<
-  string,
-  (data: StudentData) => import("@/lib/types/api-error").JsonValue
-> = {
+export const selectorMap: {
+  [K in StudentDataSelectorKey]: (
+    data: StudentData,
+  ) => StudentSelectorValueMap[K];
+} = {
   user: selectUser,
   student: selectStudent,
   progress: selectProgress,
@@ -163,14 +255,18 @@ export const selectorMap: Record<
   weightGain: selectWeightGain,
   units: selectUnits,
   weeklyPlan: selectWeeklyPlan,
+  libraryPlans: (d) => d.libraryPlans,
   workoutHistory: selectWorkoutHistory,
   personalRecords: selectPersonalRecords,
+  activeNutritionPlan: selectActiveNutritionPlan,
+  nutritionLibraryPlans: selectNutritionLibraryPlans,
   dailyNutrition: selectDailyNutrition,
   foodDatabase: selectFoodDatabase,
   subscription: selectSubscription,
   memberships: selectMemberships,
   payments: selectPayments,
   paymentMethods: selectPaymentMethods,
+  referral: selectReferral,
   dayPasses: selectDayPasses,
   friends: selectFriends,
   gymLocations: selectGymLocations,
@@ -207,32 +303,21 @@ export const selectorMap: Record<
   role: selectRole,
 };
 
-export function selectFromData(
+export function selectFromData<S extends StudentDataSelectorKey>(
   data: StudentData,
-  selector: string,
-): string | number | boolean | object | null | undefined {
-  const selectFn = selectorMap[selector];
-  if (selectFn) return selectFn(data);
-  if (selector in data)
-    return (
-      data as Record<
-        string,
-        string | number | boolean | object | null | undefined
-      >
-    )[selector];
-  return undefined;
+  selector: S,
+): StudentSelectorValueMap[S] {
+  return selectorMap[selector](data);
 }
 
-export function selectMultiple(
+export function selectMultiple<S extends readonly StudentDataSelectorKey[]>(
   data: StudentData,
-  selectors: string[],
-): Record<string, string | number | boolean | object | null | undefined> {
-  const result: Record<
-    string,
-    string | number | boolean | object | null | undefined
-  > = {};
+  selectors: S,
+): { [K in S[number]]: StudentSelectorValueMap[K] } {
+  const result = {} as { [K in S[number]]: StudentSelectorValueMap[K] };
   for (const selector of selectors) {
-    result[selector] = selectFromData(data, selector);
+    (result as Record<StudentDataSelectorKey, unknown>)[selector] =
+      selectFromData(data, selector);
   }
   return result;
 }

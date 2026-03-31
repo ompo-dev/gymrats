@@ -1,15 +1,15 @@
 "use server";
 
+import { serverApiDelete, serverApiGet, serverApiPost } from "@/lib/api/server";
 import {
-  GYM_PLANS_CONFIG,
-  centsToReais,
-} from "@/lib/access-control/plans-config";
-import { db } from "@/lib/db";
-import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
-import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
-import { GymMemberService } from "@/lib/services/gym/gym-member.service";
+  buildApiPath,
+  getApiErrorMessage,
+  reviveDate,
+} from "@/lib/api/server-action-utils";
 import type {
+  BoostCampaign,
   CheckIn,
+  Coupon,
   Equipment,
   Expense,
   FinancialSummary,
@@ -18,20 +18,134 @@ import type {
   Payment,
   StudentData,
 } from "@/lib/types";
-import { getGymContext } from "@/lib/utils/gym/gym-context";
+import {
+  normalizeEquipmentItem,
+  normalizeEquipmentList,
+} from "@/lib/utils/gym/normalize-equipment";
 
-// ============================================
-// INFORMAÇÕES DO USUÁRIO
-// ============================================
+type SessionPayload = {
+  user?: {
+    role?: string | null;
+  };
+};
+
+type BalanceWithdraws = {
+  balanceReais: number;
+  balanceCents: number;
+  withdraws: Array<{
+    id: string;
+    amount: number;
+    pixKey: string;
+    pixKeyType: string;
+    externalId: string;
+    status: string;
+    createdAt: Date | string;
+    completedAt: Date | string | null;
+  }>;
+};
+
+function reviveGymProfile(profile: GymProfile | null): GymProfile | null {
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    ...profile,
+    createdAt: reviveDate(profile.createdAt) as Date,
+  };
+}
+
+function reviveCheckIns(checkIns: CheckIn[]): CheckIn[] {
+  return checkIns.map((checkIn) => ({
+    ...checkIn,
+    timestamp: reviveDate(checkIn.timestamp) as Date,
+    checkOut:
+      (reviveDate(checkIn.checkOut) as Date | null | undefined) ?? undefined,
+  }));
+}
+
+function revivePayments(payments: Payment[]): Payment[] {
+  return payments.map((payment) => ({
+    ...payment,
+    date: reviveDate(payment.date) as Date,
+    dueDate: reviveDate(payment.dueDate) as Date,
+    withdrawnAt:
+      (reviveDate(payment.withdrawnAt) as Date | null | undefined) ?? undefined,
+  }));
+}
+
+function reviveExpenses(expenses: Expense[]): Expense[] {
+  return expenses.map((expense) => ({
+    ...expense,
+    date: reviveDate(expense.date) as Date,
+  }));
+}
+
+function reviveCoupons(coupons: Coupon[]): Coupon[] {
+  return coupons.map((coupon) => ({
+    ...coupon,
+    expiryDate: reviveDate(coupon.expiryDate) as Date,
+  }));
+}
+
+function reviveCampaigns(campaigns: BoostCampaign[]): BoostCampaign[] {
+  return campaigns.map((campaign) => ({
+    ...campaign,
+    startsAt: (reviveDate(campaign.startsAt) as Date | null) ?? null,
+    endsAt: (reviveDate(campaign.endsAt) as Date | null) ?? null,
+    createdAt: reviveDate(campaign.createdAt) as Date,
+    updatedAt: reviveDate(campaign.updatedAt) as Date,
+  }));
+}
+
+function reviveBalanceWithdraws(data: BalanceWithdraws): BalanceWithdraws {
+  return {
+    ...data,
+    withdraws: data.withdraws.map((withdraw) => ({
+      ...withdraw,
+      createdAt: reviveDate(withdraw.createdAt) as Date,
+      completedAt: (reviveDate(withdraw.completedAt) as Date | null) ?? null,
+    })),
+  };
+}
+
+function reviveGymSubscription(
+  subscription: Record<string, unknown> | null,
+  isFirstPayment?: boolean,
+) {
+  if (!subscription) {
+    return null;
+  }
+
+  return {
+    ...subscription,
+    currentPeriodStart: reviveDate(
+      subscription.currentPeriodStart as string | Date | null | undefined,
+    ),
+    currentPeriodEnd: reviveDate(
+      subscription.currentPeriodEnd as string | Date | null | undefined,
+    ),
+    trialStart: reviveDate(
+      subscription.trialStart as string | Date | null | undefined,
+    ),
+    trialEnd: reviveDate(
+      subscription.trialEnd as string | Date | null | undefined,
+    ),
+    canceledAt: reviveDate(
+      subscription.canceledAt as string | Date | null | undefined,
+    ),
+    isFirstPayment:
+      (subscription.isFirstPayment as boolean | undefined) ?? isFirstPayment,
+  };
+}
 
 export async function getCurrentUserInfo() {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return { isAdmin: false, role: null };
+    const payload = await serverApiGet<SessionPayload>("/api/auth/session");
 
     return {
-      isAdmin: ctx.user.role === "ADMIN",
-      role: ctx.user.role ?? null,
+      isAdmin: payload.user?.role === "ADMIN",
+      role: payload.user?.role ?? null,
     };
   } catch (error) {
     console.error("[getCurrentUserInfo] Erro:", error);
@@ -39,15 +153,12 @@ export async function getCurrentUserInfo() {
   }
 }
 
-// ============================================
-// PERFIL E INVENTÁRIO (GymInventoryService)
-// ============================================
-
 export async function getGymProfile(): Promise<GymProfile | null> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return null;
-    return GymInventoryService.getProfile(ctx.gymId);
+    const payload = await serverApiGet<{ profile: GymProfile | null }>(
+      "/api/gyms/profile",
+    );
+    return reviveGymProfile(payload.profile);
   } catch (error) {
     console.error("[getGymProfile] Erro:", error);
     return null;
@@ -56,9 +167,10 @@ export async function getGymProfile(): Promise<GymProfile | null> {
 
 export async function getGymEquipment(): Promise<Equipment[]> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    return GymInventoryService.getEquipment(ctx.gymId);
+    const payload = await serverApiGet<{ equipment: Equipment[] }>(
+      "/api/gyms/equipment",
+    );
+    return normalizeEquipmentList(payload.equipment);
   } catch (error) {
     console.error("[getGymEquipment] Erro:", error);
     return [];
@@ -69,9 +181,10 @@ export async function getGymEquipmentById(
   equipmentId: string,
 ): Promise<Equipment | null> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return null;
-    return GymInventoryService.getEquipmentById(ctx.gymId, equipmentId);
+    const payload = await serverApiGet<{ equipment: Equipment }>(
+      `/api/gyms/equipment/${equipmentId}`,
+    );
+    return normalizeEquipmentItem(payload.equipment);
   } catch (error) {
     console.error("[getGymEquipmentById] Erro:", error);
     return null;
@@ -80,24 +193,20 @@ export async function getGymEquipmentById(
 
 export async function getGymMembershipPlans() {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    return GymInventoryService.getMembershipPlans(ctx.gymId);
+    const payload = await serverApiGet<{ plans: unknown[] }>("/api/gyms/plans");
+    return payload.plans;
   } catch (error) {
     console.error("[getGymMembershipPlans] Erro:", error);
     return [];
   }
 }
 
-// ============================================
-// MEMBROS E ALUNOS (GymMemberService)
-// ============================================
-
 export async function getGymStudents(): Promise<StudentData[]> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    return (await GymMemberService.getStudents(ctx.gymId)) as StudentData[];
+    const payload = await serverApiGet<{ students: StudentData[] }>(
+      "/api/gyms/students",
+    );
+    return payload.students;
   } catch (error) {
     console.error("[getGymStudents] Erro:", error);
     return [];
@@ -106,13 +215,10 @@ export async function getGymStudents(): Promise<StudentData[]> {
 
 export async function getGymRecentCheckIns(): Promise<CheckIn[]> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    const checkIns = await GymMemberService.getRecentCheckIns(ctx.gymId);
-    return checkIns.map((c) => ({
-      ...c,
-      checkOut: c.checkOut ?? undefined,
-    })) as CheckIn[];
+    const payload = await serverApiGet<{ checkIns: CheckIn[] }>(
+      "/api/gyms/checkins/recent",
+    );
+    return reviveCheckIns(payload.checkIns);
   } catch (error) {
     console.error("[getGymRecentCheckIns] Erro:", error);
     return [];
@@ -123,27 +229,22 @@ export async function getGymStudentById(
   studentId: string,
 ): Promise<StudentData | null> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return null;
-    return (await GymMemberService.getStudentById(
-      ctx.gymId,
-      studentId,
-    )) as StudentData | null;
+    const payload = await serverApiGet<{ student: StudentData }>(
+      `/api/gyms/students/${studentId}`,
+    );
+    return payload.student;
   } catch (error) {
     console.error("[getGymStudentById] Erro:", error);
     return null;
   }
 }
 
-// ============================================
-// FINANCEIRO (GymFinancialService)
-// ============================================
-
 export async function getGymFinancialSummary(): Promise<FinancialSummary | null> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return null;
-    return GymFinancialService.getFinancialSummary(ctx.gymId);
+    const payload = await serverApiGet<{ summary: FinancialSummary | null }>(
+      "/api/gyms/financial-summary",
+    );
+    return payload.summary;
   } catch (error) {
     console.error("[getGymFinancialSummary] Erro:", error);
     return null;
@@ -154,9 +255,10 @@ export async function getGymStudentPayments(
   studentId: string,
 ): Promise<Payment[]> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    return GymFinancialService.getPayments(ctx.gymId, studentId);
+    const payload = await serverApiGet<{ payments: Payment[] }>(
+      buildApiPath("/api/gyms/payments", { studentId }),
+    );
+    return revivePayments(payload.payments);
   } catch (error) {
     console.error("[getGymStudentPayments] Erro:", error);
     return [];
@@ -165,9 +267,10 @@ export async function getGymStudentPayments(
 
 export async function getGymPayments(): Promise<Payment[]> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    return GymFinancialService.getPayments(ctx.gymId);
+    const payload = await serverApiGet<{ payments: Payment[] }>(
+      "/api/gyms/payments",
+    );
+    return revivePayments(payload.payments);
   } catch (error) {
     console.error("[getGymPayments] Erro:", error);
     return [];
@@ -176,78 +279,34 @@ export async function getGymPayments(): Promise<Payment[]> {
 
 export async function getGymExpenses(): Promise<Expense[]> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    return GymFinancialService.getExpenses(ctx.gymId);
+    const payload = await serverApiGet<{ expenses: Expense[] }>(
+      "/api/gyms/expenses",
+    );
+    return reviveExpenses(payload.expenses);
   } catch (error) {
     console.error("[getGymExpenses] Erro:", error);
     return [];
   }
 }
 
-// ============================================
-// ESTATÍSTICAS E OUTROS
-// ============================================
-
 export async function getGymStats(): Promise<GymStats | null> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return null;
-    return GymInventoryService.getStats(ctx.gymId);
+    const payload = await serverApiGet<{ stats: GymStats | null }>(
+      "/api/gyms/stats",
+    );
+    return payload.stats;
   } catch (error) {
     console.error("[getGymStats] Erro:", error);
     return null;
   }
 }
 
-export async function getGymCoupons(): Promise<import("@/lib/types").Coupon[]> {
+export async function getGymCoupons(): Promise<Coupon[]> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    const now = new Date();
-
-    await db.gymCoupon.updateMany({
-      where: {
-        gymId: ctx.gymId,
-        isActive: true,
-        expiresAt: { lt: now },
-      },
-      data: { isActive: false },
-    });
-
-    const limitedCoupons = await db.gymCoupon.findMany({
-      where: {
-        gymId: ctx.gymId,
-        isActive: true,
-        maxUses: { not: -1 },
-      },
-      select: { id: true, currentUses: true, maxUses: true },
-    });
-    const maxedCouponIds = limitedCoupons
-      .filter((coupon) => coupon.currentUses >= coupon.maxUses)
-      .map((coupon) => coupon.id);
-    if (maxedCouponIds.length > 0) {
-      await db.gymCoupon.updateMany({
-        where: { id: { in: maxedCouponIds } },
-        data: { isActive: false },
-      });
-    }
-
-    const dbCoupons = await db.gymCoupon.findMany({
-      where: { gymId: ctx.gymId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return dbCoupons.map((c) => ({
-      id: c.id,
-      code: c.code,
-      type: c.discountType as "percentage" | "fixed",
-      value: c.discountValue,
-      maxUses: c.maxUses === -1 ? 999999 : c.maxUses,
-      currentUses: c.currentUses,
-      expiryDate: c.expiresAt ?? new Date(9999, 11, 31),
-      isActive: c.isActive,
-    }));
+    const payload = await serverApiGet<{ coupons: Coupon[] }>(
+      "/api/gyms/coupons",
+    );
+    return reviveCoupons(payload.coupons);
   } catch (error) {
     console.error("[getGymCoupons] Erro:", error);
     return [];
@@ -263,89 +322,22 @@ export async function createGymCoupon(data: {
   expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-
-    const code = data.code.trim().toUpperCase();
-    const discountType = data.discountKind === "PERCENTAGE" ? "percentage" : "fixed";
-    const parsedExpiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
-    if (parsedExpiresAt && Number.isNaN(parsedExpiresAt.getTime())) {
-      return { success: false, error: "Data de validade inv\u00e1lida" };
-    }
-
-    // Verifica duplicação no DB
-    const existing = await db.gymCoupon.findFirst({
-      where: { gymId: ctx.gymId, code },
-    });
-    if (existing) return { success: false, error: "Cupom com esse código já existe" };
-
-    // Tenta sincronizar com AbacatePay (opcional — não bloqueia se falhar)
-    let abacatePayId: string | undefined;
-    try {
-      const { abacatePay } = await import("@/lib/api/abacatepay");
-      const res = await abacatePay.createCoupon({
-        code,
-        notes: data.notes || code,
-        discountKind: data.discountKind,
-        discount: data.discount,
-        maxRedeems: data.maxRedeems ?? -1,
-      });
-      if (res.data) {
-        abacatePayId = res.data.id;
-      }
-    } catch {
-      // ignora erro do AbacatePay — salva no DB mesmo assim
-    }
-
-    // Salva no banco de dados
-    await db.gymCoupon.create({
-      data: {
-        gymId: ctx.gymId,
-        code,
-        notes: data.notes || code,
-        discountType,
-        discountValue: data.discount,
-        maxUses: data.maxRedeems ?? -1,
-        isActive: true,
-        expiresAt: parsedExpiresAt,
-        abacatePayId,
-      },
-    });
-
-    return { success: true };
+    return await serverApiPost<{ success: true }>("/api/gyms/coupons", data);
   } catch (error) {
     console.error("[createGymCoupon] Erro:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Erro ao criar cupom",
+      error: getApiErrorMessage(error, "Erro ao criar cupom"),
     };
   }
 }
 
-// ============================================
-// ADS / BOOST CAMPAIGNS
-// ============================================
-
 export async function getGymBoostCampaigns() {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return [];
-    const now = new Date();
-
-    await db.boostCampaign.updateMany({
-      where: {
-        gymId: ctx.gymId,
-        status: "active",
-        endsAt: { lte: now },
-      },
-      data: { status: "expired" },
-    });
-
-    return await db.boostCampaign.findMany({
-      where: { gymId: ctx.gymId },
-      orderBy: { createdAt: "desc" },
-    });
+    const payload = await serverApiGet<{ campaigns: BoostCampaign[] }>(
+      "/api/gyms/boost-campaigns",
+    );
+    return reviveCampaigns(payload.campaigns);
   } catch (error) {
     console.error("[getGymBoostCampaigns] Erro:", error);
     return [];
@@ -363,80 +355,24 @@ export async function createBoostCampaign(data: {
   radiusKm?: number;
 }) {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-
-    const gym = await db.gym.findUnique({
-      where: { id: ctx.gymId },
-      select: { name: true, email: true },
-    });
-
-    const radiusKm = data.radiusKm ?? 5;
-
-    // Cria a campanha no DB com status pending_payment
-    const campaign = await db.boostCampaign.create({
-      data: {
-        gymId: ctx.gymId,
-        title: data.title,
-        description: data.description,
-        primaryColor: data.primaryColor,
-        linkedCouponId: data.linkedCouponId,
-        linkedPlanId: data.linkedPlanId,
-        durationHours: data.durationHours,
-        amountCents: data.amountCents,
-        radiusKm,
-        status: "pending_payment",
-      },
-    });
-
-    // Gera PIX direto (igual ao fluxo de alunos — não exige taxId)
-    const { abacatePay } = await import("@/lib/api/abacatepay");
-    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
-    const pixResponse = await abacatePay.createPixQrCode({
-      amount: data.amountCents,
-      expiresIn: PIX_EXPIRES_IN_SECONDS, // 4 minutos
-      description: `Impulsionamento: ${data.title}`.slice(0, 37),
-      metadata: {
-        campaignId: campaign.id,
-        gymId: ctx.gymId,
-        kind: "boost-campaign",
-      },
-      customer: gym?.email
-        ? {
-            name: gym.name ?? "Academia",
-            email: gym.email,
-            cellphone: "",
-            taxId: "",
-          }
-        : undefined,
-    });
-
-    if (pixResponse.error || !pixResponse.data) {
-      return {
-        success: false,
-        error: pixResponse.error ?? "Erro ao gerar PIX",
-      } as const;
-    }
-
-    // Salva o ID do PIX na campanha
-    await db.boostCampaign.update({
-      where: { id: campaign.id },
-      data: { abacatePayBillingId: pixResponse.data.id },
-    });
-
-    return {
-      success: true,
-      brCode: pixResponse.data.brCode,
-      brCodeBase64: pixResponse.data.brCodeBase64,
-      amount: pixResponse.data.amount,
-      pixId: pixResponse.data.id,
-      campaignId: campaign.id,
-      expiresAt: pixResponse.data.expiresAt,
-    } as const;
+    return await serverApiPost<
+      | {
+          success: true;
+          brCode: string;
+          brCodeBase64: string;
+          amount: number;
+          pixId: string;
+          campaignId: string;
+          expiresAt?: string;
+        }
+      | { success: false; error: string }
+    >("/api/gyms/boost-campaigns", data);
   } catch (error) {
     console.error("[createBoostCampaign] Erro:", error);
-    return { success: false, error: "Erro interno ao criar campanha" } as const;
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro interno ao criar campanha"),
+    } as const;
   }
 }
 
@@ -448,51 +384,35 @@ export async function deleteGymCoupon(
   couponId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "N\u00e3o autenticado" };
-
-    const deleted = await db.gymCoupon.deleteMany({
-      where: { id: couponId, gymId: ctx.gymId },
-    });
-
-    if (deleted.count === 0) {
-      return { success: false, error: "Cupom n\u00e3o encontrado" };
-    }
-
-    return { success: true };
+    return await serverApiDelete<{ success: true }>(
+      buildApiPath("/api/gyms/coupons", { couponId }),
+    );
   } catch (error) {
     console.error("[deleteGymCoupon] Erro:", error);
-    return { success: false, error: "Erro ao excluir cupom" };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao excluir cupom"),
+    };
   }
 }
 
-/** Cancela/deleta uma campanha da academia. Só é possível se não estiver ativa ou pagamento pendente.*/
 export async function deleteBoostCampaign(
   campaignId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "N\u00e3o autenticado" };
-
-    const deleted = await db.boostCampaign.deleteMany({
-      where: { id: campaignId, gymId: ctx.gymId },
-    });
-
-    if (deleted.count === 0)
-      return { success: false, error: "Campanha n\u00e3o encontrada" };
-
-    return { success: true };
+    return await serverApiDelete<{ success: true }>(
+      buildApiPath("/api/gyms/boost-campaigns", { campaignId }),
+    );
   } catch (error) {
     console.error("[deleteBoostCampaign] Erro:", error);
-    return { success: false, error: "Erro ao excluir campanha" };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao excluir campanha"),
+    };
   }
 }
 
-export async function getBoostCampaignPix(
-  campaignId: string,
-): Promise<
+export async function getBoostCampaignPix(campaignId: string): Promise<
   | {
       success: true;
       brCode: string;
@@ -504,101 +424,36 @@ export async function getBoostCampaignPix(
   | { success: false; error: string }
 > {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-
-    const campaign = await db.boostCampaign.findFirst({
-      where: { id: campaignId, gymId: ctx.gymId, status: "pending_payment" },
-      include: { gym: { select: { name: true, email: true } } },
-    });
-
-    if (!campaign) return { success: false, error: "Campanha não encontrada ou já paga" };
-
-    const { abacatePay } = await import("@/lib/api/abacatepay");
-
-    // Se já tem PIX e ainda não expirou, retorna o existente
-    if (campaign.abacatePayBillingId) {
-      const existing = await abacatePay.checkPixQrCodeStatus(campaign.abacatePayBillingId);
-      if (existing.data?.status === "PENDING") {
-        // Busca o brCode do PIX existente (a API checkPixQrCodeStatus não retorna brCode,
-        // precisamos recriar — mas salva uma chamada extra na maioria dos casos)
-        // Por simplicidade, sempre recria o PIX para garantir o QR code fresco
-      }
-    }
-
-    // Cria novo PIX
-    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
-    const pixResponse = await abacatePay.createPixQrCode({
-      amount: campaign.amountCents,
-      expiresIn: PIX_EXPIRES_IN_SECONDS, // 4 minutos
-      description: `Impulsionamento: ${campaign.title}`.slice(0, 37),
-      metadata: {
-        campaignId: campaign.id,
-        gymId: ctx.gymId,
-        kind: "boost-campaign",
-      },
-      customer: campaign.gym?.email
-        ? {
-            name: campaign.gym.name ?? "Academia",
-            email: campaign.gym.email,
-            cellphone: "",
-            taxId: "",
-          }
-        : undefined,
-    });
-
-    if (pixResponse.error || !pixResponse.data) {
-      return { success: false, error: pixResponse.error ?? "Erro ao gerar PIX" };
-    }
-
-    // Atualiza o ID do PIX na campanha
-    await db.boostCampaign.update({
-      where: { id: campaign.id },
-      data: { abacatePayBillingId: pixResponse.data.id },
-    });
-
-    return {
-      success: true,
-      brCode: pixResponse.data.brCode,
-      brCodeBase64: pixResponse.data.brCodeBase64,
-      amount: pixResponse.data.amount,
-      pixId: pixResponse.data.id,
-      expiresAt: pixResponse.data.expiresAt,
-    };
+    return await serverApiGet<
+      | {
+          success: true;
+          brCode: string;
+          brCodeBase64: string;
+          amount: number;
+          pixId: string;
+          expiresAt?: string;
+        }
+      | { success: false; error: string }
+    >(`/api/gyms/boost-campaigns/${campaignId}/pix`);
   } catch (error) {
     console.error("[getBoostCampaignPix] Erro:", error);
-    return { success: false, error: "Erro ao gerar PIX" };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao gerar PIX"),
+    };
   }
 }
 
-
-export async function getGymBalanceWithdraws(): Promise<{
-  balanceReais: number;
-  balanceCents: number;
-  withdraws: {
-    id: string;
-    amount: number;
-    pixKey: string;
-    pixKeyType: string;
-    externalId: string;
-    status: string;
-    createdAt: Date;
-    completedAt: Date | null;
-  }[];
-}> {
+export async function getGymBalanceWithdraws(): Promise<BalanceWithdraws> {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { balanceReais: 0, balanceCents: 0, withdraws: [] };
-    return GymFinancialService.getBalanceAndWithdraws(ctx.gymId);
+    const payload = await serverApiGet<BalanceWithdraws>("/api/gyms/withdraws");
+    return reviveBalanceWithdraws(payload);
   } catch (error) {
     console.error("[getGymBalanceWithdraws] Erro:", error);
     return { balanceReais: 0, balanceCents: 0, withdraws: [] };
   }
 }
 
-/** Cria saque. Use fake: true em dev (AbacatePay dev mode) para não chamar a API real. */
 export async function createGymWithdraw(data: {
   amountCents: number;
   fake?: boolean;
@@ -607,66 +462,30 @@ export async function createGymWithdraw(data: {
   | { success: false; error: string }
 > {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
-    const result = await GymFinancialService.createWithdraw(ctx.gymId, {
-      amountCents: data.amountCents,
-      fake: data.fake ?? true,
-    });
-    if (!result.ok) return { success: false, error: result.error };
-    return { success: true, withdraw: result.withdraw };
+    return await serverApiPost<
+      | {
+          success: true;
+          withdraw: { id: string; amount: number; status: string };
+        }
+      | { success: false; error: string }
+    >("/api/gyms/withdraws", data);
   } catch (error) {
     console.error("[createGymWithdraw] Erro:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Erro ao criar saque",
+      error: getApiErrorMessage(error, "Erro ao criar saque"),
     };
   }
 }
 
-// TODO: Mover lógica complexa abaixo para serviços correspondentes conforme necessário
 export async function getGymSubscription() {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return null;
+    const payload = await serverApiGet<{
+      subscription: Record<string, unknown> | null;
+      isFirstPayment?: boolean;
+    }>("/api/gym-subscriptions/current");
 
-    const gymId = ctx.gymId;
-    const subscription = await db.gymSubscription.findUnique({
-      where: { gymId },
-    });
-    if (
-      !subscription ||
-      (subscription.status === "canceled" &&
-        (!subscription.trialEnd || new Date() > subscription.trialEnd))
-    )
-      return null;
-
-    const activeStudents = await db.gymMembership.count({
-      where: { gymId, status: "active" },
-    });
-
-    return {
-      ...subscription,
-      isTrial: subscription.trialEnd
-        ? new Date() < subscription.trialEnd
-        : false,
-      daysRemaining: subscription.trialEnd
-        ? Math.max(
-            0,
-            Math.ceil(
-              (subscription.trialEnd.getTime() - Date.now()) /
-                (1000 * 3600 * 24),
-            ),
-          )
-        : null,
-      activeStudents,
-      totalAmount:
-        subscription.billingPeriod === "annual"
-          ? subscription.basePrice
-          : subscription.basePrice +
-            subscription.pricePerStudent * activeStudents,
-    };
+    return reviveGymSubscription(payload.subscription, payload.isFirstPayment);
   } catch (error) {
     console.error("[getGymSubscription] Erro:", error);
     return null;
@@ -675,99 +494,27 @@ export async function getGymSubscription() {
 
 export async function startGymTrial() {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return { error: "Não autenticado" };
-
-    const gymId = ctx.gymId;
-    const existingSubscription = await db.gymSubscription.findUnique({
-      where: { gymId },
-    });
-
-    if (existingSubscription) {
-      if (existingSubscription.status !== "canceled") {
-        return { error: "Assinatura já existe" };
-      }
-      return {
-        error:
-          "Esta academia já possui uma assinatura cancelada. Renove o plano em vez de iniciar um novo trial.",
-      };
-    }
-
-    const now = new Date();
-    const trialEnd = new Date(now);
-    trialEnd.setDate(trialEnd.getDate() + 14);
-
-    const subscription = await db.gymSubscription.create({
-      data: {
-        gymId,
-        plan: "basic",
-        billingPeriod: "monthly",
-        status: "trialing",
-        basePrice: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
-        pricePerStudent: centsToReais(GYM_PLANS_CONFIG.BASIC.pricePerStudent),
-        currentPeriodStart: now,
-        currentPeriodEnd: trialEnd,
-        trialStart: now,
-        trialEnd: trialEnd,
-      },
-    });
-
-    return { success: true, subscription };
+    const payload = await serverApiPost<Record<string, unknown>>(
+      "/api/gym-subscriptions/start-trial",
+    );
+    return { success: true, ...payload };
   } catch (error) {
     console.error("[startGymTrial] Erro:", error);
-    return { error: "Erro ao iniciar trial" };
+    return {
+      error: getApiErrorMessage(error, "Erro ao iniciar trial"),
+    };
   }
 }
 
-/**
- * Sincroniza os preços da assinatura atual da academia com os preços configurados no plans-config.ts.
- * Útil quando os preços globais mudam e queremos que as academias vejam os valores atualizados.
- */
 export async function syncGymSubscriptionPrices() {
   try {
-    const { ctx, errorResponse } = await getGymContext();
-    if (errorResponse || !ctx) return { error: "Não autenticado" };
-
-    const gymId = ctx.gymId;
-    const subscription = await db.gymSubscription.findUnique({
-      where: { gymId },
-    });
-
-    if (!subscription)
-      return { success: true, message: "Sem assinatura para sincronizar" };
-
-    const planKey =
-      subscription.plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG;
-    const config = GYM_PLANS_CONFIG[planKey];
-
-    if (!config) return { error: "Plano atual inválido na configuração" };
-
-    const newBasePrice = centsToReais(
-      config.prices[subscription.billingPeriod as "monthly" | "annual"],
-    );
-    const newPerStudentPrice =
-      subscription.billingPeriod === "annual"
-        ? 0
-        : centsToReais(config.pricePerStudent);
-
-    if (
-      subscription.basePrice !== newBasePrice ||
-      subscription.pricePerStudent !== newPerStudentPrice
-    ) {
-      await db.gymSubscription.update({
-        where: { id: subscription.id },
-        data: {
-          basePrice: newBasePrice,
-          pricePerStudent: newPerStudentPrice,
-        },
-      });
-      return { success: true, updated: true };
-    }
-
-    return { success: true, updated: false };
+    return await serverApiPost<
+      { success: true; updated: boolean; message?: string } | { error: string }
+    >("/api/gym-subscriptions/sync-prices");
   } catch (error) {
     console.error("[syncGymSubscriptionPrices] Erro:", error);
-    return { error: "Erro ao sincronizar preços" };
+    return {
+      error: getApiErrorMessage(error, "Erro ao sincronizar precos"),
+    };
   }
 }
-

@@ -8,3 +8,14 @@ export function getEnvBoolean(
 
   return value.toLowerCase() !== "false";
 }
+
+export function getEnvString(
+  value: string | undefined,
+  fallback: string,
+): string {
+  if (value == null || value.trim() === "") {
+    return fallback;
+  }
+
+  return value.trim();
+}
