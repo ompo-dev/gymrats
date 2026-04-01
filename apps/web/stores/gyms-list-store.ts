@@ -101,9 +101,9 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
         canCreateMultipleGyms?: boolean;
         activeGymId?: string | null;
       }>("/api/gyms/list", {
-        headers: {
-          "Cache-Control": "no-store",
-        },
+        profile: "minutes",
+        scope: "private",
+        tags: ["gym:list", "gym:list:self", "gym:bootstrap:self"],
       });
       const data = response.data;
 

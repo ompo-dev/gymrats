@@ -10,17 +10,8 @@ import type {
   StudentData,
   StudentDataSection,
 } from "@/lib/types/student-unified";
+import { buildBootstrapCacheTags } from "./cache-tags";
 import { readCachedApi } from "./cached-reader";
-
-function buildSectionTags(area: "student" | "gym" | "personal", sections?: readonly string[]) {
-  const normalizedSections =
-    sections && sections.length > 0 ? [...sections].sort() : ["all"];
-
-  return [
-    `${area}:bootstrap`,
-    ...normalizedSections.map((section) => `${area}:bootstrap:${section}`),
-  ];
-}
 
 export async function readStudentBootstrap(
   sections?: readonly StudentDataSection[],
@@ -33,8 +24,8 @@ export async function readStudentBootstrap(
             sections: sections.join(","),
           }
         : undefined,
-    tags: buildSectionTags("student", sections),
-    profile: "dashboard",
+    tags: buildBootstrapCacheTags("student", sections),
+    profile: "minutes",
     scope: "private",
   });
 }
@@ -48,8 +39,8 @@ export async function readGymBootstrap(sections?: readonly GymDataSection[]) {
             sections: sections.join(","),
           }
         : undefined,
-    tags: buildSectionTags("gym", sections),
-    profile: "dashboard",
+    tags: buildBootstrapCacheTags("gym", sections),
+    profile: "minutes",
     scope: "private",
   });
 }
@@ -65,8 +56,8 @@ export async function readPersonalBootstrap(
             sections: sections.join(","),
           }
         : undefined,
-    tags: buildSectionTags("personal", sections),
-    profile: "dashboard",
+    tags: buildBootstrapCacheTags("personal", sections),
+    profile: "minutes",
     scope: "private",
   });
 }

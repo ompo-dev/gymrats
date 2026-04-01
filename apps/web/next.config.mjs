@@ -131,21 +131,6 @@ const nextConfig = {
       revalidate: 2592000,
       expire: 31536000,
     },
-    realtime: {
-      stale: 5,
-      revalidate: 1,
-      expire: 30,
-    },
-    dashboard: {
-      stale: 60,
-      revalidate: 30,
-      expire: 900,
-    },
-    catalog: {
-      stale: 300,
-      revalidate: 3600,
-      expire: 86400,
-    },
   },
   experimental: {
     externalDir: true,

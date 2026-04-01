@@ -14,8 +14,8 @@ import {
 } from "./bootstrap-readers";
 import { readAuthSession, type AuthSessionPayload } from "./auth-readers";
 import {
-  buildCacheTags,
   inferCacheMetadata,
+  resolveMutationCacheTags,
   type CacheProfile,
   type CacheScope,
 } from "./cache-tags";
@@ -45,15 +45,26 @@ export interface WebMutationActionInput {
   tags?: readonly string[];
 }
 
-function invalidateTags(tags: readonly string[]) {
-  for (const tag of tags) {
+function invalidateTags({
+  updateTags,
+  revalidateTags,
+}: {
+  updateTags: readonly string[];
+  revalidateTags: readonly string[];
+}) {
+  for (const tag of updateTags) {
     updateTag(tag);
+  }
+
+  for (const tag of revalidateTags) {
     revalidateTag(tag, "max");
   }
 }
 
-function resolveMutationTags(input: Pick<WebMutationActionInput, "path" | "tags">) {
-  return buildCacheTags(input.path, input.tags);
+function resolveMutationTags(
+  input: Pick<WebMutationActionInput, "path" | "query" | "tags">,
+) {
+  return resolveMutationCacheTags(buildApiPath(input.path, input.query), input.tags);
 }
 
 export async function getAuthSessionAction(): Promise<AuthSessionPayload> {
@@ -73,7 +84,17 @@ export async function signOutAction() {
     const cookieStore = await cookies();
     cookieStore.delete("auth_token");
     cookieStore.delete("better-auth.session_token");
-    invalidateTags(["auth:all", "auth:session"]);
+    invalidateTags({
+      updateTags: ["auth:session", "auth:viewer:user:self"],
+      revalidateTags: [
+        "student:bootstrap",
+        "student:bootstrap:self",
+        "gym:bootstrap",
+        "gym:bootstrap:self",
+        "personal:bootstrap",
+        "personal:bootstrap:self",
+      ],
+    });
   }
 }
 
@@ -98,8 +119,8 @@ export async function getPersonalBootstrapAction(
 export async function executeWebReadAction<T>(
   input: WebReadActionInput,
 ): Promise<T> {
-  const inferred = inferCacheMetadata(input.path);
   const path = buildApiPath(input.path, input.query);
+  const inferred = inferCacheMetadata(path);
 
   if (input.fresh) {
     return serverApiRequest<T>(path, {

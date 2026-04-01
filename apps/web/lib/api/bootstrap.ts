@@ -32,6 +32,17 @@ export async function getPersonalBootstrapRequest(
 export async function getPaymentStatusRequest(paymentId: string) {
   const response = await actionClient.get<{ id: string; status: string }>(
     `/api/payments/${paymentId}`,
+    {
+      profile: "seconds",
+      scope: "private",
+      tags: [
+        "payments:status",
+        `payments:status:${paymentId}`,
+        "student:payments",
+        "student:subscription",
+        "student:bootstrap:self",
+      ],
+    },
   );
   return response.data;
 }

@@ -57,21 +57,6 @@ const CACHE_LIFE_PROFILES: Record<
     revalidate: 2_592_000,
     expire: 31_536_000,
   },
-  realtime: {
-    stale: 5,
-    revalidate: 1,
-    expire: 30,
-  },
-  dashboard: {
-    stale: 60,
-    revalidate: 30,
-    expire: 900,
-  },
-  catalog: {
-    stale: 300,
-    revalidate: 3_600,
-    expire: 86_400,
-  },
 };
 
 function applyCacheProfile(profile?: CacheProfile) {
