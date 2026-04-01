@@ -62,15 +62,23 @@ const contentSecurityPolicy = [
   "media-src 'self' https:",
 ].join("; ");
 
+const customCacheHandlerPath = "./cache-handlers/redis-cache-handler.mjs";
+const shouldUseCustomCacheHandler =
+  process.env.NEXT_PRIVATE_USE_CUSTOM_CACHE_HANDLER === "1";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   cacheComponents: true,
-  cacheHandler: "./cache-handlers/redis-cache-handler.mjs",
-  cacheHandlers: {
-    default: "./cache-handlers/redis-cache-handler.mjs",
-    remote: "./cache-handlers/redis-cache-handler.mjs",
-  },
-  cacheMaxMemorySize: 0,
+  ...(shouldUseCustomCacheHandler
+    ? {
+        cacheHandler: customCacheHandlerPath,
+        cacheHandlers: {
+          default: customCacheHandlerPath,
+          remote: customCacheHandlerPath,
+        },
+        cacheMaxMemorySize: 0,
+      }
+    : {}),
   typescript: {
     ignoreBuildErrors: true,
   },

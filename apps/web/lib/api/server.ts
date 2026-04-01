@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { resolveApiBaseUrl } from "./client-factory";
+import { resolveApiBaseUrl } from "./resolve-api-base-url";
 
 type JsonObject = Record<string, unknown>;
 
