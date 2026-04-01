@@ -323,11 +323,31 @@ export class GymInventoryService {
       monthTopStudentsRaw,
       weekCheckInsRaw,
     ] = await Promise.all([
-      db.checkIn.count({ where: { gymId, timestamp: { gte: startOfToday } } }),
-      db.checkIn.count({
-        where: { gymId, timestamp: { gte: startOfToday }, checkOut: null },
+      db.accessEvent.count({
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          status: "applied",
+          directionResolved: "entry",
+          occurredAt: { gte: startOfToday },
+        },
       }),
-      db.checkIn.count({ where: { gymId, timestamp: { gte: startOfWeek } } }),
+      db.presenceSession.count({
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          status: "open",
+        },
+      }),
+      db.accessEvent.count({
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          status: "applied",
+          directionResolved: "entry",
+          occurredAt: { gte: startOfWeek },
+        },
+      }),
       db.gymMembership.count({
         where: { gymId, createdAt: { gte: startOfWeek } },
       }),
@@ -339,15 +359,36 @@ export class GymInventoryService {
         _sum: { amount: true },
       }),
       db.gymMembership.count({ where: { gymId, status: "active" } }),
-      db.checkIn.count({ where: { gymId, timestamp: { gte: startOfMonth } } }),
-      db.checkIn.groupBy({
-        by: ["studentId", "studentName"],
-        where: { gymId, timestamp: { gte: startOfMonth } },
+      db.accessEvent.count({
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          status: "applied",
+          directionResolved: "entry",
+          occurredAt: { gte: startOfMonth },
+        },
+      }),
+      db.accessEvent.groupBy({
+        by: ["studentId", "subjectName"],
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          status: "applied",
+          directionResolved: "entry",
+          occurredAt: { gte: startOfMonth },
+          studentId: { not: null },
+        },
         _count: { id: true },
       }),
-      db.checkIn.findMany({
-        where: { gymId, timestamp: { gte: startOfWeek } },
-        select: { timestamp: true },
+      db.accessEvent.findMany({
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          status: "applied",
+          directionResolved: "entry",
+          occurredAt: { gte: startOfWeek },
+        },
+        select: { occurredAt: true },
       }),
     ]);
 
@@ -360,15 +401,17 @@ export class GymInventoryService {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const topStudents = await Promise.all(
       sortedTop.map(async (row) => {
-        const student = await db.student.findUnique({
-          where: { id: row.studentId },
-          select: { avatar: true },
-        });
+        const student = row.studentId
+          ? await db.student.findUnique({
+              where: { id: row.studentId },
+              select: { avatar: true },
+            })
+          : null;
         const checkins = row._count.id;
         const attendanceRate = Math.round((checkins / daysInMonth) * 100);
         return {
-          id: row.studentId,
-          name: row.studentName,
+          id: row.studentId ?? "",
+          name: row.subjectName ?? "Aluno",
           avatar: student?.avatar ?? undefined,
           totalVisits: checkins,
           checkins,
@@ -400,7 +443,7 @@ export class GymInventoryService {
     for (let h = 6; h <= 22; h++) byHour[h] = 0;
 
     for (const c of weekCheckInsRaw) {
-      const d = new Date(c.timestamp);
+      const d = new Date(c.occurredAt);
       const dayOfWeek = d.getDay();
       const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       byDay[dayIndex] = (byDay[dayIndex] ?? 0) + 1;

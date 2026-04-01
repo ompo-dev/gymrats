@@ -191,6 +191,9 @@ model Student {
   // Academias
   memberships GymMembership[]
   dayPasses   DayPass[]
+  accessCredentialBindings AccessCredentialBinding[]
+  accessEvents             AccessEvent[]
+  presenceSessions         PresenceSession[]
 
   // Social
   friends  Friendship[] @relation("UserFriends")
@@ -361,8 +364,13 @@ model Gym {
   coupons GymCoupon[]
 
   // Personais filiados à academia (equipe)
-  personalAffiliations GymPersonalAffiliation[]
+  personalAffiliations     GymPersonalAffiliation[]
   studentPersonalAssignments StudentPersonalAssignment[]
+  accessDevices            AccessDevice[]
+  accessCredentialBindings AccessCredentialBinding[]
+  accessRawEvents          AccessRawEvent[]
+  accessEvents             AccessEvent[]
+  presenceSessions         PresenceSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -450,6 +458,9 @@ model Personal {
   membershipPlans    PersonalMembershipPlan[]
   boostCampaigns     BoostCampaign[]
   studentPayments    PersonalStudentPayment[]
+  accessCredentialBindings AccessCredentialBinding[]
+  accessEvents             AccessEvent[]
+  presenceSessions         PresenceSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1110,6 +1121,210 @@ model CheckIn {
   duration    Int? // minutos
 
   @@map("check_ins")
+}
+
+enum AccessSubjectType {
+  STUDENT
+  PERSONAL
+}
+
+enum AccessTransport {
+  webhook
+  bridge
+  manual
+}
+
+enum AccessDeviceStatus {
+  active
+  paused
+  offline
+  error
+}
+
+enum AccessDirection {
+  entry
+  exit
+  unknown
+}
+
+enum AccessEventSource {
+  device
+  manual_gym
+  manual_personal
+  legacy_import
+  app_mobile
+}
+
+enum AccessEventStatus {
+  pending_match
+  applied
+  duplicate
+  ignored
+  anomalous
+}
+
+enum PresenceSessionStatus {
+  open
+  closed
+  manually_closed
+  anomalous
+}
+
+model AccessDevice {
+  id                  String             @id @default(cuid())
+  gymId               String
+  gym                 Gym                @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  name                String
+  vendorKey           String
+  adapterKey          String             @default("generic-webhook")
+  hardwareType        String
+  authModes           Json?
+  transport           AccessTransport    @default(webhook)
+  status              AccessDeviceStatus @default(active)
+  externalDeviceId    String?
+  externalSerial      String?
+  ingestionKey        String             @unique
+  secretHash          String?
+  directionMode       String             @default("auto")
+  dedupeWindowSeconds Int                @default(120)
+  payloadTemplate     Json?
+  settings            Json?
+  lastHeartbeatAt     DateTime?
+  lastEventAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  credentialBindings AccessCredentialBinding[]
+  rawEvents          AccessRawEvent[]
+  accessEvents       AccessEvent[]
+
+  @@index([gymId, status])
+  @@index([gymId, vendorKey])
+  @@map("access_devices")
+}
+
+model AccessCredentialBinding {
+  id              String            @id @default(cuid())
+  gymId           String
+  gym             Gym               @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  subjectType     AccessSubjectType
+  subjectId       String
+  studentId       String?
+  student         Student?          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  personalId      String?
+  personal        Personal?         @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  providerKey     String?
+  deviceId        String?
+  device          AccessDevice?     @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  identifierType  String
+  identifierValue String
+  isActive        Boolean           @default(true)
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([gymId, identifierType, identifierValue])
+  @@index([gymId, subjectType, subjectId])
+  @@index([studentId])
+  @@index([personalId])
+  @@map("access_credential_bindings")
+}
+
+model AccessRawEvent {
+  id              String        @id @default(cuid())
+  gymId           String
+  gym             Gym           @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  deviceId        String?
+  device          AccessDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  providerKey     String?
+  providerEventId String?
+  sourceIp        String?
+  signatureValid  Boolean?
+  payload         Json
+  headers         Json?
+  status          String        @default("pending")
+  processingError String?
+  receivedAt      DateTime      @default(now())
+  processedAt     DateTime?
+  createdAt       DateTime      @default(now())
+
+  accessEvents AccessEvent[]
+
+  @@index([gymId, receivedAt])
+  @@index([deviceId, receivedAt])
+  @@index([providerEventId])
+  @@map("access_raw_events")
+}
+
+model AccessEvent {
+  id                String            @id @default(cuid())
+  gymId             String
+  gym               Gym               @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  deviceId          String?
+  device            AccessDevice?     @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  rawEventId        String?
+  rawEvent          AccessRawEvent?   @relation(fields: [rawEventId], references: [id], onDelete: SetNull)
+  subjectType       AccessSubjectType?
+  subjectId         String?
+  studentId         String?
+  student           Student?          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  personalId        String?
+  personal          Personal?         @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  subjectName       String?
+  source            AccessEventSource
+  status            AccessEventStatus @default(applied)
+  confidence        String            @default("exact")
+  providerKey       String?
+  providerEventId   String?
+  dedupeKey         String            @unique
+  identifierType    String?
+  identifierValue   String?
+  directionReceived AccessDirection   @default(unknown)
+  directionResolved AccessDirection   @default(unknown)
+  occurredAt        DateTime
+  metadata          Json?
+  actorUserId       String?
+  actorRole         String?
+  manualReason      String?
+  legacyCheckInId   String?           @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([gymId, occurredAt])
+  @@index([gymId, status, occurredAt])
+  @@index([studentId, occurredAt])
+  @@index([personalId, occurredAt])
+  @@map("access_events")
+}
+
+model PresenceSession {
+  id              String                @id @default(cuid())
+  gymId           String
+  gym             Gym                   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  subjectType     AccessSubjectType
+  subjectId       String
+  studentId       String?
+  student         Student?              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  personalId      String?
+  personal        Personal?             @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  subjectName     String?
+  status          PresenceSessionStatus @default(open)
+  entryAt         DateTime
+  exitAt          DateTime?
+  openedBySource  AccessEventSource
+  closedBySource  AccessEventSource?
+  entryDeviceId   String?
+  exitDeviceId    String?
+  inferenceFlags  Json?
+  legacyCheckInId String?               @unique
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([gymId, status])
+  @@index([gymId, subjectType, subjectId])
+  @@index([studentId, status])
+  @@index([personalId, status])
+  @@map("presence_sessions")
 }
 
 // ============================================

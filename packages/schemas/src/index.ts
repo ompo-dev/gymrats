@@ -1,3 +1,4 @@
+export * from "./access.schemas";
 export * from "./auth.schemas";
 export * from "./gyms.schemas";
 export * from "./nutrition.schemas";

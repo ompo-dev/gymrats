@@ -6,6 +6,7 @@ export { GymEquipmentPage } from "./gym-equipment";
 export { GymEquipmentDetail } from "./gym-equipment-detail";
 export { GymFinancialPage } from "./gym-financial";
 export { GymGamificationPage } from "./gym-gamification";
+export { GymAccessPage } from "./gym-access";
 export { GymSettingsPage } from "./gym-settings";
 export { GymStatsPage } from "./gym-stats";
 export { GymStudentDetail } from "./gym-student-detail";

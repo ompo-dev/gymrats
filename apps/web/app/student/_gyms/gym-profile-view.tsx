@@ -12,6 +12,7 @@ import {
   UserMinus,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { DuoButton, DuoCard } from "@/components/duo";
@@ -234,6 +235,22 @@ export function GymProfileView({
           </div>
         </DuoCard.Root>
       </div>
+
+      {variant === "personal" && (
+        <DuoCard.Root variant="default" padding="md">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-duo-fg">Catracas da academia</p>
+              <p className="text-sm text-duo-gray-dark">
+                Acompanhe presenca e registre entrada ou saida manual de alunos.
+              </p>
+            </div>
+            <Link href={`/personal/gyms/${gymId}/catracas`}>
+              <DuoButton variant="primary">Abrir catracas</DuoButton>
+            </Link>
+          </div>
+        </DuoCard.Root>
+      )}
 
       {profileAmenities.length > 0 && (
         <DuoCard.Root variant="default" padding="md">

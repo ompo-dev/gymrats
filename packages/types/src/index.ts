@@ -1,4 +1,5 @@
 export * from "./api-error";
+export * from "./access";
 export * from "./bootstrap";
 export * from "./core";
 export {

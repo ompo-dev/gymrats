@@ -1,4 +1,6 @@
 export {
+  accessEventDeadLetterQueue,
+  accessEventQueue,
   emailDeadLetterQueue,
   emailQueue,
   planOperationDeadLetterQueue,
