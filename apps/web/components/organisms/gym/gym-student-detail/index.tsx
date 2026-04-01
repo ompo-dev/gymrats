@@ -66,7 +66,8 @@ export function GymStudentDetail({
     handleMembershipAction,
     handleAssignPersonal,
     isAssigningPersonal,
-    togglePaymentStatus,
+    settlePayment,
+    settlingPaymentId,
     tabOptions,
     openWorkoutsEditor,
     openDietTab,
@@ -250,7 +251,8 @@ export function GymStudentDetail({
         <SlideIn delay={0.4}>
           <PaymentsTab
             payments={studentPayments}
-            onTogglePaymentStatus={togglePaymentStatus}
+            onSettlePayment={settlePayment}
+            settlingPaymentId={settlingPaymentId}
           />
         </SlideIn>
       )}

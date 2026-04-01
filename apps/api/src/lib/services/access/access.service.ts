@@ -1,18 +1,22 @@
 import { accessEventQueue } from "@gymrats/cache";
 import {
   buildAccessDedupeKey,
+  createUnknownEligibilityDecision,
+  isAuthorizationAllowed,
   normalizeTemplatePayload,
   projectSessionToLegacyCheckIn,
   resolveAccessDirection,
 } from "@gymrats/domain";
 import type { Prisma } from "@prisma/client";
 import type {
+  AccessAuthorizationResponse,
   AccessCredentialBinding as AccessCredentialBindingSnapshot,
   AccessDeviceSnapshot,
   AccessDirection,
   AccessEventFeedItem,
   AccessEventSource,
   AccessEventStatus,
+  AccessFinancialStatus,
   AccessOverview,
   AccessPayloadTemplate,
   AccessPresenceGroup,
@@ -28,6 +32,7 @@ import {
 } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
+import { GymAccessEligibilityService } from "@gymrats/domain/services/gym/gym-access-eligibility.service";
 
 const ACCESS_CACHE_TTL_SECONDS = 15;
 const LEGACY_RECENT_CHECKINS_TTL_SECONDS = 10;
@@ -336,6 +341,79 @@ function toAccessFeedItem(
   };
 }
 
+function toAuthorizationAttemptFeedItem(
+  attempt: {
+    id: string;
+    gymId: string;
+    deviceId: string | null;
+    subjectType: "STUDENT" | "PERSONAL" | null;
+    subjectId: string | null;
+    studentId: string | null;
+    personalId: string | null;
+    source: string;
+    providerKey: string | null;
+    identifierType: string | null;
+    identifierValue: string | null;
+    authorizationStatus: string;
+    financialStatus: string;
+    reasonCode: string;
+    outcome: string;
+    allowed: boolean;
+    occurredAt: Date;
+    metadata: unknown;
+    device?: { name: string | null } | null;
+  },
+): AccessEventFeedItem {
+  const metadata = toJsonRecord(attempt.metadata);
+  return {
+    id: attempt.id,
+    gymId: attempt.gymId,
+    recordType: "authorization",
+    deviceId: attempt.deviceId,
+    deviceName: attempt.device?.name ?? null,
+    vendorKey: attempt.providerKey,
+    providerEventId: null,
+    source: "device",
+    status: attempt.allowed ? "applied" : "ignored",
+    confidence: "authorization",
+    authorizationOutcome:
+      attempt.outcome === "allowed"
+        ? "allowed"
+        : attempt.outcome === "denied"
+          ? "denied"
+          : "error",
+    authorizationStatus:
+      attempt.authorizationStatus === "eligible" ||
+      attempt.authorizationStatus === "grace" ||
+      attempt.authorizationStatus === "blocked" ||
+      attempt.authorizationStatus === "inactive"
+        ? attempt.authorizationStatus
+        : "unknown",
+    financialStatus:
+      attempt.financialStatus === "paid" ||
+      attempt.financialStatus === "pending" ||
+      attempt.financialStatus === "overdue"
+        ? (attempt.financialStatus as AccessFinancialStatus)
+        : "not_applicable",
+    reasonCode: attempt.reasonCode,
+    subjectType: attempt.subjectType ?? "STUDENT",
+    subjectId: attempt.subjectId ?? "",
+    studentId: attempt.studentId,
+    personalId: attempt.personalId,
+    subjectName:
+      typeof metadata?.subjectName === "string" ? metadata.subjectName : null,
+    identifierType: attempt.identifierType,
+    identifierValue: attempt.identifierValue,
+    directionReceived: "unknown",
+    directionResolved: "unknown",
+    occurredAt: attempt.occurredAt,
+    manualReason: null,
+    actorRole: null,
+    actorUserId: null,
+    metadata,
+  };
+}
+
 function buildAccessCacheKey(
   gymId: string,
   resource: string,
@@ -570,23 +648,42 @@ export class AccessService {
       }));
     }
 
-    const events = await db.accessEvent.findMany({
-      where: {
-        gymId,
-        status: options?.status,
-        subjectType: options?.subjectType,
-      },
-      include: {
-        device: { select: { name: true } },
-      },
-      orderBy: { occurredAt: "desc" },
-      take: limit,
-    });
+      const [events, attempts] = await Promise.all([
+        db.accessEvent.findMany({
+          where: {
+            gymId,
+            status: options?.status,
+            subjectType: options?.subjectType,
+          },
+          include: {
+            device: { select: { name: true } },
+          },
+          orderBy: { occurredAt: "desc" },
+          take: limit,
+        }),
+        options?.status
+          ? Promise.resolve([])
+          : db.accessAuthorizationAttempt.findMany({
+              where: {
+                gymId,
+                ...(options?.subjectType
+                  ? { subjectType: options.subjectType }
+                  : {}),
+              },
+              orderBy: { occurredAt: "desc" },
+              take: limit,
+            }),
+      ]);
 
-    const payload = events.map((event) => toAccessFeedItem(event));
-    await setCachedJson(cacheKey, payload, ACCESS_CACHE_TTL_SECONDS);
-    return payload;
-  }
+      const payload = [
+        ...events.map((event) => toAccessFeedItem(event)),
+        ...attempts.map((attempt) => toAuthorizationAttemptFeedItem(attempt)),
+      ]
+        .sort((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime())
+        .slice(0, limit);
+      await setCachedJson(cacheKey, payload, ACCESS_CACHE_TTL_SECONDS);
+      return payload;
+    }
 
   static async getPendingEvents(gymId: string) {
     return this.getFeed(gymId, {
@@ -649,8 +746,19 @@ export class AccessService {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const [presence, recentFeed, unresolvedEvents, anomalousEvents, devices] =
-      await Promise.all([
+      const [
+        presence,
+        recentFeed,
+        unresolvedEvents,
+        anomalousEvents,
+        devices,
+        allowedToday,
+        deniedToday,
+        graceStudents,
+        blockedStudents,
+        entriesToday,
+        exitsToday,
+      ] = await Promise.all([
         this.getPresence(gymId),
         this.getFeed(gymId, { limit: 12 }),
         db.accessEvent.count({
@@ -663,42 +771,72 @@ export class AccessService {
           where: { gymId },
           select: { id: true, status: true },
         }),
+        db.accessAuthorizationAttempt.count({
+          where: {
+            gymId,
+            occurredAt: { gte: startOfToday },
+            allowed: true,
+          },
+        }),
+        db.accessAuthorizationAttempt.count({
+          where: {
+            gymId,
+            occurredAt: { gte: startOfToday },
+            outcome: "denied",
+          },
+        }),
+        db.accessEligibilitySnapshot.count({
+          where: {
+            gymId,
+            subjectType: "STUDENT",
+            authorizationStatus: "grace",
+          },
+        }),
+        db.accessEligibilitySnapshot.count({
+          where: {
+            gymId,
+            subjectType: "STUDENT",
+            authorizationStatus: "blocked",
+          },
+        }),
+        db.accessEvent.count({
+          where: {
+            gymId,
+            occurredAt: { gte: startOfToday },
+            status: "applied",
+            directionResolved: "entry",
+          },
+        }),
+        db.accessEvent.count({
+          where: {
+            gymId,
+            occurredAt: { gte: startOfToday },
+            status: "applied",
+            directionResolved: "exit",
+          },
+        }),
       ]);
 
-    const [entriesToday, exitsToday] = await Promise.all([
-      db.accessEvent.count({
-        where: {
-          gymId,
-          occurredAt: { gte: startOfToday },
-          status: "applied",
-          directionResolved: "entry",
-        },
-      }),
-      db.accessEvent.count({
-        where: {
-          gymId,
-          occurredAt: { gte: startOfToday },
-          status: "applied",
-          directionResolved: "exit",
-        },
-      }),
-    ]);
-
-    const payload = {
-      gymId,
-      occupancyNow: presence.students.length + presence.personals.length,
-      activeStudents: presence.students.length,
-      activePersonals: presence.personals.length,
-      entriesToday,
-      exitsToday,
-      unresolvedEvents,
-      anomalousEvents,
-      offlineDevices: devices.filter((device) => device.status === "offline")
-        .length,
-      totalDevices: devices.length,
-      personPresentNow: presence.personals.length,
-      recentFeed,
-    };
+      const payload = {
+        gymId,
+        occupancyNow: presence.students.length + presence.personals.length,
+        activeStudents: presence.students.length,
+        activePersonals: presence.personals.length,
+        presentNow: presence.students.length + presence.personals.length,
+        entriesToday,
+        exitsToday,
+        allowedToday,
+        deniedToday,
+        graceStudents,
+        blockedStudents,
+        unresolvedEvents,
+        anomalousEvents,
+        offlineDevices: devices.filter((device) => device.status === "offline")
+          .length,
+        totalDevices: devices.length,
+        personPresentNow: presence.personals.length,
+        recentFeed,
+      };
 
     await setCachedJson(cacheKey, payload, ACCESS_CACHE_TTL_SECONDS);
     return payload;
@@ -810,6 +948,180 @@ export class AccessService {
       rawEventId: rawEvent.id,
       deviceId: device.id,
       accepted: true,
+    };
+  }
+
+  static async authorizeAccess(
+    ingestionKey: string,
+    input: {
+      requestId?: string | null;
+      occurredAt?: string | null;
+      deviceId?: string | null;
+      identifierType: string;
+      identifierValue: string;
+      metadata?: Record<string, unknown> | null;
+    },
+    headers: Record<string, string>,
+    sourceIp?: string | null,
+  ): Promise<AccessAuthorizationResponse> {
+    const device = await db.accessDevice.findUnique({
+      where: { ingestionKey },
+    });
+
+    if (!device) {
+      throw new Error("Integração não encontrada");
+    }
+
+    if (device.status === "paused") {
+      throw new Error("Integração pausada");
+    }
+
+    const secretHeader = headers["x-access-secret"] ?? headers["x-device-secret"];
+    if (
+      !verifyAccessSecret({
+        candidate: secretHeader,
+        secretHash: device.secretHash,
+      })
+    ) {
+      throw new Error("Segredo inválido");
+    }
+
+    const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
+    const matchedSubject = await this.matchSubject(device.gymId, {
+      identifierType: input.identifierType,
+      identifierValue: input.identifierValue,
+    });
+    const snapshot = matchedSubject
+      ? await GymAccessEligibilityService.getEligibilitySnapshot(
+          device.gymId,
+          matchedSubject.subjectType,
+          matchedSubject.subjectId,
+        )
+      : null;
+    const decision = createUnknownEligibilityDecision();
+    const authorizationStatus = snapshot?.authorizationStatus ?? "unknown";
+    const financialStatus = snapshot?.financialStatus ?? "not_applicable";
+    const reasonCode = matchedSubject
+      ? snapshot?.reasonCode ?? decision.reasonCode
+      : "subject_not_found";
+    const allowed = matchedSubject
+      ? isAuthorizationAllowed(
+          authorizationStatus as
+            | "eligible"
+            | "grace"
+            | "blocked"
+            | "inactive"
+            | "unknown",
+        )
+      : false;
+
+    await db.accessAuthorizationAttempt.create({
+      data: {
+        gymId: device.gymId,
+        deviceId: device.id,
+        requestId: input.requestId ?? null,
+        providerKey: device.vendorKey,
+        source: device.transport,
+        outcome: allowed ? "allowed" : "denied",
+        allowed,
+        subjectType: matchedSubject?.subjectType ?? null,
+        subjectId: matchedSubject?.subjectId ?? null,
+        studentId: matchedSubject?.studentId ?? null,
+        personalId: matchedSubject?.personalId ?? null,
+        authorizationStatus,
+        financialStatus,
+        reasonCode,
+        identifierType: input.identifierType,
+        identifierValue: input.identifierValue,
+        occurredAt,
+        graceUntil: snapshot?.graceUntil ?? null,
+        metadata: toPrismaJson({
+          ...(input.metadata ?? {}),
+          subjectName: matchedSubject?.subjectName ?? null,
+          sourceIp: sourceIp ?? null,
+        }),
+      },
+    });
+
+    await this.touchDeviceActivity(device.id, occurredAt, device.status);
+    await invalidateAccessCaches(device.gymId);
+
+    return {
+      allowed,
+      reasonCode,
+      subject: matchedSubject
+        ? {
+            subjectType: matchedSubject.subjectType,
+            subjectId: matchedSubject.subjectId,
+            studentId: matchedSubject.studentId,
+            personalId: matchedSubject.personalId,
+            subjectName: matchedSubject.subjectName,
+          }
+        : null,
+      authorizationStatus:
+        authorizationStatus === "eligible" ||
+        authorizationStatus === "grace" ||
+        authorizationStatus === "blocked" ||
+        authorizationStatus === "inactive"
+          ? authorizationStatus
+          : "unknown",
+      financialStatus:
+        financialStatus === "paid" ||
+        financialStatus === "pending" ||
+        financialStatus === "overdue"
+          ? financialStatus
+          : "not_applicable",
+      unlockWindowMs: allowed ? 4000 : 0,
+    };
+  }
+
+  static async recordHeartbeat(
+    ingestionKey: string,
+    input: {
+      occurredAt?: string | null;
+      status?: "active" | "paused" | "offline" | "error" | null;
+      metadata?: Record<string, unknown> | null;
+    },
+    headers: Record<string, string>,
+  ) {
+    const device = await db.accessDevice.findUnique({
+      where: { ingestionKey },
+    });
+
+    if (!device) {
+      throw new Error("Integração não encontrada");
+    }
+
+    if (device.status === "paused" && input.status !== "paused") {
+      throw new Error("Integração pausada");
+    }
+
+    const secretHeader = headers["x-access-secret"] ?? headers["x-device-secret"];
+    if (
+      !verifyAccessSecret({
+        candidate: secretHeader,
+        secretHash: device.secretHash,
+      })
+    ) {
+      throw new Error("Segredo inválido");
+    }
+
+    const heartbeatAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
+
+    await db.accessDevice.update({
+      where: { id: device.id },
+      data: {
+        lastHeartbeatAt: heartbeatAt,
+        status: input.status ?? (device.status === "paused" ? "paused" : "active"),
+      },
+    });
+
+    await invalidateAccessCaches(device.gymId);
+
+    return {
+      accepted: true,
+      deviceId: device.id,
+      gymId: device.gymId,
     };
   }
 

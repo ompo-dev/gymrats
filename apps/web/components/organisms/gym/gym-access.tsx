@@ -263,6 +263,7 @@ function ManualSubjectCard({
 }
 
 function EventCard({ event }: { event: AccessEventFeedItem }) {
+  const isAuthorization = event.recordType === "authorization";
   const directionTone =
     event.directionResolved === "entry"
       ? "success"
@@ -270,13 +271,41 @@ function EventCard({ event }: { event: AccessEventFeedItem }) {
         ? "warning"
         : "neutral";
   const statusTone =
-    event.status === "applied"
+    isAuthorization
+      ? event.authorizationOutcome === "allowed"
+        ? "success"
+        : event.authorizationOutcome === "denied"
+          ? "danger"
+          : "warning"
+      : event.status === "applied"
       ? "success"
       : event.status === "pending_match"
         ? "warning"
         : event.status === "anomalous"
           ? "danger"
           : "info";
+  const directionLabel =
+    event.directionResolved === "entry"
+      ? "Entrada"
+      : event.directionResolved === "exit"
+        ? "Saída"
+        : "Sem direção";
+  const authorizationLabel =
+    event.authorizationOutcome === "allowed"
+      ? "Liberado"
+      : event.authorizationOutcome === "denied"
+        ? "Negado"
+        : "Erro";
+  const authorizationStatusLabel =
+    event.authorizationStatus === "eligible"
+      ? "Em dia"
+      : event.authorizationStatus === "grace"
+        ? "Na graça"
+        : event.authorizationStatus === "blocked"
+          ? "Bloqueado"
+          : event.authorizationStatus === "inactive"
+            ? "Inativo"
+            : "Não avaliado";
 
   return (
     <DuoCard.Root variant="default" padding="sm">
@@ -286,19 +315,38 @@ function EventCard({ event }: { event: AccessEventFeedItem }) {
             <p className="truncate font-bold text-duo-text">
               {event.subjectName || event.identifierValue || "Evento sem match"}
             </p>
-            <StatusPill tone={directionTone}>
-              {event.directionResolved === "entry"
-                ? "entrada"
-                : event.directionResolved === "exit"
-                  ? "saída"
-                  : "sem direção"}
+            <StatusPill tone={statusTone}>
+              {isAuthorization ? authorizationLabel : event.status}
             </StatusPill>
-            <StatusPill tone={statusTone}>{event.status}</StatusPill>
+            {isAuthorization ? (
+              <StatusPill
+                tone={
+                  event.authorizationStatus === "blocked"
+                    ? "danger"
+                    : event.authorizationStatus === "grace"
+                      ? "warning"
+                      : "info"
+                }
+              >
+                {authorizationStatusLabel}
+              </StatusPill>
+            ) : (
+              <StatusPill tone={directionTone}>{directionLabel}</StatusPill>
+            )}
           </div>
           <p className="mt-1 text-xs text-duo-gray-dark">
             {event.deviceName || event.vendorKey || "origem manual"} •{" "}
-            {event.source} • {formatDateTime(event.occurredAt)}
+            {isAuthorization ? "autorização" : event.source} •{" "}
+            {formatDateTime(event.occurredAt)}
           </p>
+          {(event.reasonCode || event.financialStatus) && (
+            <p className="mt-2 text-xs text-duo-gray-dark">
+              {event.financialStatus
+                ? `Financeiro: ${event.financialStatus}`
+                : "Financeiro: não aplicável"}
+              {event.reasonCode ? ` • Motivo: ${event.reasonCode}` : ""}
+            </p>
+          )}
         </div>
       </div>
     </DuoCard.Root>
@@ -486,7 +534,7 @@ export function GymAccessPage() {
 
       <ScreenShell.Body>
         <SlideIn delay={0.1}>
-          <DuoStatsGrid.Root columns={4}>
+          <DuoStatsGrid.Root columns={3}>
             <DuoStatCard.Simple
               icon={Activity}
               value={String(overview?.occupancyNow ?? 0)}
@@ -514,6 +562,20 @@ export function GymAccessPage() {
               label="Offline"
               badge={`${overview?.anomalousEvents ?? 0} anomalias`}
               iconColor="#A560E8"
+            />
+            <DuoStatCard.Simple
+              icon={ShieldCheck}
+              value={String(overview?.allowedToday ?? 0)}
+              label="Liberados Hoje"
+              badge={`${overview?.deniedToday ?? 0} negados`}
+              iconColor="var(--duo-secondary)"
+            />
+            <DuoStatCard.Simple
+              icon={AlertTriangle}
+              value={String(overview?.graceStudents ?? 0)}
+              label="Na Graça"
+              badge={`${overview?.blockedStudents ?? 0} bloqueados`}
+              iconColor="var(--duo-accent)"
             />
           </DuoStatsGrid.Root>
         </SlideIn>

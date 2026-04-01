@@ -5,6 +5,18 @@ export type AccessTransport = "webhook" | "bridge" | "manual";
 export type AccessDeviceStatus = "active" | "paused" | "offline" | "error";
 export type AccessDirection = "entry" | "exit" | "unknown";
 export type AccessDirectionMode = "provider" | "entry" | "exit" | "auto";
+export type AccessAuthorizationStatus =
+  | "eligible"
+  | "grace"
+  | "blocked"
+  | "inactive"
+  | "unknown";
+export type AccessFinancialStatus =
+  | "paid"
+  | "pending"
+  | "overdue"
+  | "not_applicable";
+export type AccessAuthorizationOutcome = "allowed" | "denied" | "error";
 export type AccessEventSource =
   | "device"
   | "manual_gym"
@@ -82,6 +94,7 @@ export interface AccessCredentialBinding extends PresenceSubjectRef {
 export interface AccessEventFeedItem extends PresenceSubjectRef {
   id: string;
   gymId: string;
+  recordType?: "event" | "authorization";
   deviceId?: string | null;
   deviceName?: string | null;
   vendorKey?: string | null;
@@ -89,6 +102,10 @@ export interface AccessEventFeedItem extends PresenceSubjectRef {
   source: AccessEventSource;
   status: AccessEventStatus;
   confidence: string;
+  authorizationOutcome?: AccessAuthorizationOutcome | null;
+  authorizationStatus?: AccessAuthorizationStatus | null;
+  financialStatus?: AccessFinancialStatus | null;
+  reasonCode?: string | null;
   identifierType?: string | null;
   identifierValue?: string | null;
   directionReceived: AccessDirection;
@@ -119,8 +136,13 @@ export interface AccessOverview {
   occupancyNow: number;
   activeStudents: number;
   activePersonals: number;
+  presentNow: number;
   entriesToday: number;
   exitsToday: number;
+  allowedToday: number;
+  deniedToday: number;
+  graceStudents: number;
+  blockedStudents: number;
   unresolvedEvents: number;
   anomalousEvents: number;
   offlineDevices: number;
@@ -132,6 +154,66 @@ export interface AccessOverview {
 export interface AccessPresenceGroup {
   students: PresenceSessionRecord[];
   personals: PresenceSessionRecord[];
+}
+
+export interface AccessEligibilitySnapshot extends PresenceSubjectRef {
+  id: string;
+  gymId: string;
+  membershipId?: string | null;
+  personalAffiliationId?: string | null;
+  authorizationStatus: AccessAuthorizationStatus;
+  financialStatus: AccessFinancialStatus;
+  reasonCode: string;
+  graceUntil?: Date | null;
+  openPaymentId?: string | null;
+  lastEvaluatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AccessAuthorizationAttempt extends PresenceSubjectRef {
+  id: string;
+  gymId: string;
+  deviceId?: string | null;
+  requestId?: string | null;
+  providerKey?: string | null;
+  source: string;
+  outcome: AccessAuthorizationOutcome;
+  allowed: boolean;
+  authorizationStatus: AccessAuthorizationStatus;
+  financialStatus: AccessFinancialStatus;
+  reasonCode: string;
+  identifierType?: string | null;
+  identifierValue?: string | null;
+  occurredAt: Date;
+  decidedAt: Date;
+  graceUntil?: Date | null;
+  metadata?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+}
+
+export interface AccessAuthorizationRequest {
+  requestId?: string | null;
+  occurredAt?: Date | string | null;
+  deviceId?: string | null;
+  identifierType: string;
+  identifierValue: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface AccessAuthorizationResponse {
+  allowed: boolean;
+  reasonCode: string;
+  subject?: PresenceSubjectRef | null;
+  authorizationStatus: AccessAuthorizationStatus;
+  financialStatus: AccessFinancialStatus;
+  unlockWindowMs: number;
+}
+
+export interface AccessHeartbeatPayload {
+  occurredAt?: Date | string | null;
+  status?: AccessDeviceStatus | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface LegacyCheckInProjection extends CheckIn {}

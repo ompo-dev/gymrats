@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
@@ -134,6 +134,7 @@ export default function FinancialPage({
     [initialSubscription],
   );
   const resolvedSubscription = storeSubscription ?? hydratedSubscription;
+  const [settlingPaymentId, setSettlingPaymentId] = useState<string | null>(null);
 
   useEffect(() => {
     actions.hydrateInitial({
@@ -163,6 +164,15 @@ export default function FinancialPage({
     plans,
     withdraws,
   ]);
+
+  const handleSettlePayment = async (paymentId: string) => {
+    try {
+      setSettlingPaymentId(paymentId);
+      await actions.settlePayment(paymentId);
+    } finally {
+      setSettlingPaymentId(null);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
@@ -211,7 +221,11 @@ export default function FinancialPage({
       )}
 
       {viewMode === "payments" && (
-        <FinancialPaymentsTab payments={storePayments} />
+        <FinancialPaymentsTab
+          payments={storePayments}
+          onSettlePayment={handleSettlePayment}
+          settlingPaymentId={settlingPaymentId}
+        />
       )}
 
       {viewMode === "coupons" && <FinancialCouponsTab coupons={storeCoupons} />}

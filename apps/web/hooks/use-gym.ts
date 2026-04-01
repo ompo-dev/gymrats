@@ -21,6 +21,7 @@ function getActions(state: GymUnifiedState): GymActions {
     checkInStudent: state.checkInStudent,
     checkOutStudent: state.checkOutStudent,
     updatePaymentStatus: state.updatePaymentStatus,
+    settlePayment: state.settlePayment,
     updateMemberStatus: state.updateMemberStatus,
     createEquipment: state.createEquipment,
     updateEquipment: state.updateEquipment,

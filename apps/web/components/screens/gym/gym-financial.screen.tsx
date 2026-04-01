@@ -49,6 +49,8 @@ export interface GymFinancialScreenProps
     subscription?: GymSubscriptionSnapshot | null;
     viewMode: FinancialViewMode;
     onViewModeChange: (viewMode: FinancialViewMode) => void;
+    onSettlePayment?: (paymentId: string) => Promise<void> | void;
+    settlingPaymentId?: string | null;
   }> {}
 
 export const gymFinancialScreenContract: ViewContract = {
@@ -67,6 +69,8 @@ export function GymFinancialScreen({
   subscription,
   viewMode,
   onViewModeChange,
+  onSettlePayment,
+  settlingPaymentId,
 }: GymFinancialScreenProps) {
   return (
     <ScreenShell.Root screenId={gymFinancialScreenContract.testId}>
@@ -144,7 +148,11 @@ export function GymFinancialScreen({
               "payments",
             )}
           >
-            <FinancialPaymentsTab payments={payments} />
+            <FinancialPaymentsTab
+              payments={payments}
+              onSettlePayment={onSettlePayment}
+              settlingPaymentId={settlingPaymentId}
+            />
           </div>
         ) : null}
 

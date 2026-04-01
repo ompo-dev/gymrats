@@ -2,51 +2,78 @@
 
 import { ChevronDown, ChevronRight, CreditCard } from "lucide-react";
 import { useMemo, useState } from "react";
-import { DuoCard } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import type { Payment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 
 interface FinancialPaymentsTabProps {
   payments?: Payment[];
+  onSettlePayment?: (paymentId: string) => Promise<void> | void;
+  settlingPaymentId?: string | null;
 }
 
-const getStatusColor = (status: string) => {
+function formatAmount(value: number) {
+  return `R$ ${Number(value).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getBadgeTone(status?: Payment["operationalStatus"] | Payment["status"]) {
   switch (status) {
+    case "up_to_date":
     case "paid":
       return "bg-duo-green/20 text-duo-green border-duo-green";
-    case "withdrawn":
+    case "grace":
       return "bg-duo-blue/20 text-duo-blue border-duo-blue";
     case "pending":
       return "bg-duo-yellow/20 text-duo-yellow border-duo-yellow";
     case "overdue":
+    case "blocked":
       return "bg-duo-red/20 text-duo-red border-duo-red";
-    case "canceled":
-      return "bg-gray-50 text-duo-gray-dark border-duo-border";
     default:
       return "bg-gray-50 text-duo-gray-dark border-duo-border";
   }
-};
+}
 
-const getStatusLabel = (status: string) => {
-  switch (status) {
-    case "paid":
-      return "Pago";
-    case "withdrawn":
-      return "Sacado";
+function getBadgeLabel(payment: Payment) {
+  switch (payment.operationalStatus) {
+    case "up_to_date":
+      return "Em dia";
+    case "grace":
+      return "Na graça";
     case "pending":
       return "Pendente";
     case "overdue":
       return "Atrasado";
-    case "canceled":
-      return "Cancelado";
+    case "blocked":
+      return "Bloqueado";
     default:
-      return status;
+      switch (payment.status) {
+        case "paid":
+          return "Pago";
+        case "withdrawn":
+          return "Sacado";
+        case "pending":
+          return "Pendente";
+        case "overdue":
+          return "Atrasado";
+        case "canceled":
+          return "Cancelado";
+        default:
+          return "Sem status";
+      }
   }
-};
+}
 
-function formatAmount(value: number) {
-  return `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function shouldShowSettle(payment: Payment) {
+  return (
+    payment.status === "pending" ||
+    payment.status === "overdue" ||
+    payment.operationalStatus === "blocked" ||
+    payment.operationalStatus === "grace"
+  );
 }
 
 type StudentPaymentGroup = {
@@ -57,40 +84,42 @@ type StudentPaymentGroup = {
 
 export function FinancialPaymentsTab({
   payments = [],
+  onSettlePayment,
+  settlingPaymentId = null,
 }: FinancialPaymentsTabProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const byStudent = useMemo((): StudentPaymentGroup[] => {
-    const paymentsList = Array.isArray(payments) ? payments : [];
     const map = new Map<string, StudentPaymentGroup>();
-    for (const p of paymentsList) {
-      const key = p.studentId;
+    for (const payment of payments) {
+      const key = payment.studentId;
       if (!map.has(key)) {
         map.set(key, {
-          studentName: p.studentName,
-          studentId: p.studentId,
+          studentName: payment.studentName,
+          studentId: payment.studentId,
           payments: [],
         });
       }
-      map.get(key)?.payments.push(p);
+      map.get(key)?.payments.push(payment);
     }
-    const result: StudentPaymentGroup[] = Array.from(map.values()).map((g) => ({
-      ...g,
-      payments: [...g.payments].sort(
-        (a: Payment, b: Payment) =>
-          new Date(b.date).getTime() - new Date(a.date).getTime(),
-      ),
-    }));
-    result.sort((a, b) => {
-      const dateA = Math.max(
-        ...a.payments.map((x: Payment) => new Date(x.date).getTime()),
-      );
-      const dateB = Math.max(
-        ...b.payments.map((x: Payment) => new Date(x.date).getTime()),
-      );
-      return dateB - dateA;
-    });
-    return result;
+
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        payments: [...group.payments].sort(
+          (left, right) =>
+            new Date(right.date).getTime() - new Date(left.date).getTime(),
+        ),
+      }))
+      .sort((left, right) => {
+        const leftTime = left.payments[0]
+          ? new Date(left.payments[0].date).getTime()
+          : 0;
+        const rightTime = right.payments[0]
+          ? new Date(right.payments[0].date).getTime()
+          : 0;
+        return rightTime - leftTime;
+      });
   }, [payments]);
 
   return (
@@ -107,94 +136,115 @@ export function FinancialPaymentsTab({
           </h2>
         </div>
       </DuoCard.Header>
+
       <div className="space-y-2">
-        {byStudent.length === 0 && (
+        {byStudent.length === 0 ? (
           <p className="py-8 text-center text-sm text-duo-gray-dark">
             Nenhum pagamento registrado.
           </p>
-        )}
-        {byStudent.map(
-          ({ studentId, studentName, payments: studentPayments }) => {
-            const isExpanded = expandedId === studentId;
-            const total = studentPayments.reduce(
-              (s: number, p: Payment) =>
-                s +
-                (p.status === "paid" || p.status === "withdrawn"
-                  ? p.amount
-                  : 0),
-              0,
-            );
-            const lastPayment = studentPayments[0];
-            return (
-              <DuoCard.Root key={studentId} variant="default" size="default">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 text-left"
-                  onClick={() => setExpandedId(isExpanded ? null : studentId)}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 shrink-0 text-duo-gray-dark" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 shrink-0 text-duo-gray-dark" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-duo-text truncate">
-                      {studentName}
-                    </div>
-                    <div className="text-xs text-duo-gray-dark">
-                      {studentPayments.length} pagamento(s) • Total recebido:{" "}
-                      {formatAmount(total)}
-                    </div>
+        ) : null}
+
+        {byStudent.map(({ studentId, studentName, payments: studentPayments }) => {
+          const isExpanded = expandedId === studentId;
+          const totalReceived = studentPayments.reduce(
+            (sum, payment) =>
+              sum +
+              (payment.status === "paid" || payment.status === "withdrawn"
+                ? payment.amount
+                : 0),
+            0,
+          );
+          const latestPayment = studentPayments[0];
+
+          return (
+            <DuoCard.Root key={studentId} variant="default" size="default">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 text-left"
+                onClick={() => setExpandedId(isExpanded ? null : studentId)}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-bold text-duo-text">
+                    {studentName}
                   </div>
-                  {lastPayment && (
+                  <div className="text-xs text-duo-gray-dark">
+                    {studentPayments.length} pagamento(s) • Total recebido:{" "}
+                    {formatAmount(totalReceived)}
+                  </div>
+                </div>
+                {latestPayment ? (
+                  <div
+                    className={cn(
+                      "rounded-lg border px-2 py-1 text-xs font-medium shrink-0",
+                      getBadgeTone(
+                        latestPayment.operationalStatus ?? latestPayment.status,
+                      ),
+                    )}
+                  >
+                    {getBadgeLabel(latestPayment)}
+                  </div>
+                ) : null}
+              </button>
+
+              {isExpanded ? (
+                <div className="mt-3 space-y-2 border-t border-duo-border pt-3">
+                  {studentPayments.map((payment) => (
                     <div
-                      className={cn(
-                        "rounded-lg border px-2 py-1 text-xs font-medium shrink-0",
-                        getStatusColor(lastPayment.status),
-                      )}
+                      key={payment.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-duo-border bg-duo-gray-lighter/30 p-3"
                     >
-                      {getStatusLabel(lastPayment.status)}
-                    </div>
-                  )}
-                </button>
-                {isExpanded && (
-                  <div className="mt-3 space-y-2 border-t border-duo-border pt-3">
-                    {studentPayments.map((payment: Payment) => (
-                      <div
-                        key={payment.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-duo-border bg-duo-gray-lighter/30 p-3"
-                      >
-                        <div>
-                          <div className="text-sm font-medium text-duo-text">
-                            {payment.planName}
-                          </div>
-                          <div className="text-xs text-duo-gray-dark">
-                            Venc.: {formatDatePtBr(payment.dueDate) || "—"} •
-                            Pago:{" "}
-                            {payment.date ? formatDatePtBr(payment.date) : "—"}
-                          </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-duo-text">
+                          {payment.planName}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-duo-green">
-                            {formatAmount(payment.amount)}
-                          </span>
-                          <span
-                            className={cn(
-                              "rounded border px-2 py-0.5 text-xs font-medium",
-                              getStatusColor(payment.status),
-                            )}
-                          >
-                            {getStatusLabel(payment.status)}
-                          </span>
+                        <div className="text-xs text-duo-gray-dark">
+                          Venc.: {formatDatePtBr(payment.dueDate) || "—"} • Pago:{" "}
+                          {payment.date ? formatDatePtBr(payment.date) : "—"}
+                        </div>
+                        <div className="text-xs text-duo-gray-dark">
+                          Operação: {getBadgeLabel(payment)}
+                          {payment.graceUntil
+                            ? ` • Graça até ${formatDatePtBr(payment.graceUntil)}`
+                            : ""}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </DuoCard.Root>
-            );
-          },
-        )}
+
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-duo-green">
+                          {formatAmount(payment.amount)}
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded border px-2 py-0.5 text-xs font-medium",
+                            getBadgeTone(
+                              payment.operationalStatus ?? payment.status,
+                            ),
+                          )}
+                        >
+                          {getBadgeLabel(payment)}
+                        </span>
+                        {onSettlePayment && shouldShowSettle(payment) ? (
+                          <DuoButton
+                            size="sm"
+                            onClick={() => void onSettlePayment(payment.id)}
+                            isLoading={settlingPaymentId === payment.id}
+                          >
+                            Deixar em dia
+                          </DuoButton>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </DuoCard.Root>
+          );
+        })}
       </div>
     </DuoCard.Root>
   );

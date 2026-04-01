@@ -1083,6 +1083,7 @@ model MembershipPlan {
   type     String // monthly, quarterly, semi-annual, annual, trial
   price    Float
   duration Int // dias
+  graceDays Int   @default(0) // dias pendentes apos o vencimento
   benefits String? // JSON array
   isActive Boolean @default(true)
 
@@ -1383,12 +1384,16 @@ model Payment {
   studentName   String
   planId        String?
   plan          MembershipPlan? @relation(fields: [planId], references: [id])
+  membershipId  String?
   amount        Float
   date          DateTime        @default(now())
   dueDate       DateTime
   status        String          @default("pending") // paid, pending, overdue, canceled
   paymentMethod String?
   reference     String?
+  kind          String?
+  periodStart   DateTime?
+  periodEnd     DateTime?
 
   // AbacatePay: PIX para pagamento de plano (membership)
   abacatePayBillingId String?   @unique // ID do pixQrCode na AbacatePay
@@ -1403,6 +1408,64 @@ model Payment {
   updatedAt DateTime @updatedAt
 
   @@map("payments")
+}
+
+model AccessEligibilitySnapshot {
+  id                  String            @id @default(cuid())
+  gymId               String
+  subjectType         AccessSubjectType
+  subjectId           String
+  studentId           String?
+  personalId          String?
+  membershipId        String?
+  personalAffiliationId String?
+  authorizationStatus String            @default("unknown") // eligible, grace, blocked, inactive, unknown
+  financialStatus     String            @default("not_applicable") // paid, pending, overdue, not_applicable
+  reasonCode          String            @default("not_evaluated")
+  graceUntil          DateTime?
+  openPaymentId       String?
+  lastEvaluatedAt     DateTime          @default(now())
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([gymId, subjectType, subjectId])
+  @@index([gymId, authorizationStatus])
+  @@index([studentId])
+  @@index([personalId])
+  @@map("access_eligibility_snapshots")
+}
+
+model AccessAuthorizationAttempt {
+  id                  String            @id @default(cuid())
+  gymId               String
+  deviceId            String?
+  requestId           String?
+  providerKey         String?
+  source              String            @default("device")
+  outcome             String            @default("error") // allowed, denied, error
+  allowed             Boolean           @default(false)
+  subjectType         AccessSubjectType?
+  subjectId           String?
+  studentId           String?
+  personalId          String?
+  authorizationStatus String            @default("unknown") // eligible, grace, blocked, inactive, unknown
+  financialStatus     String            @default("not_applicable") // paid, pending, overdue, not_applicable
+  reasonCode          String            @default("not_evaluated")
+  identifierType      String?
+  identifierValue     String?
+  occurredAt          DateTime
+  decidedAt           DateTime          @default(now())
+  graceUntil          DateTime?
+  metadata            Json?
+  errorMessage        String?
+  createdAt           DateTime          @default(now())
+
+  @@index([gymId, decidedAt])
+  @@index([gymId, outcome, decidedAt])
+  @@index([deviceId, decidedAt])
+  @@index([gymId, subjectType, subjectId, decidedAt])
+  @@index([gymId, requestId])
+  @@map("access_authorization_attempts")
 }
 
 model GymWithdraw {

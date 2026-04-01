@@ -63,78 +63,43 @@ export class WebhookService {
       include: { plan: true },
     });
 
-    if (payment && payment.status === "pending") {
-      if (kind === "membership-payment") {
-        const membershipId =
-          typeof metadata.membershipId === "string"
-            ? metadata.membershipId
-            : undefined;
-        if (membershipId) {
-          const now = new Date();
-          await db.$transaction([
-            db.payment.update({
-              where: { id: payment.id },
-              data: { status: "paid", date: now },
-            }),
-            db.gymMembership.update({
-              where: { id: membershipId },
-              data: {
-                status: "active",
-                startDate: new Date(),
-                nextBillingDate: payment.dueDate,
-              },
-            }),
-          ]);
-          console.log(
-            `[WebhookService] Membership ${membershipId} ativado via PIX (payment ${payment.id})`,
-          );
-          await GymDomainService.incrementActiveStudentsOnly(payment.gymId);
-          await GymSubscriptionService.syncStudentEnterpriseBenefit(
-            payment.studentId,
-          );
-          return;
-        }
+    if (
+      payment &&
+      (payment.status === "pending" || payment.status === "overdue") &&
+      ((payment.kind && payment.kind.startsWith("membership_")) ||
+        kind === "membership-payment" ||
+        kind === "membership-change-plan" ||
+        payment.reference?.startsWith("membership:"))
+    ) {
+      const normalizedKind =
+        payment.kind ??
+        (kind === "membership-change-plan"
+          ? "membership_change_plan"
+          : "membership_initial");
+
+      if (
+        payment.kind !== normalizedKind ||
+        (!payment.membershipId && typeof metadata.membershipId === "string")
+      ) {
+        await db.payment.update({
+          where: { id: payment.id },
+          data: {
+            kind: normalizedKind,
+            membershipId:
+              payment.membershipId ??
+              (typeof metadata.membershipId === "string"
+                ? metadata.membershipId
+                : null),
+          },
+        });
       }
 
-      if (kind === "membership-change-plan") {
-        const membershipId =
-          typeof metadata.membershipId === "string"
-            ? metadata.membershipId
-            : undefined;
-        const planId =
-          typeof metadata.planId === "string" ? metadata.planId : undefined;
-        if (membershipId && planId && payment.plan) {
-          const now = new Date();
-          const nextBillingDate = new Date();
-          nextBillingDate.setDate(
-            nextBillingDate.getDate() + payment.plan.duration,
-          );
-          await db.$transaction([
-            db.payment.update({
-              where: { id: payment.id },
-              data: { status: "paid", date: now },
-            }),
-            db.gymMembership.update({
-              where: { id: membershipId },
-              data: {
-                planId,
-                amount: payment.plan.price,
-                nextBillingDate,
-                status: "active",
-              },
-            }),
-          ]);
-          console.log(
-            `[WebhookService] Membership ${membershipId} plano alterado via PIX (payment ${payment.id})`,
-          );
-          if (payment.studentId) {
-            await GymSubscriptionService.syncStudentEnterpriseBenefit(
-              payment.studentId,
-            );
-          }
-          return;
-        }
-      }
+      await GymDomainService.settlePayment(payment.gymId, payment.id);
+      console.log(
+        `[WebhookService] Membership payment ${payment.id} regularizado via webhook`,
+      );
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
+      return;
     }
 
     // Idempotência

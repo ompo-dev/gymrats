@@ -151,6 +151,17 @@ function normalizePaymentSnapshot(
     status: payment.status ?? fallback.status ?? "pending",
     paymentMethod: payment.paymentMethod ?? fallback.paymentMethod ?? "pix",
     reference: payment.reference ?? fallback.reference,
+    membershipId: payment.membershipId ?? fallback.membershipId,
+    kind: payment.kind ?? fallback.kind,
+    periodStart: payment.periodStart ?? fallback.periodStart,
+    periodEnd: payment.periodEnd ?? fallback.periodEnd,
+    authorizationStatus:
+      payment.authorizationStatus ?? fallback.authorizationStatus,
+    financialStatus: payment.financialStatus ?? fallback.financialStatus,
+    reasonCode: payment.reasonCode ?? fallback.reasonCode,
+    graceUntil: payment.graceUntil ?? fallback.graceUntil,
+    operationalStatus:
+      payment.operationalStatus ?? fallback.operationalStatus,
     abacatePayBillingId:
       payment.abacatePayBillingId ?? fallback.abacatePayBillingId,
     withdrawnAt: payment.withdrawnAt ?? fallback.withdrawnAt,
@@ -308,10 +319,18 @@ export interface GymUnifiedState {
     studentId: string;
     studentName?: string;
     planId?: string | null;
+    membershipId?: string | null;
     amount: number;
     dueDate: string;
     paymentMethod?: string;
     reference?: string | null;
+    kind?:
+      | "membership_initial"
+      | "membership_renewal"
+      | "membership_change_plan"
+      | "manual_regularization";
+    periodStart?: string | null;
+    periodEnd?: string | null;
   }) => Promise<Payment>;
   checkInStudent: (studentId: string) => Promise<CheckIn>;
   checkOutStudent: (checkInId: string) => Promise<CheckIn>;
@@ -319,6 +338,7 @@ export interface GymUnifiedState {
     paymentId: string,
     status: "paid" | "pending" | "overdue" | "canceled",
   ) => Promise<void>;
+  settlePayment: (paymentId: string) => Promise<Payment>;
   updateMemberStatus: (
     membershipId: string,
     status: "active" | "suspended" | "canceled",
@@ -358,6 +378,7 @@ export interface GymUnifiedState {
     type: string;
     price: number;
     duration: number;
+    graceDays?: number;
     benefits?: string[];
   }) => Promise<void>;
   updateMembershipPlan: (
@@ -367,6 +388,7 @@ export interface GymUnifiedState {
       type?: string;
       price?: number;
       duration?: number;
+      graceDays?: number;
       benefits?: string[];
     },
   ) => Promise<void>;
@@ -723,15 +745,16 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
         "/api/gyms/payments",
         payload,
       );
-      const payment = normalizePaymentSnapshot(response.data.payment, {
-        studentId: payload.studentId,
-        studentName: payload.studentName ?? "Aluno",
-        planId: payload.planId ?? "",
-        planName: payload.reference ?? "Pagamento avulso",
-        amount: payload.amount,
-        dueDate: new Date(payload.dueDate),
-        date: new Date(),
-        status: "pending",
+        const payment = normalizePaymentSnapshot(response.data.payment, {
+          studentId: payload.studentId,
+          studentName: payload.studentName ?? "Aluno",
+          planId: payload.planId ?? "",
+          planName: payload.reference ?? "Pagamento avulso",
+          membershipId: payload.membershipId ?? undefined,
+          amount: payload.amount,
+          dueDate: new Date(payload.dueDate),
+          date: new Date(),
+          status: "pending",
         paymentMethod:
           payload.paymentMethod === "credit-card" ||
           payload.paymentMethod === "debit-card" ||
@@ -739,8 +762,13 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           payload.paymentMethod === "bank-transfer"
             ? payload.paymentMethod
             : "pix",
-        reference: payload.reference ?? undefined,
-      });
+          reference: payload.reference ?? undefined,
+          kind: payload.kind,
+          periodStart: payload.periodStart
+            ? new Date(payload.periodStart)
+            : undefined,
+          periodEnd: payload.periodEnd ? new Date(payload.periodEnd) : undefined,
+        });
 
       set((state) => ({
         data: {
@@ -952,6 +980,52 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
       });
     },
 
+    settlePayment: async (paymentId) => {
+      const currentPayment =
+        get().data.payments.find((payment) => payment.id === paymentId) ??
+        Object.values(get().data.studentPayments)
+          .flat()
+          .find((payment) => payment.id === paymentId);
+
+      const response = await apiClient.post<{ payment: unknown }>(
+        `/api/gyms/payments/${paymentId}/settle`,
+      );
+      const payment = normalizePaymentSnapshot(
+        response.data.payment,
+        currentPayment ?? {
+          id: paymentId,
+          studentId: "",
+          studentName: "Aluno",
+          planId: "",
+          planName: "Pagamento",
+          amount: 0,
+          date: new Date(),
+          dueDate: new Date(),
+          status: "paid",
+          paymentMethod: "pix",
+        },
+      );
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          payments: state.data.payments.map((item) =>
+            item.id === paymentId ? payment : item,
+          ),
+          studentPayments: Object.fromEntries(
+            Object.entries(state.data.studentPayments).map(
+              ([studentId, payments]) => [
+                studentId,
+                payments.map((item) => (item.id === paymentId ? payment : item)),
+              ],
+            ),
+          ),
+        },
+      }));
+
+      return payment;
+    },
+
     updateMemberStatus: async (membershipId, status) => {
       await runOptimisticMutation({
         getSnapshot: () => ({
@@ -1161,11 +1235,79 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     createMembershipPlan: async (payload) => {
-      await apiClient.post("/api/gyms/plans", payload);
+      const response = await apiClient.post<{ plan: unknown }>("/api/gyms/plans", payload);
+      const createdPlan = normalizeGymDates(response.data.plan) as Partial<
+        GymUnifiedData["membershipPlans"][number]
+      >;
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          membershipPlans: [
+            {
+              id: String(createdPlan.id ?? `plan-${Date.now()}`),
+              name: String(createdPlan.name ?? payload.name),
+              type:
+                (createdPlan.type as GymUnifiedData["membershipPlans"][number]["type"]) ??
+                payload.type,
+              price:
+                typeof createdPlan.price === "number"
+                  ? createdPlan.price
+                  : payload.price,
+              duration:
+                typeof createdPlan.duration === "number"
+                  ? createdPlan.duration
+                  : payload.duration,
+              graceDays:
+                typeof createdPlan.graceDays === "number"
+                  ? createdPlan.graceDays
+                  : (payload.graceDays ?? 0),
+              benefits:
+                Array.isArray(createdPlan.benefits) &&
+                createdPlan.benefits.every((item) => typeof item === "string")
+                  ? createdPlan.benefits
+                  : (payload.benefits ?? []),
+              isActive: createdPlan.isActive ?? true,
+            },
+            ...state.data.membershipPlans.filter(
+              (plan) => plan.id !== createdPlan.id,
+            ),
+          ],
+        },
+      }));
     },
 
     updateMembershipPlan: async (planId, payload) => {
-      await apiClient.patch(`/api/gyms/plans/${planId}`, payload);
+      const response = await apiClient.patch<{ plan: unknown }>(
+        `/api/gyms/plans/${planId}`,
+        payload,
+      );
+      const plan = normalizeGymDates(response.data.plan) as Partial<
+        GymUnifiedData["membershipPlans"][number]
+      >;
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          membershipPlans: state.data.membershipPlans.map((item) =>
+            item.id === planId
+              ? {
+                  ...item,
+                  ...plan,
+                  graceDays:
+                    typeof plan.graceDays === "number"
+                      ? plan.graceDays
+                      : item.graceDays,
+                  benefits:
+                    Array.isArray(plan.benefits) &&
+                    plan.benefits.every((entry) => typeof entry === "string")
+                      ? plan.benefits
+                      : item.benefits,
+                }
+              : item,
+          ),
+        },
+      }));
     },
 
     deleteMembershipPlan: async (planId) => {

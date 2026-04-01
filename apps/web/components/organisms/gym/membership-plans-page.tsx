@@ -22,6 +22,7 @@ interface PlanFormData {
   type: string;
   price: string;
   duration: string;
+  graceDays: string;
   benefits: string; // CSV
 }
 
@@ -56,6 +57,7 @@ export function MembershipPlansPage({
     type: "monthly",
     price: "",
     duration: "30",
+    graceDays: "0",
     benefits: "",
   });
 
@@ -75,6 +77,7 @@ export function MembershipPlansPage({
         ...form,
         price: Number(form.price),
         duration: Number(form.duration),
+        graceDays: Number(form.graceDays || 0),
         benefits: form.benefits
           .split(",")
           .map((b) => b.trim())
@@ -90,6 +93,7 @@ export function MembershipPlansPage({
                   ...p,
                   ...payload,
                   type: payload.type as MembershipPlan["type"],
+                  graceDays: payload.graceDays,
                 } as MembershipPlan)
               : p,
           ),
@@ -105,6 +109,7 @@ export function MembershipPlansPage({
             type: payload.type as MembershipPlan["type"],
             price: payload.price,
             duration: payload.duration,
+            graceDays: payload.graceDays,
             benefits: payload.benefits,
             isActive: true,
           } as MembershipPlan,
@@ -147,6 +152,7 @@ export function MembershipPlansPage({
       type: plan.type,
       price: String(plan.price),
       duration: String(plan.duration),
+      graceDays: String(plan.graceDays ?? 0),
       benefits: plan.benefits?.join(", ") ?? "",
     });
     setIsCreating(true);
@@ -160,6 +166,7 @@ export function MembershipPlansPage({
       type: "monthly",
       price: "",
       duration: "30",
+      graceDays: "0",
       benefits: "",
     });
   };
@@ -203,6 +210,9 @@ export function MembershipPlansPage({
                   </p>
                 </div>
               </div>
+              <p className="mb-3 text-xs text-[var(--duo-fg-muted)]">
+                {plan.graceDays ?? 0} dias pendentes de acesso apÃ³s o vencimento
+              </p>
               {plan.benefits?.length > 0 && (
                 <ul className="mb-3 space-y-1">
                   {plan.benefits.slice(0, 3).map((b, i) => (
@@ -303,6 +313,25 @@ export function MembershipPlansPage({
                 onChange={(e) =>
                   setForm((f) => ({ ...f, price: e.target.value }))
                 }
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="membership-plan-grace-days"
+                className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
+              >
+                Dias pendentes
+              </label>
+              <DuoInput.Simple
+                id="membership-plan-grace-days"
+                type="number"
+                min={0}
+                placeholder="0"
+                value={form.graceDays}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, graceDays: e.target.value }))
+                }
+                helperText="Quantos dias o aluno ainda pode acessar depois do vencimento."
               />
             </div>
             <div>

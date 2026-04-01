@@ -86,3 +86,18 @@ export const accessReconcileEventSchema = z.object({
 export const accessWebhookParamsSchema = z.object({
   ingestionKey: z.string().min(1, "ingestionKey é obrigatório"),
 });
+
+export const accessAuthorizationRequestSchema = z.object({
+  requestId: z.string().trim().optional().nullable(),
+  occurredAt: z.string().datetime().optional().nullable(),
+  deviceId: z.string().trim().optional().nullable(),
+  identifierType: z.string().trim().min(1, "identifierType é obrigatório"),
+  identifierValue: z.string().trim().min(1, "identifierValue é obrigatório"),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export const accessHeartbeatSchema = z.object({
+  occurredAt: z.string().datetime().optional().nullable(),
+  status: accessDeviceStatusEnum.optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});

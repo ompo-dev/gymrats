@@ -1,10 +1,18 @@
-import { resetStudentWeeklyOverride } from "@gymrats/workflows";
+import {
+  resetStudentWeeklyOverride,
+  runMembershipBillingWorkflow,
+} from "@gymrats/workflows";
 
 process.env.GYMRATS_RUNTIME_ROLE ??= "cron";
 
 async function main() {
-  const result = await resetStudentWeeklyOverride();
-  console.log("[cron] week-reset completed", result);
+  const [weekReset, membershipBilling] = await Promise.all([
+    resetStudentWeeklyOverride(),
+    runMembershipBillingWorkflow(),
+  ]);
+
+  console.log("[cron] week-reset completed", weekReset);
+  console.log("[cron] membership-billing completed", membershipBilling);
 }
 
 main().catch((error) => {

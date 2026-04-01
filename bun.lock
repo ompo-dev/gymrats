@@ -112,6 +112,10 @@
       "name": "@gymrats/api-app",
       "version": "36.0.0",
     },
+    "apps/bridge": {
+      "name": "@gymrats/bridge",
+      "version": "36.0.0",
+    },
     "apps/cron": {
       "name": "@gymrats/cron",
       "version": "36.0.0",
@@ -658,6 +662,8 @@
     "@gymrats/api-app": ["@gymrats/api-app@workspace:apps/api"],
 
     "@gymrats/auth": ["@gymrats/auth@workspace:packages/auth"],
+
+    "@gymrats/bridge": ["@gymrats/bridge@workspace:apps/bridge"],
 
     "@gymrats/cache": ["@gymrats/cache@workspace:packages/cache"],
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { AccessEventFeedItem } from "@gymrats/types";
 import { DoorClosed, DoorOpen, Radio, RefreshCw, Users } from "lucide-react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
@@ -98,6 +99,22 @@ function StudentActionCard({
       </div>
     </DuoCard.Root>
   );
+}
+
+function getEventTone(event: AccessEventFeedItem) {
+  if (event.recordType === "authorization") {
+    return event.authorizationOutcome === "allowed"
+      ? "success"
+      : event.authorizationOutcome === "denied"
+        ? "warning"
+        : "neutral";
+  }
+
+  return event.directionResolved === "entry"
+    ? "success"
+    : event.directionResolved === "exit"
+      ? "warning"
+      : "neutral";
 }
 
 export function PersonalGymAccessPage({
@@ -221,6 +238,20 @@ export function PersonalGymAccessPage({
               value={String(overview?.entriesToday ?? 0)}
               label="Entradas Hoje"
               badge={`${overview?.unresolvedEvents ?? 0} pendências`}
+              iconColor="var(--duo-secondary)"
+            />
+            <DuoStatCard.Simple
+              icon={Radio}
+              value={String(overview?.allowedToday ?? 0)}
+              label="Liberados Hoje"
+              badge={`${overview?.deniedToday ?? 0} negados`}
+              iconColor="var(--duo-primary)"
+            />
+            <DuoStatCard.Simple
+              icon={Users}
+              value={String(overview?.graceStudents ?? 0)}
+              label="Na Graça"
+              badge={`${overview?.blockedStudents ?? 0} bloqueados`}
               iconColor="var(--duo-secondary)"
             />
           </DuoStatsGrid.Root>
@@ -376,15 +407,7 @@ export function PersonalGymAccessPage({
                             <p className="truncate font-bold text-duo-text">
                               {event.subjectName || event.identifierValue || "Evento sem match"}
                             </p>
-                            <StatusPill
-                              tone={
-                                event.directionResolved === "entry"
-                                  ? "success"
-                                  : event.directionResolved === "exit"
-                                    ? "warning"
-                                    : "neutral"
-                              }
-                            >
+                            <StatusPill tone={getEventTone(event)}>
                               {event.directionResolved === "entry"
                                 ? "entrada"
                                 : event.directionResolved === "exit"

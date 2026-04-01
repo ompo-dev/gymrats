@@ -1,9 +1,9 @@
+import { GymAccessEligibilityService } from "@gymrats/domain/services/gym/gym-access-eligibility.service";
 import {
   gymPaymentIdParamsSchema,
   updateGymPaymentStatusSchema,
 } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { NextResponse } from "@/runtime/next-server";
 
 export const PATCH = createSafeHandler(
@@ -17,7 +17,7 @@ export const PATCH = createSafeHandler(
       );
     }
 
-    const payment = await GymDomainService.updatePaymentStatus(
+    const payment = await GymAccessEligibilityService.updatePaymentStatus(
       gymId,
       paymentId,
       body.status,
