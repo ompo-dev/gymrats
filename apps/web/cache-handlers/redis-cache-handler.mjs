@@ -3,6 +3,9 @@ import Redis from "ioredis";
 const ENTRY_PREFIX = "next:cache:entry:";
 const TAGS_KEY = "next:cache:tags";
 const pendingWrites = new Map();
+const memoryEntries = new Map();
+const memoryTags = new Map();
+let hasWarnedAboutMemoryFallback = false;
 
 function requiresManagedRedis() {
   const runtimeRole = process.env.GYMRATS_RUNTIME_ROLE;
@@ -16,38 +19,43 @@ function requiresManagedRedis() {
 }
 
 function resolveRedisUrl() {
-  const url =
+  return (
     process.env.REDIS_URL ||
     process.env.UPSTASH_REDIS_URL ||
-    process.env.UPSTASH_REDIS_REST_URL;
-
-  if (url) {
-    return url;
-  }
-
-  if (process.env.VERCEL) {
-    return "redis://localhost:6379";
-  }
-
-  if (process.env.NODE_ENV === "production" && requiresManagedRedis()) {
-    throw new Error(
-      "REDIS_URL (ou UPSTASH_REDIS_URL) eh obrigatoria em producao.",
-    );
-  }
-
-  return "redis://localhost:6379";
+    process.env.UPSTASH_REDIS_REST_URL ||
+    null
+  );
 }
 
-const redis = new Redis(resolveRedisUrl(), {
-  maxRetriesPerRequest: null,
-  lazyConnect: true,
-});
+const redisUrl = resolveRedisUrl();
+const redis = redisUrl
+  ? new Redis(redisUrl, {
+      maxRetriesPerRequest: null,
+      lazyConnect: true,
+    })
+  : null;
 
-redis.on("error", (error) => {
-  console.error("[Next Redis Cache] Failed:", error);
-});
+if (redis) {
+  redis.on("error", (error) => {
+    console.error("[Next Redis Cache] Failed:", error);
+  });
+} else if (
+  (process.env.NODE_ENV !== "production" ||
+    process.env.NEXT_PRIVATE_DEBUG_CACHE === "1") &&
+  !requiresManagedRedis() &&
+  !hasWarnedAboutMemoryFallback
+) {
+  hasWarnedAboutMemoryFallback = true;
+  console.warn(
+    "[Next Redis Cache] REDIS_URL ausente. Usando fallback em memoria no frontend.",
+  );
+}
 
 async function ensureConnection() {
+  if (!redis) {
+    return;
+  }
+
   if (redis.status === "wait") {
     await redis.connect();
   }
@@ -84,12 +92,15 @@ export default class RedisCacheHandler {
     await waitForPendingWrite(cacheKey);
     await ensureConnection();
 
-    const raw = await redis.get(`${ENTRY_PREFIX}${cacheKey}`);
+    const raw = redis
+      ? await redis.get(`${ENTRY_PREFIX}${cacheKey}`)
+      : memoryEntries.get(cacheKey);
+
     if (!raw) {
       return undefined;
     }
 
-    const parsed = JSON.parse(raw);
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     const expiration = await this.getExpiration(softTags);
 
     if (expiration > parsed.timestamp) {
@@ -102,7 +113,11 @@ export default class RedisCacheHandler {
         : Number.POSITIVE_INFINITY;
 
     if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
-      await redis.del(`${ENTRY_PREFIX}${cacheKey}`);
+      if (redis) {
+        await redis.del(`${ENTRY_PREFIX}${cacheKey}`);
+      } else {
+        memoryEntries.delete(cacheKey);
+      }
       return undefined;
     }
 
@@ -123,7 +138,11 @@ export default class RedisCacheHandler {
         value: await streamToBase64(persistedStream),
       };
 
-      await redis.set(`${ENTRY_PREFIX}${cacheKey}`, JSON.stringify(serialized));
+      if (redis) {
+        await redis.set(`${ENTRY_PREFIX}${cacheKey}`, JSON.stringify(serialized));
+      } else {
+        memoryEntries.set(cacheKey, serialized);
+      }
     })();
 
     pendingWrites.set(cacheKey, writePromise);
@@ -143,7 +162,9 @@ export default class RedisCacheHandler {
     }
 
     await ensureConnection();
-    const timestamps = await redis.hmget(TAGS_KEY, ...tags);
+    const timestamps = redis
+      ? await redis.hmget(TAGS_KEY, ...tags)
+      : tags.map((tag) => memoryTags.get(tag) ?? null);
 
     return timestamps.reduce((latestTimestamp, currentValue) => {
       const numericValue = currentValue ? Number(currentValue) : 0;
@@ -166,6 +187,12 @@ export default class RedisCacheHandler {
       values.push(tag, String(now));
     }
 
-    await redis.hset(TAGS_KEY, ...values);
+    if (redis) {
+      await redis.hset(TAGS_KEY, ...values);
+    } else {
+      for (const tag of tags) {
+        memoryTags.set(tag, now);
+      }
+    }
   }
 }
