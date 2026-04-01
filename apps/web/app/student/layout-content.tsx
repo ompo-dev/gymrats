@@ -23,12 +23,13 @@ import {
 } from "@/components/templates/layouts/app-layout";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { useStudentDefaultBootstrapBridge } from "@/hooks/use-student-bootstrap";
+import type { StudentData } from "@/lib/types/student-unified";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
   hasProfile: boolean;
   profileResolved: boolean;
+  initialBootstrap?: Partial<StudentData> | null;
   initialProgress: {
     streak: number;
     xp: number;
@@ -39,52 +40,46 @@ export function StudentLayoutContent({
   children,
   hasProfile,
   profileResolved,
+  initialBootstrap,
   initialProgress,
 }: StudentLayoutContentProps) {
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-
-  // TODOS OS HOOKS DEVEM VIR ANTES DE QUALQUER RETURN
-  // Aguardar montagem no cliente antes de usar useQueryState
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Inicializar dados do student automaticamente quando o layout carregar
-  // Não bloquear renderização - dados carregam em background
-  useStudentDefaultBootstrapBridge({ enabled: false });
-
-  // Buscar progresso do store para atualizar header dinamicamente
   const storeProgress = useStudent("progress") as unknown as
     | import("@/lib/types").UserProgress
     | undefined;
-  const { loadWeeklyPlan } = useStudent("loaders");
+  const {
+    actions: { hydrateInitial },
+    loaders: { loadWeeklyPlan },
+  } = useStudent("actions", "loaders") as {
+    actions: { hydrateInitial: (data: Partial<StudentData>) => void };
+    loaders: { loadWeeklyPlan: (force?: boolean) => Promise<void> };
+  };
   const editPlanModal = useModalState("edit-plan");
   const nutritionLibraryModal = useModalState("nutrition-library");
   const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
   const currentXP = storeProgress?.totalXP ?? initialProgress.xp;
-
   const [_tab, setTab] = useQueryState(
     "tab",
     parseAsString.withDefault("home"),
   );
-
   const isOnboarding = pathname.includes("/onboarding");
 
-  const studentTabs: TabConfig[] = [
-    { id: "home", icon: Home, label: "Início" },
-    { id: "learn", icon: Dumbbell, label: "Treino" },
-    { id: "diet", icon: UtensilsCrossed, label: "Dieta" },
-    { id: "profile", icon: User, label: "Perfil" },
-    { id: "more", icon: MoreHorizontal, label: "Mais" },
-  ];
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-  // Redirecionar para onboarding se não tiver perfil (dentro de useEffect para evitar erro de render)
+  useEffect(() => {
+    if (!initialBootstrap) {
+      return;
+    }
+
+    hydrateInitial(initialBootstrap);
+  }, [hydrateInitial, initialBootstrap]);
+
   useEffect(() => {
     if (isMounted && profileResolved && !hasProfile && !isOnboarding) {
-      // Usar replace em vez de push para evitar histórico de navegação
-      // E adicionar um pequeno delay para evitar múltiplos redirecionamentos
       const timeoutId = setTimeout(() => {
         router.replace("/student/onboarding");
       }, 100);
@@ -93,7 +88,14 @@ export function StudentLayoutContent({
     }
   }, [isMounted, hasProfile, isOnboarding, profileResolved, router]);
 
-  // Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
+  const studentTabs: TabConfig[] = [
+    { id: "home", icon: Home, label: "Inicio" },
+    { id: "learn", icon: Dumbbell, label: "Treino" },
+    { id: "diet", icon: UtensilsCrossed, label: "Dieta" },
+    { id: "profile", icon: User, label: "Perfil" },
+    { id: "more", icon: MoreHorizontal, label: "Mais" },
+  ];
+
   if (!isMounted) {
     return <LoadingScreen.Simple variant="student" />;
   }
@@ -102,20 +104,19 @@ export function StudentLayoutContent({
     return <>{children}</>;
   }
 
-  // Mostrar loading enquanto redireciona para onboarding
   if (profileResolved && !hasProfile && !isOnboarding) {
     return (
       <LoadingScreen.Simple variant="student" message="Redirecionando..." />
     );
   }
 
-  // Handler para mudança de tabs
   const handleTabChange = async (newTab: string) => {
     if (newTab === "home") {
       await setTab(null);
-    } else {
-      await setTab(newTab);
+      return;
     }
+
+    await setTab(newTab);
   };
 
   return (

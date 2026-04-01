@@ -1,14 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useBootstrapHydrationEffect,
   useBootstrapTelemetry,
 } from "@/hooks/use-bootstrap-lifecycle";
-import type {
-  BootstrapDomain,
-  BootstrapResponseMeta,
+import {
+  type BootstrapDomain,
+  type BootstrapResponseMeta,
+  buildBootstrapHydrationKey,
 } from "@/lib/query/bootstrap-runtime";
 
 interface DomainBootstrapOptions<TData, TSection extends string> {
@@ -31,28 +31,170 @@ interface DomainBootstrapBridgeOptions<
   hydrate: (data: TNormalizedData) => void;
 }
 
+type DomainBootstrapResult<TData> = {
+  data: TData;
+  meta?: BootstrapResponseMeta | null;
+};
+
+type DomainBootstrapState<TData> = {
+  data?: DomainBootstrapResult<TData>;
+  error: Error | null;
+  isLoading: boolean;
+  isFetching: boolean;
+};
+
+const bootstrapPromiseCache = new Map<string, Promise<unknown>>();
+
+function buildQueryCacheKey(
+  domain: BootstrapDomain,
+  sections?: readonly string[],
+) {
+  return buildBootstrapHydrationKey(domain, sections);
+}
+
+async function resolveBootstrapQuery<TData>(
+  cacheKey: string,
+  queryFn: () => Promise<DomainBootstrapResult<TData>>,
+) {
+  const pending = bootstrapPromiseCache.get(cacheKey);
+  if (pending) {
+    return pending as Promise<DomainBootstrapResult<TData>>;
+  }
+
+  const promise = queryFn().finally(() => {
+    bootstrapPromiseCache.delete(cacheKey);
+  });
+
+  bootstrapPromiseCache.set(cacheKey, promise);
+  return promise;
+}
+
+export function invalidateDomainBootstrapCache(domain?: BootstrapDomain) {
+  if (!domain) {
+    bootstrapPromiseCache.clear();
+    return;
+  }
+
+  const prefix = `${domain}:`;
+
+  for (const key of bootstrapPromiseCache.keys()) {
+    if (key.startsWith(prefix)) {
+      bootstrapPromiseCache.delete(key);
+    }
+  }
+}
+
 export function useDomainBootstrap<TData, TSection extends string>({
   domain,
   sections,
   enabled,
-  queryKey,
   queryFn,
 }: DomainBootstrapOptions<TData, TSection>) {
-  const query = useQuery({
-    queryKey,
-    queryFn,
-    enabled: enabled ?? true,
-    retry: false,
+  const isEnabled = enabled ?? true;
+  const cacheKey = useMemo(
+    () => buildQueryCacheKey(domain, sections),
+    [domain, sections],
+  );
+  const mountedRef = useRef(true);
+  const [state, setState] = useState<DomainBootstrapState<TData>>({
+    data: undefined,
+    error: null,
+    isLoading: isEnabled,
+    isFetching: false,
   });
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const runQuery = useCallback(
+    async (fresh = false) => {
+      if (!fresh && !isEnabled) {
+        return state.data;
+      }
+
+      if (mountedRef.current) {
+        setState((current) => ({
+          data: current.data,
+          error: null,
+          isLoading: !current.data,
+          isFetching: true,
+        }));
+      }
+
+      try {
+        const result = await resolveBootstrapQuery(cacheKey, queryFn);
+
+        if (mountedRef.current) {
+          setState({
+            data: result,
+            error: null,
+            isLoading: false,
+            isFetching: false,
+          });
+        }
+
+        return result;
+      } catch (error) {
+        const resolvedError =
+          error instanceof Error
+            ? error
+            : new Error("Erro ao carregar bootstrap");
+
+        if (mountedRef.current) {
+          setState((current) => ({
+            data: current.data,
+            error: resolvedError,
+            isLoading: false,
+            isFetching: false,
+          }));
+        }
+
+        throw resolvedError;
+      }
+    },
+    [cacheKey, isEnabled, queryFn, state.data],
+  );
+
+  useEffect(() => {
+    if (!isEnabled) {
+      setState((current) => ({
+        data: current.data,
+        error: null,
+        isLoading: false,
+        isFetching: false,
+      }));
+      return;
+    }
+
+    setState((current) => ({
+      data: current.data,
+      error: null,
+      isLoading: !current.data,
+      isFetching: Boolean(current.data),
+    }));
+
+    void runQuery(false);
+  }, [cacheKey, isEnabled, runQuery]);
 
   useBootstrapTelemetry({
     domain,
     sections,
-    data: query.data?.data,
-    meta: query.data?.meta,
+    data: state.data?.data,
+    meta: state.data?.meta,
   });
 
-  return query;
+  return {
+    data: state.data,
+    error: state.error,
+    isLoading: state.isLoading,
+    isFetching: state.isFetching,
+    refetch: () => runQuery(true),
+  };
 }
 
 export function useDomainBootstrapBridge<

@@ -1,12 +1,10 @@
 "use client";
 
 import { Plus, Receipt } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import {
-  useInvalidateGymBootstrap,
-  useInvalidatePersonalBootstrap,
-} from "@/hooks/use-bootstrap-refresh";
+import { useGym } from "@/hooks/use-gym";
+import { usePersonal } from "@/hooks/use-personal";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { AddExpenseModal } from "./add-expense-modal";
@@ -20,15 +18,24 @@ export function FinancialExpensesTab({
   expenses = [],
   variant = "gym",
 }: FinancialExpensesTabProps) {
-  const invalidateGymBootstrap = useInvalidateGymBootstrap();
-  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
-  const refreshBootstrap =
-    variant === "personal"
-      ? invalidatePersonalBootstrap
-      : invalidateGymBootstrap;
+  const gymExpenses = useGym("expenses");
+  const personalExpenses = usePersonal("expenses");
+  const storeExpenses = variant === "personal" ? personalExpenses : gymExpenses;
+  const [hasHydratedExpenses, setHasHydratedExpenses] = useState(
+    expenses.length === 0,
+  );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const list = Array.isArray(expenses) ? expenses : [];
-  const totalExpenses = list.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
+  const list = hasHydratedExpenses ? storeExpenses : expenses;
+  const totalExpenses = list.reduce(
+    (sum: number, exp: Expense) => sum + (exp.amount ?? 0),
+    0,
+  );
+
+  useEffect(() => {
+    if (storeExpenses.length > 0 || expenses.length === 0) {
+      setHasHydratedExpenses(true);
+    }
+  }, [expenses.length, storeExpenses.length]);
 
   return (
     <>
@@ -102,10 +109,6 @@ export function FinancialExpensesTab({
       <AddExpenseModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={async () => {
-          await refreshBootstrap();
-          setIsAddModalOpen(false);
-        }}
         variant={variant}
       />
     </>

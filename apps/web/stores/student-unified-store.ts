@@ -33,6 +33,7 @@ import type {
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
 import {
+  hydrateStudentBootstrapData,
   loadAllDataIncremental,
   loadSection,
   loadSectionsIncremental,
@@ -105,6 +106,7 @@ export interface StudentUnifiedState {
   loadFoodDatabase: () => Promise<void>;
 
   // === ACTIONS - ATUALIZAR DADOS ===
+  hydrateInitial: (data: Partial<StudentData>) => void;
   updateProgress: (progress: Partial<UserProgress>) => Promise<void>;
   updateProfile: (profile: Partial<StudentData["profile"]>) => Promise<void>;
   addWeight: (weight: number, date?: Date, notes?: string) => Promise<void>;
@@ -242,6 +244,10 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
     return {
       // === DADOS INICIAIS ===
       data: initialStudentData,
+
+      hydrateInitial: (sectionData) => {
+        hydrateStudentBootstrapData(set, sectionData);
+      },
 
       // === SLICES ===
       ...authSlice,

@@ -10,13 +10,9 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import {
-  useInvalidateGymBootstrap,
-  useInvalidatePersonalBootstrap,
-} from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
@@ -104,25 +100,52 @@ export function FinancialAdsTab({
   variant = "gym",
 }: FinancialAdsTabProps) {
   const { toast } = useToast();
-  const gymData = useGym("campaigns", "coupons", "membershipPlans", "actions");
+  const gymData = useGym(
+    "campaigns",
+    "coupons",
+    "membershipPlans",
+    "actions",
+    "loaders",
+  );
   const personalData = usePersonal(
     "campaigns",
     "coupons",
     "membershipPlans",
     "actions",
+    "loaders",
   );
   const selectedStore = variant === "personal" ? personalData : gymData;
   const actions = selectedStore.actions;
-  const invalidateGymBootstrap = useInvalidateGymBootstrap();
-  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
-  const refreshBootstrap =
-    variant === "personal"
-      ? invalidatePersonalBootstrap
-      : invalidateGymBootstrap;
-  const campaignsList =
-    campaigns.length > 0 ? campaigns : selectedStore.campaigns;
-  const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
-  const plansList = plans.length > 0 ? plans : selectedStore.membershipPlans;
+  const [hasHydratedCampaigns, setHasHydratedCampaigns] = useState(
+    campaigns.length === 0,
+  );
+  const [hasHydratedCoupons, setHasHydratedCoupons] = useState(
+    coupons.length === 0,
+  );
+  const [hasHydratedPlans, setHasHydratedPlans] = useState(plans.length === 0);
+  const campaignsList = hasHydratedCampaigns
+    ? selectedStore.campaigns
+    : campaigns;
+  const couponsList = hasHydratedCoupons ? selectedStore.coupons : coupons;
+  const plansList = hasHydratedPlans ? selectedStore.membershipPlans : plans;
+
+  useEffect(() => {
+    if (selectedStore.campaigns.length > 0 || campaigns.length === 0) {
+      setHasHydratedCampaigns(true);
+    }
+  }, [campaigns.length, selectedStore.campaigns.length]);
+
+  useEffect(() => {
+    if (selectedStore.coupons.length > 0 || coupons.length === 0) {
+      setHasHydratedCoupons(true);
+    }
+  }, [coupons.length, selectedStore.coupons.length]);
+
+  useEffect(() => {
+    if (selectedStore.membershipPlans.length > 0 || plans.length === 0) {
+      setHasHydratedPlans(true);
+    }
+  }, [plans.length, selectedStore.membershipPlans.length]);
 
   // creation modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -167,6 +190,10 @@ export function FinancialAdsTab({
       ? campaignsList
       : campaignsList.filter((c) => c.status === statusFilter);
 
+  const refreshCampaigns = async () => {
+    await selectedStore.loaders.loadSection("campaigns", true);
+  };
+
   const handleCreate = async () => {
     if (!title.trim() || !description.trim()) {
       toast({ variant: "destructive", title: "Preencha todos os campos." });
@@ -184,7 +211,6 @@ export function FinancialAdsTab({
         amountCents: totalPrice * 100,
         radiusKm,
       });
-      await refreshBootstrap();
       setModalOpen(false);
       setPixModal({
         brCode: result.brCode,
@@ -237,7 +263,6 @@ export function FinancialAdsTab({
     setDeletingId(campaignId);
     try {
       await actions.deleteBoostCampaign(campaignId);
-      await refreshBootstrap();
       toast({ title: "Campanha excluída." });
       setConfirmDeleteId(null);
     } catch (error) {
@@ -712,7 +737,7 @@ export function FinancialAdsTab({
               : `/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`
           }
           onSimulateSuccess={async () => {
-            await refreshBootstrap();
+            await refreshCampaigns();
           }}
           pollConfig={{
             type: "check",
@@ -724,7 +749,7 @@ export function FinancialAdsTab({
           }}
           onPaymentConfirmed={() => {
             setPixModal(null);
-            void refreshBootstrap();
+            void refreshCampaigns();
           }}
           paymentConfirmedToast={{
             title: "Campanha ativada!",

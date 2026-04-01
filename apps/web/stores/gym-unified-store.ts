@@ -307,7 +307,7 @@ export interface GymUnifiedState {
       open: string;
       close: string;
     };
-  }) => Promise<void>;
+  }) => Promise<GymUnifiedData["profile"] | null>;
   createExpense: (data: {
     type: string;
     description?: string | null;
@@ -554,44 +554,40 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
 
     updateProfile: async (payload) => {
       const previous = get().data.profile;
-      await runOptimisticMutation({
+      return runOptimisticMutation({
         getSnapshot: () => previous,
         applyOptimistic: () => {
-          if (!previous) {
-            return;
-          }
-
-          const nextProfile: GymUnifiedData["profile"] = {
-            ...previous,
-            ...(Object.hasOwn(payload, "address")
-              ? { address: payload.address ?? "" }
-              : {}),
-            ...(Object.hasOwn(payload, "phone")
-              ? { phone: payload.phone ?? "" }
-              : {}),
-            ...(Object.hasOwn(payload, "cnpj")
-              ? { cnpj: payload.cnpj ?? "" }
-              : {}),
-            ...(Object.hasOwn(payload, "pixKey")
-              ? { pixKey: payload.pixKey ?? undefined }
-              : {}),
-            ...(Object.hasOwn(payload, "pixKeyType")
-              ? { pixKeyType: payload.pixKeyType ?? undefined }
-              : {}),
-            ...(payload.openingHours
-              ? {
-                  openingHours: {
-                    ...payload.openingHours,
-                    byDay: payload.openingHours.byDay ?? undefined,
-                  },
-                }
-              : {}),
-          };
-
           set((state) => ({
             data: {
               ...state.data,
-              profile: nextProfile,
+              profile: previous
+                ? {
+                    ...previous,
+                    ...(Object.hasOwn(payload, "address")
+                      ? { address: payload.address ?? "" }
+                      : {}),
+                    ...(Object.hasOwn(payload, "phone")
+                      ? { phone: payload.phone ?? "" }
+                      : {}),
+                    ...(Object.hasOwn(payload, "cnpj")
+                      ? { cnpj: payload.cnpj ?? "" }
+                      : {}),
+                    ...(Object.hasOwn(payload, "pixKey")
+                      ? { pixKey: payload.pixKey ?? undefined }
+                      : {}),
+                    ...(Object.hasOwn(payload, "pixKeyType")
+                      ? { pixKeyType: payload.pixKeyType ?? undefined }
+                      : {}),
+                    ...(payload.openingHours
+                      ? {
+                          openingHours: {
+                            ...payload.openingHours,
+                            byDay: payload.openingHours.byDay ?? undefined,
+                          },
+                        }
+                      : {}),
+                  }
+                : state.data.profile,
             },
           }));
         },
@@ -601,7 +597,18 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           }));
         },
         execute: async () => {
-          await apiClient.patch("/api/gyms/profile", payload);
+          const response = await apiClient.patch<{
+            profile: GymUnifiedData["profile"] | null;
+          }>("/api/gyms/profile", payload);
+          return response.data.profile ?? null;
+        },
+        onSuccess: (profile) => {
+          set((state) => ({
+            data: {
+              ...state.data,
+              profile,
+            },
+          }));
         },
       });
     },

@@ -45,12 +45,14 @@ export function usePersonalSettings({
     }) => {
       setSaveError("");
       if (!data.name.trim() || !data.email.trim()) {
-        setSaveError("Nome e email são obrigatórios.");
-        return;
+        setSaveError("Nome e email sao obrigatorios.");
+        return undefined;
       }
+
       setSaving(true);
+
       try {
-        await updateProfile({
+        const updatedProfile = await updateProfile({
           name: data.name.trim(),
           email: data.email.trim(),
           phone: data.phone?.trim() || null,
@@ -62,11 +64,14 @@ export function usePersonalSettings({
           atendimentoPresencial: data.atendimentoPresencial,
           atendimentoRemoto: data.atendimentoRemoto,
         });
+
         toast({
           title: "Perfil atualizado",
-          description: "Suas alterações foram salvas.",
+          description: "Suas alteracoes foram salvas.",
         });
         setSaveError("");
+
+        return updatedProfile ?? effectiveProfile;
       } catch (err) {
         const msg =
           err && typeof err === "object" && "response" in err
@@ -75,6 +80,7 @@ export function usePersonalSettings({
             : err instanceof Error
               ? err.message
               : "Erro ao salvar. Tente novamente.";
+
         setSaveError(msg ?? "Erro ao salvar.");
         toast({
           variant: "destructive",
@@ -86,7 +92,7 @@ export function usePersonalSettings({
         setSaving(false);
       }
     },
-    [toast, updateProfile],
+    [effectiveProfile, toast, updateProfile],
   );
 
   return {

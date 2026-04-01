@@ -19,6 +19,7 @@ type StudentDataSelector = StudentDataSelectorKey;
 
 function getActions(state: StudentUnifiedState) {
   return {
+    hydrateInitial: state.hydrateInitial,
     updateProgress: state.updateProgress,
     updateProfile: state.updateProfile,
     addWeight: state.addWeight,

@@ -10,7 +10,6 @@ import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
 import { AuthSessionProvider } from "@/components/providers/auth-session-provider";
 import { AuthSessionSeed } from "@/components/providers/auth-session-seed";
-import { QueryProvider } from "@/components/providers/query-provider";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -115,11 +114,9 @@ export default function RootLayout({
         <NuqsAdapter>
           <ErrorBoundary>
             <DuoThemeProvider>
-              <QueryProvider>
+              <Suspense fallback={null}>
                 <AuthSessionProvider>
-                  <Suspense fallback={null}>
-                    <AuthSessionSeed />
-                  </Suspense>
+                  <AuthSessionSeed />
                   <LegacyCacheCleanup />
                   <Suspense fallback={null}>
                     <PerformanceOptimizer />
@@ -127,7 +124,7 @@ export default function RootLayout({
                   {children}
                   <Analytics />
                 </AuthSessionProvider>
-              </QueryProvider>
+              </Suspense>
             </DuoThemeProvider>
           </ErrorBoundary>
         </NuqsAdapter>

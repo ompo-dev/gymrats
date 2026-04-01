@@ -1,11 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import {
   useBootstrapHydrationEffect,
   useBootstrapTelemetry,
 } from "@/hooks/use-bootstrap-lifecycle";
+import { useDomainBootstrap } from "@/hooks/shared/use-domain-bootstrap";
 import { useStudent } from "@/hooks/use-student";
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
 import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
@@ -318,11 +318,12 @@ export function useStudentBootstrap(
     enabled?: boolean;
   },
 ) {
-  const query = useQuery({
+  const query = useDomainBootstrap({
+    domain: "student",
+    sections,
+    enabled: options?.enabled,
     queryKey: queryKeys.studentBootstrap(sections),
     queryFn: () => getStudentBootstrapRequest(sections),
-    enabled: options?.enabled ?? true,
-    retry: false,
   });
   useBootstrapTelemetry({
     domain: "student",

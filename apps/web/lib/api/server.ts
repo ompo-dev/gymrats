@@ -66,6 +66,13 @@ async function buildForwardHeaders(
   return outgoingHeaders;
 }
 
+export async function buildForwardHeadersSnapshot(
+  initHeaders?: HeadersInit,
+): Promise<Record<string, string>> {
+  const outgoingHeaders = await buildForwardHeaders(initHeaders);
+  return Object.fromEntries(outgoingHeaders.entries());
+}
+
 export async function parseServerApiJsonResponse(
   response: Response,
 ): Promise<unknown> {
@@ -84,11 +91,16 @@ export async function parseServerApiJsonResponse(
 export async function serverApiRequest<T>(
   path: string,
   init: RequestInit = {},
+  options?: {
+    skipForwardHeaders?: boolean;
+  },
 ): Promise<T> {
   const response = await fetch(buildServerApiUrl(path), {
     ...init,
     cache: init.cache,
-    headers: await buildForwardHeaders(init.headers),
+    headers: options?.skipForwardHeaders
+      ? init.headers
+      : await buildForwardHeaders(init.headers),
   });
 
   const payload = await parseServerApiJsonResponse(response);

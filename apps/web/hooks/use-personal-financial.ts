@@ -1,18 +1,17 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useInvalidatePersonalBootstrap } from "@/hooks/use-bootstrap-refresh";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
 export function usePersonalFinancial() {
-  const { subscription, students, affiliations, actions } = usePersonal(
+  const { subscription, students, affiliations, actions, loaders } = usePersonal(
     "subscription",
     "students",
     "affiliations",
     "actions",
+    "loaders",
   );
-  const refreshFinancial = useInvalidatePersonalBootstrap();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -61,7 +60,6 @@ export function usePersonalFinancial() {
             description: "Seu plano foi registrado.",
           });
         }
-        await refreshFinancial();
       } catch (err) {
         const msg =
           err && typeof err === "object" && "response" in err
@@ -79,7 +77,7 @@ export function usePersonalFinancial() {
         setIsSubmitting(false);
       }
     },
-    [actions, refreshFinancial, toast],
+    [actions, toast],
   );
 
   const handleCancelConfirm = useCallback(async () => {
@@ -90,7 +88,6 @@ export function usePersonalFinancial() {
         title: "Assinatura cancelada",
         description: "Sua assinatura foi cancelada com sucesso.",
       });
-      await refreshFinancial();
       setCancelDialogOpen(false);
     } catch (err) {
       const msg =
@@ -108,12 +105,16 @@ export function usePersonalFinancial() {
     } finally {
       setIsCanceling(false);
     }
-  }, [actions, refreshFinancial, toast]);
+  }, [actions, toast]);
 
   const handlePixConfirmed = useCallback(async () => {
     setPixModal(null);
-    await refreshFinancial();
-  }, [refreshFinancial]);
+    await loaders.loadSection("subscription", true);
+  }, [loaders]);
+
+  const refreshSubscription = useCallback(async () => {
+    await loaders.loadSection("subscription", true);
+  }, [loaders]);
 
   return {
     subscription,
@@ -127,6 +128,6 @@ export function usePersonalFinancial() {
     handleSubscribe,
     handleCancelConfirm,
     handlePixConfirmed,
-    refreshFinancial,
+    refreshSubscription,
   };
 }

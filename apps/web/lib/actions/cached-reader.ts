@@ -3,9 +3,10 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { buildApiPath } from "@/lib/api/server-action-utils";
 import {
+  buildForwardHeadersSnapshot,
   buildServerApiUrl,
   parseServerApiJsonResponse,
-  serverApiGet,
+  serverApiRequest,
   type ServerApiError,
 } from "@/lib/api/server";
 import type { CacheProfile, CacheScope } from "./cache-tags";
@@ -17,6 +18,7 @@ export interface CachedReadInput {
   tags?: readonly string[];
   profile?: CacheProfile;
   scope?: CacheScope;
+  forwardedHeaders?: Record<string, string>;
 }
 
 const CACHE_LIFE_PROFILES: Record<
@@ -72,7 +74,14 @@ async function readWithPrivateCache<T>(input: CachedReadInput): Promise<T> {
   applyCacheProfile(input.profile);
   cacheTag(...tags);
 
-  return serverApiGet<T>(path);
+  return serverApiRequest<T>(
+    path,
+    {
+      method: "GET",
+      headers: input.forwardedHeaders,
+    },
+    { skipForwardHeaders: true },
+  );
 }
 
 async function readWithDefaultCache<T>(input: CachedReadInput): Promise<T> {
@@ -84,7 +93,7 @@ async function readWithDefaultCache<T>(input: CachedReadInput): Promise<T> {
   applyCacheProfile(input.profile);
   cacheTag(...tags);
 
-  return serverApiGet<T>(path);
+  return serverApiRequest<T>(path, { method: "GET" }, { skipForwardHeaders: true });
 }
 
 async function readWithRemoteCache<T>(input: CachedReadInput): Promise<T> {
@@ -121,7 +130,9 @@ async function readWithRemoteCache<T>(input: CachedReadInput): Promise<T> {
 
 export async function readCachedApi<T>(input: CachedReadInput): Promise<T> {
   if (input.scope === "none") {
-    return serverApiGet<T>(buildApiPath(input.path, input.query));
+    return serverApiRequest<T>(buildApiPath(input.path, input.query), {
+      method: "GET",
+    });
   }
 
   if (input.scope === "remote") {
@@ -132,7 +143,10 @@ export async function readCachedApi<T>(input: CachedReadInput): Promise<T> {
     return readWithDefaultCache<T>(input);
   }
 
-  return readWithPrivateCache<T>(input);
+  return readWithPrivateCache<T>({
+    ...input,
+    forwardedHeaders: await buildForwardHeadersSnapshot(),
+  });
 }
 
 export function isServerApiError(error: unknown): error is ServerApiError {

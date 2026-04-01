@@ -25,8 +25,6 @@ import { useUserSession } from "@/hooks/use-user-session";
 import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
 function GymDashboardTab() {
-  useGymDashboardBootstrapBridge();
-
   const {
     profile,
     stats,
@@ -42,6 +40,15 @@ function GymDashboardTab() {
     "recentCheckIns",
     "subscription",
   );
+  useGymDashboardBootstrapBridge({
+    enabled:
+      !profile &&
+      !stats &&
+      students.length === 0 &&
+      rawEquipment.length === 0 &&
+      recentCheckIns.length === 0 &&
+      !subscription,
+  });
   const equipment = normalizeEquipmentList(rawEquipment);
 
   if (!profile || !stats) {

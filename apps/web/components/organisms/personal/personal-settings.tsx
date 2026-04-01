@@ -2,11 +2,11 @@
 
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   PersonalSettingsScreen,
   type PersonalSettingsFormState,
 } from "@/components/screens/personal";
+import { useFormBaseline } from "@/hooks/shared/use-form-baseline";
 import { usePersonalSettings } from "@/hooks/use-personal-settings";
 import { useToast } from "@/hooks/use-toast";
 import { useUserSession } from "@/hooks/use-user-session";
@@ -71,7 +71,6 @@ function arePersonalSettingsFormsEqual(
 export function PersonalSettingsPage({
   profile: initialProfile,
   plans = [],
-  onRefresh,
 }: PersonalSettingsPageProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -81,20 +80,16 @@ export function PersonalSettingsPage({
   const { role } = useUserSession();
   const canSwitchToStudent = role === "PERSONAL" || role === "ADMIN";
 
-  const [form, setForm] = useState<PersonalSettingsFormState>(() =>
-    createPersonalSettingsFormState(profile),
-  );
-
-  useEffect(() => {
-    const nextForm = createPersonalSettingsFormState(profile);
-
-    setForm((current) =>
-      arePersonalSettingsFormsEqual(current, nextForm) ? current : nextForm,
-    );
-  }, [profile]);
-
-  const baselineForm = createPersonalSettingsFormState(profile);
-  const hasChanges = !arePersonalSettingsFormsEqual(form, baselineForm);
+  const {
+    draft: form,
+    isDirty: hasChanges,
+    setDraft: setForm,
+    rebaseOnSuccess,
+  } = useFormBaseline({
+    snapshot: profile,
+    toDraft: createPersonalSettingsFormState,
+    isEqual: arePersonalSettingsFormsEqual,
+  });
 
   const handleFieldChange = <K extends keyof PersonalSettingsFormState>(
     field: K,
@@ -113,7 +108,7 @@ export function PersonalSettingsPage({
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Não foi possível sair.",
+        description: "Nao foi possivel sair.",
       });
     }
   };
@@ -123,7 +118,7 @@ export function PersonalSettingsPage({
   };
 
   const onSave = async () => {
-    await handleSave({
+    const savedProfile = await handleSave({
       name: form.name,
       email: form.email,
       phone: form.phone || null,
@@ -135,7 +130,12 @@ export function PersonalSettingsPage({
       atendimentoPresencial: form.atendimentoPresencial,
       atendimentoRemoto: form.atendimentoRemoto,
     });
-    await onRefresh?.();
+
+    if (!savedProfile) {
+      return;
+    }
+
+    rebaseOnSuccess(createPersonalSettingsFormState(savedProfile));
   };
 
   return (
@@ -151,9 +151,7 @@ export function PersonalSettingsPage({
       onSwitchToStudent={
         canSwitchToStudent ? handleSwitchToStudent : undefined
       }
-      plansSlot={
-        <PersonalMembershipPlansPage plans={plans} onRefresh={onRefresh} />
-      }
+      plansSlot={<PersonalMembershipPlansPage plans={plans} />}
     />
   );
 }

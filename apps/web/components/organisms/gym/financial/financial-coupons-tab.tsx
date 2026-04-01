@@ -1,13 +1,9 @@
 "use client";
 
 import { Calendar, Gift, Plus, Trash2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { DeleteConfirmationModal } from "@/components/organisms/modals/delete-confirmation-modal";
-import {
-  useInvalidateGymBootstrap,
-  useInvalidatePersonalBootstrap,
-} from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
@@ -28,13 +24,10 @@ export function FinancialCouponsTab({
   const gymData = useGym("coupons", "actions");
   const personalData = usePersonal("coupons", "actions");
   const selectedStore = variant === "personal" ? personalData : gymData;
-  const invalidateGymBootstrap = useInvalidateGymBootstrap();
-  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
-  const refreshBootstrap =
-    variant === "personal"
-      ? invalidatePersonalBootstrap
-      : invalidateGymBootstrap;
-  const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
+  const [hasHydratedCoupons, setHasHydratedCoupons] = useState(
+    coupons.length === 0,
+  );
+  const couponsList = hasHydratedCoupons ? selectedStore.coupons : coupons;
   const actions = selectedStore.actions;
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,6 +44,12 @@ export function FinancialCouponsTab({
   const [confirmDeleteCouponId, setConfirmDeleteCouponId] = useState<
     string | null
   >(null);
+
+  useEffect(() => {
+    if (selectedStore.coupons.length > 0 || coupons.length === 0) {
+      setHasHydratedCoupons(true);
+    }
+  }, [coupons.length, selectedStore.coupons.length]);
 
   const handleDiscountChange = useCallback(
     (value: string) => {
@@ -113,7 +112,6 @@ export function FinancialCouponsTab({
           : undefined,
         expiresAt: parsedExpiresAt ?? null,
       });
-      await refreshBootstrap();
       toast({
         title: "Cupom criado",
         description: `${codeTrim} disponível para uso.`,
@@ -142,7 +140,6 @@ export function FinancialCouponsTab({
     setConfirmDeleteCouponId(null);
     try {
       await actions.deleteCoupon(couponId);
-      await refreshBootstrap();
       toast({ title: "Cupom excluído" });
     } catch (error) {
       toast({

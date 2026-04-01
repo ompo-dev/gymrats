@@ -56,6 +56,13 @@ export const POST = createSafeHandler(
         ...(payload.address !== undefined
           ? { address: payload.address as string }
           : {}),
+        ...(payload.cref !== undefined ? { cref: payload.cref as string } : {}),
+        ...(payload.pixKey !== undefined
+          ? { pixKey: payload.pixKey as string }
+          : {}),
+        ...(payload.pixKeyType !== undefined
+          ? { pixKeyType: payload.pixKeyType as string }
+          : {}),
         ...(payload.latitude !== undefined
           ? { latitude: payload.latitude as number }
           : {}),
@@ -103,6 +110,13 @@ export const PATCH = createSafeHandler(
         ...(payload.bio !== undefined ? { bio: payload.bio as string } : {}),
         ...(payload.address !== undefined
           ? { address: payload.address as string }
+          : {}),
+        ...(payload.cref !== undefined ? { cref: payload.cref as string } : {}),
+        ...(payload.pixKey !== undefined
+          ? { pixKey: payload.pixKey as string }
+          : {}),
+        ...(payload.pixKeyType !== undefined
+          ? { pixKeyType: payload.pixKeyType as string }
           : {}),
         ...(payload.latitude !== undefined
           ? { latitude: payload.latitude as number }

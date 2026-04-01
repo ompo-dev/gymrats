@@ -1,10 +1,8 @@
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
-import { getStudentBootstrapServerRequest } from "@/lib/api/bootstrap-server";
-import { createAppQueryClient } from "@/lib/query/create-query-client";
-import { queryKeys } from "@/lib/query/query-keys";
+import { readStudentBootstrap } from "@/lib/actions/bootstrap-readers";
+import type { StudentData } from "@/lib/types/student-unified";
 import { StudentLayoutContent } from "./layout-content";
 
 async function StudentLayoutWrapper({
@@ -12,7 +10,7 @@ async function StudentLayoutWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  const queryClient = createAppQueryClient();
+  let initialBootstrap: Partial<StudentData> | null = null;
   let profileResolved = false;
 
   let profileData = {
@@ -25,44 +23,34 @@ async function StudentLayoutWrapper({
   };
 
   try {
-    const bootstrap = await queryClient.fetchQuery({
-      queryKey: queryKeys.studentBootstrap(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS),
-      queryFn: () =>
-        getStudentBootstrapServerRequest(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS),
-    });
+    const bootstrap = await readStudentBootstrap(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS);
+    initialBootstrap = bootstrap.data ?? null;
 
     profileData = {
-      hasProfile: Boolean(bootstrap.data.profile),
-      profile:
-        (bootstrap.data.profile as Record<string, unknown> | null) ?? null,
+      hasProfile: Boolean(initialBootstrap?.profile),
+      profile: (initialBootstrap?.profile as Record<string, unknown> | null) ?? null,
     };
     profileResolved = true;
     progressData = {
-      currentStreak:
-        (bootstrap.data.progress as { currentStreak?: number } | undefined)
-          ?.currentStreak ?? 0,
-      totalXP:
-        (bootstrap.data.progress as { totalXP?: number } | undefined)
-          ?.totalXP ?? 0,
+      currentStreak: initialBootstrap?.progress?.currentStreak ?? 0,
+      totalXP: initialBootstrap?.progress?.totalXP ?? 0,
     };
   } catch {
-    // Mantemos o layout utilizável mesmo se o prefetch falhar.
-    // A hidratação client-side continua responsável por reconciliar os dados.
+    // Mantemos o layout utilizável mesmo se o bootstrap falhar.
   }
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <StudentLayoutContent
-        hasProfile={profileData.hasProfile}
-        profileResolved={profileResolved}
-        initialProgress={{
-          streak: progressData.currentStreak,
-          xp: progressData.totalXP,
-        }}
-      >
-        {children}
-      </StudentLayoutContent>
-    </HydrationBoundary>
+    <StudentLayoutContent
+      hasProfile={profileData.hasProfile}
+      profileResolved={profileResolved}
+      initialBootstrap={initialBootstrap}
+      initialProgress={{
+        streak: progressData.currentStreak,
+        xp: progressData.totalXP,
+      }}
+    >
+      {children}
+    </StudentLayoutContent>
   );
 }
 

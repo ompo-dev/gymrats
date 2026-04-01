@@ -74,7 +74,7 @@ export interface PersonalUnifiedState {
     pixKeyType?: string | null;
     atendimentoPresencial?: boolean;
     atendimentoRemoto?: boolean;
-  }) => Promise<void>;
+  }) => Promise<PersonalUnifiedData["profile"] | null>;
   linkAffiliation: (gymId: string) => Promise<void>;
   unlinkAffiliation: (gymId: string) => Promise<void>;
   assignStudent: (data: { studentId: string; gymId?: string }) => Promise<void>;
@@ -367,22 +367,20 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
 
       updateProfile: async (data) => {
         const previous = get().data.profile;
-        await runOptimisticMutation({
+        return runOptimisticMutation({
           getSnapshot: () => previous,
           applyOptimistic: () => {
-            if (!previous) {
-              return;
-            }
-
-            set((state) => ({
-              data: {
-                ...state.data,
-                profile: {
-                  ...previous,
-                  ...data,
+            if (previous) {
+              set((state) => ({
+                data: {
+                  ...state.data,
+                  profile: {
+                    ...previous,
+                    ...data,
+                  },
                 },
-              },
-            }));
+              }));
+            }
           },
           rollback: (snapshot) => {
             set((state) => ({
@@ -390,7 +388,18 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             }));
           },
           execute: async () => {
-            await apiClient.patch("/api/personals", data);
+            const response = await apiClient.patch<{
+              personal: PersonalUnifiedData["profile"] | null;
+            }>("/api/personals", data);
+            return response.data.personal ?? null;
+          },
+          onSuccess: (profile) => {
+            set((state) => ({
+              data: {
+                ...state.data,
+                profile,
+              },
+            }));
           },
         });
       },
@@ -813,7 +822,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
 
       createPersonalSubscription: async ({ plan, billingPeriod }) => {
         const res = await apiClient.post<{
-          subscription: unknown;
+          subscription: PersonalUnifiedData["subscription"] | null;
           pix?: {
             pixId: string;
             brCode: string;
@@ -822,11 +831,33 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             expiresAt?: string;
           };
         }>("/api/personals/subscription", { plan, billingPeriod });
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            subscription: res.data.subscription ?? state.data.subscription,
+          },
+        }));
+
         return res.data?.pix ? { pix: res.data.pix } : null;
       },
 
       cancelPersonalSubscription: async () => {
         await apiClient.post("/api/personals/subscription/cancel", {});
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            subscription: state.data.subscription
+              ? {
+                  ...state.data.subscription,
+                  status: "canceled",
+                  canceledAt: new Date(),
+                  cancelAtPeriodEnd: false,
+                }
+              : state.data.subscription,
+          },
+        }));
       },
 
       checkBoostCampaignActive: async (campaignId) => {

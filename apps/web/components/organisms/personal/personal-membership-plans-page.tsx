@@ -2,7 +2,7 @@
 
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { Check, Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import {
   AlertDialog,
@@ -21,7 +21,7 @@ interface PlanFormData {
   type: string;
   price: string;
   duration: string;
-  benefits: string; // CSV
+  benefits: string;
 }
 
 const PLAN_TYPES = [
@@ -40,17 +40,40 @@ const DURATION_BY_TYPE: Record<string, number> = {
   trial: 7,
 };
 
+function parseBenefits(plan: PersonalMembershipPlan): string[] {
+  if (Array.isArray(plan.benefits)) {
+    return plan.benefits;
+  }
+
+  if (typeof plan.benefits === "string") {
+    try {
+      const parsed = JSON.parse(plan.benefits);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return plan.benefits
+        .split(",")
+        .map((benefit) => benefit.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
 export function PersonalMembershipPlansPage({
-  plans,
-  onRefresh,
+  plans: initialPlans,
 }: {
   plans: PersonalMembershipPlan[];
   onRefresh?: () => Promise<void>;
 }) {
-  const actions = usePersonal("actions");
+  const { actions, membershipPlans } = usePersonal("actions", "membershipPlans");
+  const [hasHydratedPlans, setHasHydratedPlans] = useState(
+    initialPlans.length === 0,
+  );
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
   const [form, setForm] = useState<PlanFormData>({
     name: "",
     type: "monthly",
@@ -59,80 +82,20 @@ export function PersonalMembershipPlansPage({
     benefits: "",
   });
 
+  useEffect(() => {
+    if (membershipPlans.length > 0 || initialPlans.length === 0) {
+      setHasHydratedPlans(true);
+    }
+  }, [initialPlans.length, membershipPlans.length]);
+
+  const plans = hasHydratedPlans ? membershipPlans : initialPlans;
+
   const updateFormType = (type: string) => {
-    setForm((f) => ({
-      ...f,
+    setForm((current) => ({
+      ...current,
       type,
       duration: String(DURATION_BY_TYPE[type] ?? 30),
     }));
-  };
-
-  const handleCreate = () => {
-    startTransition(async () => {
-      try {
-        const payload = {
-          name: form.name,
-          type: form.type as PersonalMembershipPlan["type"],
-          price: Number(form.price),
-          duration: Number(form.duration),
-          benefits: form.benefits
-            .split(",")
-            .map((b) => b.trim())
-            .filter(Boolean),
-        };
-
-        if (editingId) {
-          await actions.updateMembershipPlan(editingId, payload);
-        } else {
-          await actions.createMembershipPlan(payload);
-        }
-        await onRefresh?.();
-        resetForm();
-      } catch (error) {
-        console.error("Erro ao salvar plano:", error);
-        alert("Erro ao salvar plano");
-      }
-    });
-  };
-
-  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
-
-  const confirmDelete = () => {
-    if (!planToDelete) return;
-    startTransition(async () => {
-      try {
-        await actions.deleteMembershipPlan(planToDelete);
-        await onRefresh?.();
-      } catch (error) {
-        console.error("Erro ao deletar plano:", error);
-        alert("Erro ao deletar plano");
-      } finally {
-        setPlanToDelete(null);
-      }
-    });
-  };
-
-  const startEditing = (plan: PersonalMembershipPlan) => {
-    setEditingId(plan.id);
-    let benefitsStr = "";
-    if (Array.isArray(plan.benefits)) {
-      benefitsStr = plan.benefits.join(", ");
-    } else if (typeof plan.benefits === "string") {
-      try {
-        const parsed = JSON.parse(plan.benefits);
-        if (Array.isArray(parsed)) benefitsStr = parsed.join(", ");
-      } catch {
-        benefitsStr = plan.benefits;
-      }
-    }
-    setForm({
-      name: plan.name,
-      type: plan.type,
-      price: String(plan.price),
-      duration: String(plan.duration),
-      benefits: benefitsStr,
-    });
-    setIsCreating(true);
   };
 
   const resetForm = () => {
@@ -145,6 +108,63 @@ export function PersonalMembershipPlansPage({
       duration: "30",
       benefits: "",
     });
+  };
+
+  const handleCreate = () => {
+    startTransition(async () => {
+      try {
+        const payload = {
+          name: form.name,
+          type: form.type as PersonalMembershipPlan["type"],
+          price: Number(form.price),
+          duration: Number(form.duration),
+          benefits: form.benefits
+            .split(",")
+            .map((benefit) => benefit.trim())
+            .filter(Boolean),
+        };
+
+        if (editingId) {
+          await actions.updateMembershipPlan(editingId, payload);
+        } else {
+          await actions.createMembershipPlan(payload);
+        }
+
+        resetForm();
+      } catch (error) {
+        console.error("Erro ao salvar plano:", error);
+        alert("Erro ao salvar plano");
+      }
+    });
+  };
+
+  const confirmDelete = () => {
+    if (!planToDelete) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        await actions.deleteMembershipPlan(planToDelete);
+      } catch (error) {
+        console.error("Erro ao deletar plano:", error);
+        alert("Erro ao deletar plano");
+      } finally {
+        setPlanToDelete(null);
+      }
+    });
+  };
+
+  const startEditing = (plan: PersonalMembershipPlan) => {
+    setEditingId(plan.id);
+    setForm({
+      name: plan.name,
+      type: plan.type,
+      price: String(plan.price),
+      duration: String(plan.duration),
+      benefits: parseBenefits(plan).join(", "),
+    });
+    setIsCreating(true);
   };
 
   return (
@@ -161,7 +181,6 @@ export function PersonalMembershipPlansPage({
         )}
       </div>
 
-      {/* Lista de planos */}
       {!isCreating && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {plans.length === 0 && (
@@ -170,14 +189,7 @@ export function PersonalMembershipPlansPage({
             </div>
           )}
           {plans.map((plan) => {
-            let parsedBenefits: string[] = [];
-            if (Array.isArray(plan.benefits)) {
-              parsedBenefits = plan.benefits;
-            } else if (typeof plan.benefits === "string") {
-              try {
-                parsedBenefits = JSON.parse(plan.benefits);
-              } catch {}
-            }
+            const parsedBenefits = parseBenefits(plan);
 
             return (
               <DuoCard.Root key={plan.id} variant="default" size="default">
@@ -187,7 +199,7 @@ export function PersonalMembershipPlansPage({
                       {plan.name}
                     </p>
                     <p className="text-sm text-[var(--duo-fg-muted)]">
-                      {PLAN_TYPES.find((t) => t.value === plan.type)?.label ||
+                      {PLAN_TYPES.find((type) => type.value === plan.type)?.label ??
                         plan.type}{" "}
                       • {plan.duration} dias
                     </p>
@@ -200,18 +212,18 @@ export function PersonalMembershipPlansPage({
                 </div>
                 {parsedBenefits.length > 0 && (
                   <ul className="mb-3 space-y-1">
-                    {parsedBenefits.slice(0, 3).map((b, i) => (
+                    {parsedBenefits.slice(0, 3).map((benefit, index) => (
                       <li
-                        key={i}
+                        key={`${plan.id}-benefit-${index}`}
                         className="flex items-center gap-1 text-xs text-[var(--duo-fg-muted)]"
                       >
                         <Check className="h-3 w-3 text-[var(--duo-primary)]" />
-                        {b}
+                        {benefit}
                       </li>
                     ))}
                     {parsedBenefits.length > 3 && (
-                      <li className="text-xs text-[var(--duo-fg-muted)] italic">
-                        +{parsedBenefits.length - 3} benefícios
+                      <li className="text-xs italic text-[var(--duo-fg-muted)]">
+                        +{parsedBenefits.length - 3} beneficios
                       </li>
                     )}
                   </ul>
@@ -239,7 +251,6 @@ export function PersonalMembershipPlansPage({
         </div>
       )}
 
-      {/* Form de criação / edição */}
       {isCreating && (
         <DuoCard.Root
           variant="default"
@@ -254,11 +265,16 @@ export function PersonalMembershipPlansPage({
               label="Nome do Plano"
               placeholder="Ex: Consultoria Mensal"
               value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  name: event.target.value,
+                }))
+              }
             />
             <div>
               <DuoSelect.Simple
-                label="Tipo (duração definida automaticamente)"
+                label="Tipo"
                 options={PLAN_TYPES}
                 value={form.type}
                 onChange={updateFormType}
@@ -269,20 +285,26 @@ export function PersonalMembershipPlansPage({
               </p>
             </div>
             <DuoInput.Simple
-              label="Preço (R$)"
+              label="Preco (R$)"
               type="number"
               placeholder="0.00"
               value={form.price}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, price: e.target.value }))
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  price: event.target.value,
+                }))
               }
             />
             <DuoInput.Simple
-              label="Benefícios (separados por vírgula)"
-              placeholder="Treino personalizado, Avaliação física..."
+              label="Beneficios (separados por virgula)"
+              placeholder="Treino personalizado, Avaliacao fisica..."
               value={form.benefits}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, benefits: e.target.value }))
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  benefits: event.target.value,
+                }))
               }
             />
           </div>
@@ -304,15 +326,15 @@ export function PersonalMembershipPlansPage({
       )}
 
       <AlertDialog
-        open={!!planToDelete}
+        open={Boolean(planToDelete)}
         onOpenChange={(open) => !open && setPlanToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá desativar o plano de assinatura. Usuários já
-              inscritos não serão afetados, mas novos alunos não poderão
+              Esta acao ira desativar o plano de assinatura. Usuarios ja
+              inscritos nao serao afetados, mas novos alunos nao poderao
               escolher este plano.
             </AlertDialogDescription>
           </AlertDialogHeader>
