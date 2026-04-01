@@ -3,11 +3,13 @@ import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type React from "react";
+import { Suspense } from "react";
 import { LegacyCacheCleanup } from "@/app/legacy-cache-cleanup";
 import { DuoThemeProvider } from "@/components/duo/theme-provider";
 import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
 import { AuthSessionProvider } from "@/components/providers/auth-session-provider";
+import { AuthSessionSeed } from "@/components/providers/auth-session-seed";
 import { QueryProvider } from "@/components/providers/query-provider";
 import "./globals.css";
 
@@ -115,8 +117,13 @@ export default function RootLayout({
             <DuoThemeProvider>
               <QueryProvider>
                 <AuthSessionProvider>
+                  <Suspense fallback={null}>
+                    <AuthSessionSeed />
+                  </Suspense>
                   <LegacyCacheCleanup />
-                  <PerformanceOptimizer />
+                  <Suspense fallback={null}>
+                    <PerformanceOptimizer />
+                  </Suspense>
                   {children}
                   <Analytics />
                 </AuthSessionProvider>

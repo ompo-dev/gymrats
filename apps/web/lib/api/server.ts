@@ -14,7 +14,7 @@ export class ServerApiError extends Error {
   }
 }
 
-function buildUrl(path: string): string {
+export function buildServerApiUrl(path: string): string {
   const baseUrl = resolveApiBaseUrl();
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
@@ -66,7 +66,9 @@ async function buildForwardHeaders(
   return outgoingHeaders;
 }
 
-async function parseJsonResponse(response: Response): Promise<unknown> {
+export async function parseServerApiJsonResponse(
+  response: Response,
+): Promise<unknown> {
   const text = await response.text();
   if (!text) {
     return null;
@@ -83,13 +85,13 @@ export async function serverApiRequest<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(buildUrl(path), {
+  const response = await fetch(buildServerApiUrl(path), {
     ...init,
-    cache: "no-store",
+    cache: init.cache,
     headers: await buildForwardHeaders(init.headers),
   });
 
-  const payload = await parseJsonResponse(response);
+  const payload = await parseServerApiJsonResponse(response);
 
   if (!response.ok) {
     const message =

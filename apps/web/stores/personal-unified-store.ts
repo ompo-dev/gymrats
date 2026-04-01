@@ -1,6 +1,5 @@
-﻿import { create } from "zustand";
-import { apiClient } from "@/lib/api/client";
-import { getAxiosInstance } from "@/lib/api/client-factory";
+import { create } from "zustand";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import type { BoostCampaign, Expense } from "@/lib/types";
 import type {
   PersonalDataSection,
@@ -482,7 +481,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             }));
           },
           execute: async () => {
-            await getAxiosInstance().delete("/api/personals/students/assign", {
+            await apiClient.delete("/api/personals/students/assign", {
               data: { studentId },
             });
           },

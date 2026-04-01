@@ -9,7 +9,7 @@
 
 import { create } from "zustand";
 
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import { waitForJobCompletion } from "@/lib/api/job-client";
 import type {
   DailyNutrition,

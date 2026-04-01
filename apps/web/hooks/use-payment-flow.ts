@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateBootstrapQueries } from "@/hooks/use-bootstrap-refresh";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import { queryKeys } from "@/lib/query/query-keys";
 import type { StudentPixPaymentPayload } from "@/lib/types/student-unified";
 

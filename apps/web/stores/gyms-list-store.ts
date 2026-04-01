@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { actionClient } from "@/lib/actions/client";
 
 // Dados completos de uma academia
 export interface GymData {
@@ -80,8 +81,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
     // Atualizar no backend em background usando axios (API → Zustand → Component)
     // PRIMEIRO: Aguardar o backend atualizar o cookie para não causar race conditions
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post("/api/gyms/set-active", { gymId });
+      await actionClient.post("/api/gyms/set-active", { gymId });
 
       // SEGUNDO: Atualizar a UI via estado local apenas após o backend ter validado
       set({ activeGymId: gymId });
@@ -96,8 +96,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
       set({ isLoading: true });
 
       // Usar axios client (API → Zustand → Component)
-      const { apiClient } = await import("@/lib/api/client");
-      const response = await apiClient.get<{
+      const response = await actionClient.get<{
         gyms: GymData[];
         canCreateMultipleGyms?: boolean;
         activeGymId?: string | null;
@@ -145,8 +144,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
   createGym: async (data) => {
     set({ isCreating: true, createError: "" });
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const response = await apiClient.post<{ error?: string }>(
+      const response = await actionClient.post<{ error?: string }>(
         "/api/gyms/create",
         data,
       );

@@ -64,6 +64,13 @@ const contentSecurityPolicy = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  cacheComponents: true,
+  cacheHandler: "./cache-handlers/redis-cache-handler.mjs",
+  cacheHandlers: {
+    default: "./cache-handlers/redis-cache-handler.mjs",
+    remote: "./cache-handlers/redis-cache-handler.mjs",
+  },
+  cacheMaxMemorySize: 0,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -81,6 +88,57 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  cacheLife: {
+    default: {
+      revalidate: 900,
+      expire: 31536000,
+    },
+    seconds: {
+      stale: 30,
+      revalidate: 1,
+      expire: 60,
+    },
+    minutes: {
+      stale: 300,
+      revalidate: 60,
+      expire: 3600,
+    },
+    hours: {
+      stale: 300,
+      revalidate: 3600,
+      expire: 86400,
+    },
+    days: {
+      stale: 300,
+      revalidate: 86400,
+      expire: 604800,
+    },
+    weeks: {
+      stale: 300,
+      revalidate: 604800,
+      expire: 2592000,
+    },
+    max: {
+      stale: 300,
+      revalidate: 2592000,
+      expire: 31536000,
+    },
+    realtime: {
+      stale: 5,
+      revalidate: 1,
+      expire: 30,
+    },
+    dashboard: {
+      stale: 60,
+      revalidate: 30,
+      expire: 900,
+    },
+    catalog: {
+      stale: 300,
+      revalidate: 3600,
+      expire: 86400,
+    },
+  },
   experimental: {
     externalDir: true,
     optimizePackageImports: [
@@ -119,10 +177,6 @@ const nextConfig = {
         source: "/student/:path*",
         headers: [
           {
-            key: "Cache-Control",
-            value: "private, no-store, no-cache, must-revalidate",
-          },
-          {
             key: "X-DNS-Prefetch-Control",
             value: "on",
           },
@@ -132,10 +186,6 @@ const nextConfig = {
         source: "/gym/:path*",
         headers: [
           {
-            key: "Cache-Control",
-            value: "private, no-store, no-cache, must-revalidate",
-          },
-          {
             key: "X-DNS-Prefetch-Control",
             value: "on",
           },
@@ -144,10 +194,6 @@ const nextConfig = {
       {
         source: "/personal/:path*",
         headers: [
-          {
-            key: "Cache-Control",
-            value: "private, no-store, no-cache, must-revalidate",
-          },
           {
             key: "X-DNS-Prefetch-Control",
             value: "on",
@@ -180,24 +226,6 @@ const nextConfig = {
           {
             key: "Content-Security-Policy",
             value: contentSecurityPolicy,
-          },
-        ],
-      },
-      {
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      {
-        source: "/_next/image/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
           },
         ],
       },

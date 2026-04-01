@@ -9,7 +9,7 @@ import type {
   AccessSubjectType,
 } from "@gymrats/types";
 import { create } from "zustand";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import {
   normalizeAccessBinding,
   normalizeAccessDevice,

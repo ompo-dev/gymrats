@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 
 export type JobStatus =
   | "waiting"

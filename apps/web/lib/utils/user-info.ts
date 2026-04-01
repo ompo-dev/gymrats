@@ -1,5 +1,7 @@
 "use client";
 
+import { webActions } from "@/lib/actions/client";
+
 /**
  * ⚠️ SEGURANÇA: Estas funções são INSECURAS e devem ser usadas APENAS para UX (mostrar/esconder elementos).
  * NUNCA use para autorização real - sempre valide no servidor!
@@ -68,16 +70,13 @@ export async function getUserInfoFromServer(): Promise<{
   role: string | null;
 }> {
   try {
-    const { apiClient } = await import("@/lib/api/client");
-    const response = await apiClient.get<{
-      user: { role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN" } | null;
-    }>("/api/auth/session");
+    const response = await webActions.getAuthSessionAction();
 
-    if (!response.data.user) {
+    if (!response.user) {
       return { isAdmin: false, role: null };
     }
 
-    const role = response.data.user.role;
+    const role = response.user.role;
     const isAdmin = role === "ADMIN";
 
     return { isAdmin, role };

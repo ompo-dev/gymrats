@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { apiClient } from "@/lib/api/client";
+import type { AuthSessionPayload } from "@/lib/actions/auth-readers";
+import { webActions } from "@/lib/actions/client";
 import { clearAuthToken, hasBrowserSessionHint } from "@/lib/auth/token-client";
 import type { UserProfile } from "@/lib/types";
 
@@ -44,13 +45,7 @@ export interface AuthSessionUser {
   [key: string]: unknown;
 }
 
-interface SessionResponse {
-  user: AuthSessionUser | null;
-  session?: {
-    id: string;
-    token?: string | null;
-  } | null;
-}
+type SessionResponse = AuthSessionPayload;
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -161,10 +156,7 @@ function applySessionToState(
 }
 
 async function requestSession() {
-  const response = await apiClient.get<SessionResponse>("/api/auth/session", {
-    timeout: 30_000,
-  });
-  return response.data ?? null;
+  return (await webActions.getAuthSessionAction()) ?? null;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -271,7 +263,7 @@ export const useAuthStore = create<AuthState>()(
       },
       signOut: async () => {
         try {
-          await apiClient.post("/api/auth/sign-out");
+          await webActions.signOutAction();
         } catch {
           // Continua mesmo se o backend falhar para nao prender a sessao local.
         } finally {

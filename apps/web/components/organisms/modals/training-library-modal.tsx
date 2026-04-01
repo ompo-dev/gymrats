@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import type { WeeklyPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";

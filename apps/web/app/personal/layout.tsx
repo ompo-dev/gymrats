@@ -7,8 +7,6 @@ import { createAppQueryClient } from "@/lib/query/create-query-client";
 import { queryKeys } from "@/lib/query/query-keys";
 import { PersonalLayoutContent } from "./layout-content";
 
-export const dynamic = "force-dynamic";
-
 async function PersonalLayoutWrapper({
   children,
 }: {

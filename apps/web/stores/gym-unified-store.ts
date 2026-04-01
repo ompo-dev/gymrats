@@ -1,5 +1,5 @@
-﻿import { create } from "zustand";
-import { apiClient } from "@/lib/api/client";
+import { create } from "zustand";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 import type {
   BoostCampaign,

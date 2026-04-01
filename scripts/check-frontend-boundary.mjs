@@ -26,6 +26,8 @@ const forbiddenImports = [
   "bullmq",
   "@/lib/db",
   "@/lib/queue",
+  "@/lib/api/client",
+  "@/lib/api/server",
   "@/lib/services/",
   "@/server/",
 ];
@@ -110,7 +112,17 @@ for (const scopeRoot of includedRoots) {
 
     const importLines = source.split(/\r?\n/);
     importLines.forEach((line, index) => {
-      const hit = forbiddenImports.find((token) => line.includes(token));
+      const hit = forbiddenImports.find((token) => {
+        if (token === "@/lib/api/client") {
+          return /["']@\/lib\/api\/client["']/.test(line);
+        }
+
+        if (token === "@/lib/api/server") {
+          return /["']@\/lib\/api\/server["']/.test(line);
+        }
+
+        return line.includes(token);
+      });
       if (!hit) {
         return;
       }

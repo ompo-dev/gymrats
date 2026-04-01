@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 
 export interface PersonalStudentSearchResult {
   found: boolean;

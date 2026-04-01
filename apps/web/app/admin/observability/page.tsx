@@ -1,8 +1,8 @@
 import { featureFlags } from "@gymrats/config";
-import { getCurrentUserInfo } from "@/app/student/actions";
-import { serverApiGet } from "@/lib/api/server";
-
-export const dynamic = "force-dynamic";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { readAuthSession } from "@/lib/actions/auth-readers";
+import { readCachedApi } from "@/lib/actions/cached-reader";
 
 type ObservabilitySummary = {
   windowHours: number;
@@ -70,9 +70,15 @@ type ObservabilityErrors = {
 
 async function getSummary() {
   try {
-    return await serverApiGet<ObservabilitySummary>(
-      "/api/admin/observability/summary?sinceHours=24",
-    );
+    return await readCachedApi<ObservabilitySummary>({
+      path: "/api/admin/observability/summary",
+      query: {
+        sinceHours: 24,
+      },
+      tags: ["admin:observability", "admin:observability:summary"],
+      profile: "seconds",
+      scope: "private",
+    });
   } catch {
     return null;
   }
@@ -80,9 +86,16 @@ async function getSummary() {
 
 async function getRoutes() {
   try {
-    return await serverApiGet<ObservabilityRoutes>(
-      "/api/admin/observability/routes?sinceHours=24&limit=10",
-    );
+    return await readCachedApi<ObservabilityRoutes>({
+      path: "/api/admin/observability/routes",
+      query: {
+        sinceHours: 24,
+        limit: 10,
+      },
+      tags: ["admin:observability", "admin:observability:routes"],
+      profile: "seconds",
+      scope: "private",
+    });
   } catch {
     return null;
   }
@@ -90,15 +103,24 @@ async function getRoutes() {
 
 async function getErrors() {
   try {
-    return await serverApiGet<ObservabilityErrors>(
-      "/api/admin/observability/errors?sinceHours=24&limit=10",
-    );
+    return await readCachedApi<ObservabilityErrors>({
+      path: "/api/admin/observability/errors",
+      query: {
+        sinceHours: 24,
+        limit: 10,
+      },
+      tags: ["admin:observability", "admin:observability:errors"],
+      profile: "seconds",
+      scope: "private",
+    });
   } catch {
     return null;
   }
 }
 
-export default async function AdminObservabilityPage() {
+async function AdminObservabilityContent() {
+  await connection();
+
   if (!featureFlags.observabilityDashboardEnabled) {
     return (
       <div className="p-6 text-sm text-duo-gray-dark">
@@ -107,8 +129,8 @@ export default async function AdminObservabilityPage() {
     );
   }
 
-  const user = await getCurrentUserInfo();
-  if (!user.isAdmin) {
+  const session = await readAuthSession().catch(() => null);
+  if (session?.user?.role !== "ADMIN") {
     return (
       <div className="p-6 text-sm text-duo-gray-dark">
         Acesso restrito a administradores.
@@ -264,5 +286,21 @@ export default async function AdminObservabilityPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function AdminObservabilityFallback() {
+  return (
+    <div className="p-6 text-sm text-duo-gray-dark">
+      Carregando observabilidade...
+    </div>
+  );
+}
+
+export default function AdminObservabilityPage() {
+  return (
+    <Suspense fallback={<AdminObservabilityFallback />}>
+      <AdminObservabilityContent />
+    </Suspense>
   );
 }

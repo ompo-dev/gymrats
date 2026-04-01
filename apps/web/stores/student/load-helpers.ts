@@ -4,7 +4,7 @@
  */
 
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import type { Meal } from "@/lib/types";
 import type {
   StudentData,

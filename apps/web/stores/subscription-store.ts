@@ -3,7 +3,7 @@ import {
   centsToReais,
   GYM_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 import type { StudentData } from "@/lib/types/student-unified";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
