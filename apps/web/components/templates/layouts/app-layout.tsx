@@ -58,7 +58,11 @@ function AppLayoutSimple({
     enabled: scrollResetEnabled,
   });
 
-  const activeTab = tab;
+  const activeTab = tabs.some((item) => item.id === tab)
+    ? tab
+    : tabs.some((item) => item.id === "more")
+      ? "more"
+      : defaultTab;
 
   const handleTabChange = async (newTab: string) => {
     if (newTab === activeTab) {

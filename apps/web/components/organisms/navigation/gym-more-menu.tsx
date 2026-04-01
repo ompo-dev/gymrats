@@ -28,7 +28,7 @@ const moreMenuItems: Array<GymMoreMenuItem & { adminOnly?: boolean }> = [
     label: "Catracas",
     description: "Presenca, eventos ao vivo e operacao manual",
     color: "duo-blue" as const,
-    href: "/gym/catracas",
+    href: "/gym?tab=catracas",
   },
   {
     id: "settings",

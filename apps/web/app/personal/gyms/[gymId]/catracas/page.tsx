@@ -1,4 +1,4 @@
-import { PersonalGymAccessPage } from "@/components/organisms/personal";
+import { redirect } from "next/navigation";
 
 export default async function PersonalGymAccessRoute({
   params,
@@ -6,5 +6,7 @@ export default async function PersonalGymAccessRoute({
   params: Promise<{ gymId: string }> | { gymId: string };
 }) {
   const resolvedParams = await Promise.resolve(params);
-  return <PersonalGymAccessPage gymId={resolvedParams.gymId} />;
+  redirect(
+    `/personal?tab=gyms&gymId=${resolvedParams.gymId}&gymView=catracas`,
+  );
 }

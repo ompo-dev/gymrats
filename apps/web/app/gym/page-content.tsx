@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect } from "react";
+import { GymAccessPage } from "@/components/organisms/gym/gym-access";
 import { GymDashboardPage } from "@/components/organisms/gym/gym-dashboard";
 import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
 import { GymFinancialPage } from "@/components/organisms/gym/gym-financial";
@@ -182,6 +183,7 @@ function GymHomeContent() {
       {tab === "financial" && <GymFinancialTab />}
       {tab === "stats" && <GymStatsTab />}
       {tab === "settings" && <GymSettingsTab />}
+      {tab === "catracas" && <GymAccessPage />}
       {tab === "gamification" &&
         (userIsAdmin ? <GymGamificationTab /> : null)}
       {tab === "more" && <GymMoreMenu.Simple />}

@@ -1,5 +1,5 @@
-import { GymAccessPage } from "@/components/organisms/gym";
+import { redirect } from "next/navigation";
 
 export default function GymAccessRoute() {
-  return <GymAccessPage />;
+  redirect("/gym?tab=catracas");
 }

@@ -87,13 +87,19 @@ function PersonalStudentsTab() {
 
 function PersonalGymsTab({
   gymId,
+  gymView,
   onViewGym,
   onBackFromGym,
+  onOpenGymAccess,
+  onBackFromAccess,
   onRefresh,
 }: {
   gymId: string | null;
+  gymView: string | null;
   onViewGym: (gymId: string) => void;
   onBackFromGym: () => void;
+  onOpenGymAccess: () => void;
+  onBackFromAccess: () => void;
   onRefresh: () => Promise<void>;
 }) {
   usePersonalGymsBootstrapBridge();
@@ -105,8 +111,11 @@ function PersonalGymsTab({
       affiliations={affiliations}
       onRefresh={onRefresh}
       gymId={gymId}
+      gymView={gymView}
       onViewGym={onViewGym}
       onBackFromGym={onBackFromGym}
+      onOpenGymAccess={onOpenGymAccess}
+      onBackFromAccess={onBackFromAccess}
     />
   );
 }
@@ -192,6 +201,7 @@ function PersonalHomeContent() {
     parseAsString.withDefault("dashboard"),
   );
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
+  const [gymView, setGymView] = useQueryState("gymView", parseAsString);
   const refreshPersonalBootstrap = useInvalidatePersonalBootstrap();
 
   const refreshGyms = refreshPersonalBootstrap;
@@ -205,6 +215,7 @@ function PersonalHomeContent() {
           onViewGym={(id) => {
             void (async () => {
               await setGymId(id);
+              await setGymView("profile");
               await setTab("gyms");
             })();
           }}
@@ -214,12 +225,25 @@ function PersonalHomeContent() {
       {tab === "gyms" && (
         <PersonalGymsTab
           gymId={gymId ?? null}
+          gymView={gymView ?? null}
           onRefresh={refreshGyms}
           onViewGym={(id) => {
-            void setGymId(id);
+            void (async () => {
+              await setGymId(id);
+              await setGymView("profile");
+            })();
           }}
           onBackFromGym={() => {
-            void setGymId(null);
+            void (async () => {
+              await setGymView(null);
+              await setGymId(null);
+            })();
+          }}
+          onOpenGymAccess={() => {
+            void setGymView("catracas");
+          }}
+          onBackFromAccess={() => {
+            void setGymView("profile");
           }}
         />
       )}

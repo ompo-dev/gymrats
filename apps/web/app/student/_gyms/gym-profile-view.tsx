@@ -30,6 +30,7 @@ import {
 interface GymProfileViewProps {
   gymId: string;
   onBack: () => void;
+  onOpenAccess?: () => void;
   onJoinPlan?: (gymId: string, planId: string, couponId?: string) => void;
   onChangePlan?: (membershipId: string, planId: string) => void;
   onCancelMembership?: (membershipId: string) => void | Promise<void>;
@@ -44,6 +45,7 @@ interface GymProfileViewProps {
 export function GymProfileView({
   gymId,
   onBack,
+  onOpenAccess,
   onJoinPlan,
   onChangePlan,
   onCancelMembership,
@@ -245,9 +247,17 @@ export function GymProfileView({
                 Acompanhe presenca e registre entrada ou saida manual de alunos.
               </p>
             </div>
-            <Link href={`/personal/gyms/${gymId}/catracas`}>
-              <DuoButton variant="primary">Abrir catracas</DuoButton>
-            </Link>
+            {onOpenAccess ? (
+              <DuoButton variant="primary" onClick={onOpenAccess}>
+                Abrir catracas
+              </DuoButton>
+            ) : (
+              <DuoButton asChild variant="primary">
+                <Link href={`/personal?tab=gyms&gymId=${gymId}&gymView=catracas`}>
+                  Abrir catracas
+                </Link>
+              </DuoButton>
+            )}
           </div>
         </DuoCard.Root>
       )}
