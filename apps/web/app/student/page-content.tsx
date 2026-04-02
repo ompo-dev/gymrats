@@ -59,11 +59,8 @@ import type {
 } from "@/lib/types/student-unified";
 
 function HomeTabBootstrapBridge() {
-  const { progress, user, profile } = useStudent("progress", "user", "profile");
-
-  useStudentHomeBootstrapBridge({
-    enabled: !progress && !user && !profile,
-  });
+  useStudent("progress", "user", "profile");
+  useStudentHomeBootstrapBridge();
   return null;
 }
 

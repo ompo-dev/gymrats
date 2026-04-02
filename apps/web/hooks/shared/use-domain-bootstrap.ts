@@ -44,26 +44,112 @@ type DomainBootstrapState<TData> = {
 };
 
 const bootstrapPromiseCache = new Map<string, Promise<unknown>>();
+const bootstrapResultCache = new Map<
+  string,
+  {
+    data: DomainBootstrapResult<unknown>;
+    expiresAt: number;
+  }
+>();
+const DOMAIN_BOOTSTRAP_TTL_MS: Record<BootstrapDomain, number> = {
+  student: 15_000,
+  gym: 15_000,
+  personal: 15_000,
+};
 
 function buildQueryCacheKey(
   domain: BootstrapDomain,
   sections?: readonly string[],
+  queryKey?: readonly unknown[],
 ) {
+  if (queryKey && queryKey.length > 0) {
+    return `${domain}:${JSON.stringify(queryKey)}`;
+  }
+
   return buildBootstrapHydrationKey(domain, sections);
+}
+
+function getCachedBootstrapResult<TData>(cacheKey: string) {
+  const cached = bootstrapResultCache.get(cacheKey) as
+    | {
+        data: DomainBootstrapResult<TData>;
+        expiresAt: number;
+      }
+    | undefined;
+
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    bootstrapResultCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function getBootstrapResultTtlMs<TData>(
+  domain: BootstrapDomain,
+  result: DomainBootstrapResult<TData>,
+) {
+  const metaTtlMs = result.meta?.cache?.ttlMs;
+
+  if (
+    typeof metaTtlMs === "number" &&
+    Number.isFinite(metaTtlMs) &&
+    metaTtlMs > 0
+  ) {
+    return metaTtlMs;
+  }
+
+  return DOMAIN_BOOTSTRAP_TTL_MS[domain];
+}
+
+function setCachedBootstrapResult<TData>(
+  cacheKey: string,
+  domain: BootstrapDomain,
+  result: DomainBootstrapResult<TData>,
+) {
+  const ttlMs = getBootstrapResultTtlMs(domain, result);
+
+  if (ttlMs <= 0) {
+    bootstrapResultCache.delete(cacheKey);
+    return;
+  }
+
+  bootstrapResultCache.set(cacheKey, {
+    data: result as DomainBootstrapResult<unknown>,
+    expiresAt: Date.now() + ttlMs,
+  });
 }
 
 async function resolveBootstrapQuery<TData>(
   cacheKey: string,
+  domain: BootstrapDomain,
   queryFn: () => Promise<DomainBootstrapResult<TData>>,
+  fresh = false,
 ) {
+  if (!fresh) {
+    const cached = getCachedBootstrapResult<TData>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const pending = bootstrapPromiseCache.get(cacheKey);
   if (pending) {
     return pending as Promise<DomainBootstrapResult<TData>>;
   }
 
-  const promise = queryFn().finally(() => {
-    bootstrapPromiseCache.delete(cacheKey);
-  });
+  const promise = queryFn()
+    .then((result) => {
+      setCachedBootstrapResult(cacheKey, domain, result);
+      return result;
+    })
+    .finally(() => {
+      bootstrapPromiseCache.delete(cacheKey);
+    });
 
   bootstrapPromiseCache.set(cacheKey, promise);
   return promise;
@@ -72,6 +158,7 @@ async function resolveBootstrapQuery<TData>(
 export function invalidateDomainBootstrapCache(domain?: BootstrapDomain) {
   if (!domain) {
     bootstrapPromiseCache.clear();
+    bootstrapResultCache.clear();
     return;
   }
 
@@ -82,18 +169,25 @@ export function invalidateDomainBootstrapCache(domain?: BootstrapDomain) {
       bootstrapPromiseCache.delete(key);
     }
   }
+
+  for (const key of bootstrapResultCache.keys()) {
+    if (key.startsWith(prefix)) {
+      bootstrapResultCache.delete(key);
+    }
+  }
 }
 
 export function useDomainBootstrap<TData, TSection extends string>({
   domain,
   sections,
   enabled,
+  queryKey,
   queryFn,
 }: DomainBootstrapOptions<TData, TSection>) {
   const isEnabled = enabled ?? true;
   const cacheKey = useMemo(
-    () => buildQueryCacheKey(domain, sections),
-    [domain, sections],
+    () => buildQueryCacheKey(domain, sections, queryKey),
+    [domain, queryKey, sections],
   );
   const mountedRef = useRef(true);
   const queryFnRef = useRef(queryFn);
@@ -139,7 +233,12 @@ export function useDomainBootstrap<TData, TSection extends string>({
       }
 
       try {
-        const result = await resolveBootstrapQuery(cacheKey, queryFnRef.current);
+        const result = await resolveBootstrapQuery(
+          cacheKey,
+          domain,
+          queryFnRef.current,
+          fresh,
+        );
 
         if (mountedRef.current) {
           setState({
@@ -169,7 +268,7 @@ export function useDomainBootstrap<TData, TSection extends string>({
         throw resolvedError;
       }
     },
-    [cacheKey, isEnabled],
+    [cacheKey, domain, isEnabled],
   );
 
   useEffect(() => {

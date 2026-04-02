@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
-import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
+import { STUDENT_LAYOUT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { readStudentBootstrap } from "@/lib/actions/bootstrap-readers";
 import { requireProtectedRouteAccess } from "@/lib/auth/server-route-guard";
 import type { StudentData } from "@/lib/types/student-unified";
@@ -26,7 +26,7 @@ async function StudentLayoutWrapper({
   };
 
   try {
-    const bootstrap = await readStudentBootstrap(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS);
+    const bootstrap = await readStudentBootstrap(STUDENT_LAYOUT_BOOTSTRAP_SECTIONS);
     initialBootstrap = bootstrap.data ?? null;
 
     profileData = {

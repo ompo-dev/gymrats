@@ -17,6 +17,12 @@ export const DEFAULT_STUDENT_BOOTSTRAP_SECTIONS = [
   "dayPasses",
 ] as const satisfies readonly StudentDataSection[];
 
+export const STUDENT_LAYOUT_BOOTSTRAP_SECTIONS = [
+  "user",
+  "progress",
+  "profile",
+] as const satisfies readonly StudentDataSection[];
+
 export const DEFAULT_GYM_BOOTSTRAP_SECTIONS = [
   "stats",
   "recentCheckIns",
@@ -24,6 +30,11 @@ export const DEFAULT_GYM_BOOTSTRAP_SECTIONS = [
   "equipment",
   "profile",
   "subscription",
+] as const satisfies readonly GymDataSection[];
+
+export const GYM_LAYOUT_BOOTSTRAP_SECTIONS = [
+  "profile",
+  "stats",
 ] as const satisfies readonly GymDataSection[];
 
 export const DEFAULT_PERSONAL_BOOTSTRAP_SECTIONS = [

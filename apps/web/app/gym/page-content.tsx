@@ -40,15 +40,7 @@ function GymDashboardTab() {
     "recentCheckIns",
     "subscription",
   );
-  useGymDashboardBootstrapBridge({
-    enabled:
-      !profile &&
-      !stats &&
-      students.length === 0 &&
-      rawEquipment.length === 0 &&
-      recentCheckIns.length === 0 &&
-      !subscription,
-  });
+  useGymDashboardBootstrapBridge();
   const equipment = normalizeEquipmentList(rawEquipment);
 
   if (!profile || !stats) {

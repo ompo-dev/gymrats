@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import {
+  log,
   persistTelemetryEvents,
   type TelemetryEventInput,
 } from "@/lib/observability";
@@ -28,19 +29,24 @@ export const POST = createSafeHandler(
     const events = (
       Array.isArray(body) ? body : [body]
     ) as TelemetryEventInput[];
-    await persistTelemetryEvents(
-      events.map((event) => ({
-        eventType: event.eventType,
-        domain: event.domain,
-        journey: event.journey,
-        metricName: event.metricName,
-        metricValue: event.metricValue,
-        status: event.status,
-        releaseId: event.releaseId,
-        featureFlagSet: event.featureFlagSet,
-        payload: event.payload,
-      })),
-    );
+    const telemetryBatch = events.map((event) => ({
+      eventType: event.eventType,
+      domain: event.domain,
+      journey: event.journey,
+      metricName: event.metricName,
+      metricValue: event.metricValue,
+      status: event.status,
+      releaseId: event.releaseId,
+      featureFlagSet: event.featureFlagSet,
+      payload: event.payload,
+    }));
+
+    void persistTelemetryEvents(telemetryBatch).catch((error) => {
+      log.debug("Async telemetry persistence failed", {
+        error: error instanceof Error ? error.message : "unknown",
+        batchSize: telemetryBatch.length,
+      });
+    });
 
     return NextResponse.json(
       { ok: true, accepted: events.length },

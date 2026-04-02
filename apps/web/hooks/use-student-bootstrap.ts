@@ -35,7 +35,17 @@ export const STUDENT_BASE_BOOTSTRAP_SECTIONS =
   DEFAULT_STUDENT_BOOTSTRAP_SECTIONS;
 
 export const STUDENT_HOME_BOOTSTRAP_SECTIONS =
-  DEFAULT_STUDENT_BOOTSTRAP_SECTIONS;
+  [
+    "user",
+    "progress",
+    "workoutHistory",
+    "profile",
+    "weightHistory",
+    "weeklyPlan",
+    "units",
+    "dailyNutrition",
+    "gymLocations",
+  ] as const satisfies readonly StudentDataSection[];
 
 export const STUDENT_LEARN_BOOTSTRAP_SECTIONS = [
   "weeklyPlan",
