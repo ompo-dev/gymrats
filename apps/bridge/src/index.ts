@@ -1,3 +1,4 @@
+import { log } from "@gymrats/domain/log";
 import type { BridgeAdapter, BridgeAuthorizationRequest } from "./types";
 
 class NoopAdapter implements BridgeAdapter {
@@ -21,7 +22,7 @@ async function main() {
     identifierValue: "CARD-001",
   };
 
-  console.log("[bridge] runtime started", {
+  log.info("Bridge runtime started", {
     adapter: adapter.name,
     sampleRequest,
   });
@@ -29,6 +30,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("[bridge] failed", error);
+  log.error("Bridge runtime failed", { error });
   process.exitCode = 1;
 });

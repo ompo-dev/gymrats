@@ -2,10 +2,11 @@ import { abacatePay } from "@gymrats/api/abacatepay";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { blockProductionDevelopmentRoute } from "@/lib/security/development-route";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  paymentId: z.string().min(1),
+  paymentId: z.string().cuid("paymentId deve ser um CUID valido"),
 });
 
 /**
@@ -16,8 +17,17 @@ const paramsSchema = z.object({
  * Auth: student (deve ser dono do pagamento).
  */
 export const POST = createSafeHandler(
-  async ({ studentContext, params }) => {
+  async ({ studentContext, params, req }) => {
     const { paymentId } = paramsSchema.parse(params);
+    const blockedResponse = await blockProductionDevelopmentRoute({
+      request: req,
+      actorId: studentContext?.user.id ?? null,
+      targetId: paymentId,
+    });
+    if (blockedResponse) {
+      return blockedResponse;
+    }
+
     const studentId = studentContext?.studentId;
 
     const payment = await db.payment.findFirst({

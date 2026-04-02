@@ -25,19 +25,19 @@ export const updateStudentProfileSchema = z.object({
     .nullable(),
   weeklyWorkoutFrequency: z.number().int().min(0).max(7).optional().nullable(),
   workoutDuration: z.number().int().positive().optional().nullable(),
-  goals: z.array(z.string()).optional().nullable(),
-  injuries: z.array(z.string()).optional().nullable(),
-  availableEquipment: z.array(z.string()).optional().nullable(),
+  goals: z.array(z.string().max(255)).optional().nullable(),
+  injuries: z.array(z.string().max(255)).optional().nullable(),
+  availableEquipment: z.array(z.string().max(255)).optional().nullable(),
   gymType: z.enum(["home", "commercial", "outdoor"]).optional().nullable(),
   preferredWorkoutTime: z
     .enum(["morning", "afternoon", "evening", "flexible"])
     .optional()
     .nullable(),
   preferredSets: z.number().int().positive().optional().nullable(),
-  preferredRepRange: z.string().optional().nullable(),
-  restTime: z.string().optional().nullable(),
-  dietType: z.string().optional().nullable(),
-  allergies: z.array(z.string()).optional().nullable(),
+  preferredRepRange: z.string().max(64).optional().nullable(),
+  restTime: z.string().max(64).optional().nullable(),
+  dietType: z.string().max(64).optional().nullable(),
+  allergies: z.array(z.string().max(255)).optional().nullable(),
   targetCalories: z.number().int().positive().optional().nullable(),
   targetProtein: z.number().positive().optional().nullable(),
   targetCarbs: z.number().positive().optional().nullable(),
@@ -58,12 +58,15 @@ export const updateStudentProfileSchema = z.object({
     .optional()
     .nullable(),
   // Limitações separadas
-  physicalLimitations: z.array(z.string()).optional().nullable(),
-  motorLimitations: z.array(z.string()).optional().nullable(),
-  medicalConditions: z.array(z.string()).optional().nullable(),
+  physicalLimitations: z.array(z.string().max(255)).optional().nullable(),
+  motorLimitations: z.array(z.string().max(255)).optional().nullable(),
+  medicalConditions: z.array(z.string().max(255)).optional().nullable(),
   // Detalhes das limitações
   limitationDetails: z
-    .record(z.string(), z.union([z.string(), z.array(z.string())]))
+    .record(
+      z.string().max(128),
+      z.union([z.string().max(1000), z.array(z.string().max(255))]),
+    )
     .optional()
     .nullable(),
   // Horas disponíveis por dia para treino
@@ -78,12 +81,12 @@ export const addWeightSchema = z.object({
     .optional()
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
     .optional(),
-  notes: z.string().optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
 });
 
 export const weightHistoryQuerySchema = z.object({
-  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
-  offset: z.string().regex(/^\d+$/).transform(Number).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
   startDate: z
     .string()
     .datetime()

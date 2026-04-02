@@ -3,6 +3,7 @@
  */
 
 import { db } from "@/lib/db";
+import { parseJsonArray } from "@/lib/utils/json";
 
 export interface GetUnitsInput {
   studentId: string;
@@ -132,24 +133,26 @@ export async function getUnitsUseCase(input: GetUnitsInput) {
           videoUrl: exercise.videoUrl || undefined,
           educationalId: exercise.educationalId || undefined,
           primaryMuscles: exercise.primaryMuscles
-            ? JSON.parse(exercise.primaryMuscles)
+            ? parseJsonArray<string>(exercise.primaryMuscles)
             : undefined,
           secondaryMuscles: exercise.secondaryMuscles
-            ? JSON.parse(exercise.secondaryMuscles)
+            ? parseJsonArray<string>(exercise.secondaryMuscles)
             : undefined,
           difficulty: exercise.difficulty || undefined,
           equipment: exercise.equipment
-            ? JSON.parse(exercise.equipment)
+            ? parseJsonArray<string>(exercise.equipment)
             : undefined,
           instructions: exercise.instructions
-            ? JSON.parse(exercise.instructions)
+            ? parseJsonArray<string>(exercise.instructions)
             : undefined,
-          tips: exercise.tips ? JSON.parse(exercise.tips) : undefined,
+          tips: exercise.tips
+            ? parseJsonArray<string>(exercise.tips)
+            : undefined,
           commonMistakes: exercise.commonMistakes
-            ? JSON.parse(exercise.commonMistakes)
+            ? parseJsonArray<string>(exercise.commonMistakes)
             : undefined,
           benefits: exercise.benefits
-            ? JSON.parse(exercise.benefits)
+            ? parseJsonArray<string>(exercise.benefits)
             : undefined,
           scientificEvidence: exercise.scientificEvidence || undefined,
           alternatives:

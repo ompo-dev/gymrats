@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { createAuthMiddleware } from "better-auth/api";
 import { bearer } from "better-auth/plugins/bearer";
 import { oneTimeToken } from "better-auth/plugins/one-time-token";
+import { log } from "@gymrats/domain/log";
 import { provisionUserAccess } from "./provision-user-access";
 
 function getAppUrl() {
@@ -247,7 +248,10 @@ function createAuth() {
                 userEmail: user.email,
               });
             } catch (error) {
-              console.error("Error provisioning user access:", error);
+              log.error("Failed to provision user access after signup", {
+                userId: user.id,
+                error,
+              });
             }
           },
         },

@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from "@/runtime/next-server";
+import { log } from "@/lib/observability";
 
 /**
  * Resposta de sucesso
@@ -89,16 +90,9 @@ export function internalErrorResponse(
   message: string = "Erro interno do servidor",
   error?: unknown,
 ): NextResponse {
-  const errorMsg =
-    error instanceof Error
-      ? error.message
-      : error && typeof error === "object" && "message" in error
-        ? (error as { message?: string }).message
-        : undefined;
-  console.error("[API Error]:", error);
-  return errorResponse(
-    message,
-    500,
-    errorMsg ? { message: errorMsg } : undefined,
-  );
+  log.error("[API Error]", {
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
+  return errorResponse(message, 500);
 }

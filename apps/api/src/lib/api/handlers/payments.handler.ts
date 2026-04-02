@@ -6,6 +6,7 @@
 
 import type { z } from "zod";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireAuth, requireStudent } from "../middleware/auth.middleware";
 import {
@@ -120,7 +121,7 @@ export async function getPaymentsHandler(
       offset: offset,
     });
   } catch (error) {
-    console.error("[getPaymentsHandler] Erro:", error);
+    log.error("[getPaymentsHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar pagamentos", error);
   }
 }
@@ -163,7 +164,7 @@ export async function getPaymentMethodsHandler(
 
     return successResponse({ paymentMethods: formattedMethods });
   } catch (error) {
-    console.error("[getPaymentMethodsHandler] Erro:", error);
+    log.error("[getPaymentMethodsHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar métodos de pagamento", error);
   }
 }
@@ -247,7 +248,7 @@ export async function addPaymentMethodHandler(
       },
     });
   } catch (error) {
-    console.error("[addPaymentMethodHandler] Erro:", error);
+    log.error("[addPaymentMethodHandler] Erro", { error });
     return internalErrorResponse("Erro ao criar método de pagamento", error);
   }
 }
@@ -324,7 +325,7 @@ export async function getMembershipsHandler(
 
     return successResponse({ memberships: formattedMemberships });
   } catch (error) {
-    console.error("[getMembershipsHandler] Erro:", error);
+    log.error("[getMembershipsHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar memberships", error);
   }
 }

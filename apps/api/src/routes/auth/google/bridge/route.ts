@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { validateQuery } from "@/lib/api/middleware/validation.middleware";
 import { auth } from "@/lib/auth-config";
+import { log } from "@/lib/observability";
+import { resolveSafeRedirectTarget } from "@/lib/security/trusted-redirect";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const bridgeQuerySchema = z.object({
@@ -29,9 +31,20 @@ export async function GET(request: NextRequest) {
   }
 
   const appUrl = getAppUrl(request);
-  const redirectTo = validation.data.redirectTo || `${appUrl}/auth/callback`;
-  const errorRedirectTo =
-    validation.data.errorRedirectTo || `${appUrl}/auth/callback?error=true`;
+  const redirectTo = resolveSafeRedirectTarget({
+    candidate: validation.data.redirectTo,
+    fallback: "/auth/callback",
+    appUrl,
+    requestOrigin: getRequestOrigin(request),
+    trustedOrigins: process.env.TRUSTED_ORIGINS,
+  });
+  const errorRedirectTo = resolveSafeRedirectTarget({
+    candidate: validation.data.errorRedirectTo,
+    fallback: "/auth/callback?error=true",
+    appUrl,
+    requestOrigin: getRequestOrigin(request),
+    trustedOrigins: process.env.TRUSTED_ORIGINS,
+  });
 
   try {
     const { token } = await auth.api.generateOneTimeToken({
@@ -43,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(redirectUrl, 302);
   } catch (error) {
-    console.error("[google.bridge] Failed to create one-time token", {
+    log.error("[google.bridge] Failed to create one-time token", {
       error: error instanceof Error ? error.message : String(error),
       redirectTo,
       errorRedirectTo,

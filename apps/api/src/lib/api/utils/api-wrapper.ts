@@ -6,6 +6,8 @@ import {
   recordHandlerTime,
   recordResponseTime,
 } from "@/lib/runtime/request-context";
+import { enforceSubjectRateLimit } from "@/lib/security/rate-limiter";
+import { parseJsonSafe } from "@/lib/utils/json";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import {
   requireAdmin,
@@ -285,6 +287,36 @@ export function createSafeHandler<
         recordAuthTime(Date.now() - authStartedAt);
       }
 
+      const authenticatedUserId =
+        adminContext?.user?.id ??
+        gymContext?.user?.id ??
+        studentContext?.user?.id ??
+        personalContext?.user?.id;
+
+      if (authenticatedUserId) {
+        const rateLimitedResponse = await enforceSubjectRateLimit({
+          request: req,
+          subjectKey: authenticatedUserId,
+          actorId: authenticatedUserId,
+        });
+
+        if (rateLimitedResponse) {
+          const handled = attachStandardHeaders(rateLimitedResponse, startedAt);
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: handled.response.status,
+              latencyMs: handled.latencyMs,
+              requestId: handled.requestId,
+              gymContext,
+              studentContext,
+              personalContext,
+              adminContext,
+            }),
+          );
+          return handled.response;
+        }
+      }
+
       let body: TBody = {} as TBody;
       if (options.schema?.body) {
         body = options.schema.body.parse(await parseRequestBody(req));
@@ -354,7 +386,7 @@ export function createSafeHandler<
       if (replay && replay.status === "completed" && replay.response_status) {
         try {
           const parsedBody = replay.response_body
-            ? JSON.parse(replay.response_body)
+            ? parseJsonSafe<unknown>(replay.response_body)
             : null;
           const replayResponse = NextResponse.json(parsedBody, {
             status: replay.response_status,
@@ -476,7 +508,12 @@ export function createSafeHandler<
               { status: 400 },
             )
           : NextResponse.json(
-              { error: err?.message || "Erro interno do servidor" },
+              {
+                error:
+                  status >= 500
+                    ? "Erro interno do servidor"
+                    : err?.message || "Erro na requisicao",
+              },
               { status },
             );
 

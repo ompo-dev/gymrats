@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
+import { log } from "@/lib/observability";
 import {
   calculateReps,
   calculateRest,
@@ -27,6 +28,7 @@ import {
   generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
+import { parseJsonArray } from "@/lib/utils/json";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 
 async function createExercisesInWorkout(
@@ -98,9 +100,7 @@ async function createExercisesInWorkout(
       };
     }
 
-    const goals = studentProfile.goals
-      ? (JSON.parse(studentProfile.goals) as string[])
-      : undefined;
+    const goals = parseJsonArray<string>(studentProfile.goals);
 
     const calculatedSets =
       exercise.sets ||
@@ -173,15 +173,15 @@ async function createExercisesInWorkout(
     });
 
     try {
-      const physicalLimitations = studentProfile.physicalLimitations
-        ? JSON.parse(studentProfile.physicalLimitations)
-        : [];
-      const motorLimitations = studentProfile.motorLimitations
-        ? JSON.parse(studentProfile.motorLimitations)
-        : [];
-      const medicalConditions = studentProfile.medicalConditions
-        ? JSON.parse(studentProfile.medicalConditions)
-        : [];
+      const physicalLimitations = parseJsonArray<string>(
+        studentProfile.physicalLimitations,
+      );
+      const motorLimitations = parseJsonArray<string>(
+        studentProfile.motorLimitations,
+      );
+      const medicalConditions = parseJsonArray<string>(
+        studentProfile.medicalConditions,
+      );
       const limitations = [
         ...physicalLimitations,
         ...motorLimitations,
@@ -211,10 +211,10 @@ async function createExercisesInWorkout(
         });
       }
     } catch (altError) {
-      console.error(
-        "[gym/workouts/process] Erro ao adicionar alternativas:",
-        altError,
-      );
+      log.error("[gym/workouts/process] Erro ao adicionar alternativas", {
+        error: altError,
+        workoutId,
+      });
     }
   }
 }
@@ -475,9 +475,7 @@ export async function POST(
                     | "intermediario"
                     | "avancado"
                     | undefined,
-                  goals: student.profile.goals
-                    ? (JSON.parse(student.profile.goals) as string[])
-                    : undefined,
+                  goals: parseJsonArray<string>(student.profile.goals),
                 };
 
                 const calculatedSets =
@@ -534,16 +532,15 @@ export async function POST(
                 });
 
                 if (exerciseInfo && student?.profile) {
-                  const physicalLimitations = student.profile
-                    .physicalLimitations
-                    ? JSON.parse(student.profile.physicalLimitations)
-                    : [];
-                  const motorLimitations = student.profile.motorLimitations
-                    ? JSON.parse(student.profile.motorLimitations)
-                    : [];
-                  const medicalConditions = student.profile.medicalConditions
-                    ? JSON.parse(student.profile.medicalConditions)
-                    : [];
+                  const physicalLimitations = parseJsonArray<string>(
+                    student.profile.physicalLimitations,
+                  );
+                  const motorLimitations = parseJsonArray<string>(
+                    student.profile.motorLimitations,
+                  );
+                  const medicalConditions = parseJsonArray<string>(
+                    student.profile.medicalConditions,
+                  );
                   const limitations = [
                     ...physicalLimitations,
                     ...motorLimitations,
@@ -578,10 +575,10 @@ export async function POST(
 
             results.created.push(`Workout: ${workoutPlan.title ?? "Treino"}`);
           } catch (error) {
-            console.error(
-              "[gym/workouts/process] Erro ao criar workout:",
+            log.error("[gym/workouts/process] Erro ao criar workout", {
               error,
-            );
+              title: workoutPlan.title ?? "Treino",
+            });
             results.errors.push(
               `Erro ao criar workout ${workoutPlan.title ?? "Treino"}`,
             );
@@ -806,7 +803,7 @@ export async function POST(
     if (error instanceof AuthorizationError) {
       return forbiddenResponse(error.message);
     }
-    console.error("[gym/workouts/process] Erro:", error);
+    log.error("[gym/workouts/process] Erro", { error });
     return internalErrorResponse("Erro ao processar comando", error);
   }
 }

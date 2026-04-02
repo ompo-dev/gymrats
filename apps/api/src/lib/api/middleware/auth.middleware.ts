@@ -4,6 +4,7 @@
  * Centraliza a logica de autenticacao para todas as rotas da API
  */
 
+import { log } from "@/lib/observability";
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { SESSION_COOKIE_NAMES } from "@gymrats/domain/auth-tokens";
@@ -96,7 +97,9 @@ export async function requireAuth(
       },
     };
   } catch (error) {
-    console.error("[requireAuth] Erro:", error);
+    log.error("[requireAuth] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       response: NextResponse.json(
         { error: "Erro ao validar autenticacao" },

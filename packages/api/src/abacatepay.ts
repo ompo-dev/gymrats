@@ -1,5 +1,6 @@
 import type { ApiError, JsonValue } from "@gymrats/types/api-error";
 import axios, { type AxiosInstance } from "axios";
+import { log } from "@gymrats/domain/log";
 
 const ABACATEPAY_API_URL = "https://api.abacatepay.com/v1";
 
@@ -186,7 +187,7 @@ class AbacatePayClient {
 
       return A.length === B.length && crypto.timingSafeEqual(A, B);
     } catch (error) {
-      console.error("[AbacatePay] Erro ao verificar assinatura:", error);
+      log.error("AbacatePay webhook signature verification failed", { error });
       return false;
     }
   }
@@ -243,7 +244,7 @@ class AbacatePayClient {
         };
       }
 
-      console.log("[AbacatePay] Criando billing:", {
+      log.info("Creating AbacatePay billing", {
         frequency: data.frequency,
         methods: data.methods,
         productsCount: data.products.length,
@@ -256,7 +257,7 @@ class AbacatePayClient {
         data,
       );
 
-      console.log("[AbacatePay] Resposta recebida:", {
+      log.info("AbacatePay billing response received", {
         status: response.status,
         hasData: !!response.data?.data,
         hasError: !!response.data?.error,
@@ -266,7 +267,7 @@ class AbacatePayClient {
       return response.data;
     } catch (error) {
       const err = error as ApiError & { stack?: string };
-      console.error("[AbacatePay] Erro ao criar billing:", {
+      log.error("Failed to create AbacatePay billing", {
         message: err.message,
         response: err.response?.data,
         status: err.response?.status,

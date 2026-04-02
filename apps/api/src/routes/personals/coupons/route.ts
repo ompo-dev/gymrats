@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import { NextResponse } from "@/runtime/next-server";
@@ -20,7 +21,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ coupons });
   } catch (error) {
-    console.error("[GET /api/personals/coupons] Erro:", error);
+    log.error("[GET /api/personals/coupons] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
@@ -103,7 +106,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/personals/coupons] Erro:", error);
+    log.error("[POST /api/personals/coupons] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: "Erro ao criar cupom" }, { status: 500 });
   }
 }
@@ -140,7 +145,9 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[DELETE /api/personals/coupons] Erro:", error);
+    log.error("[DELETE /api/personals/coupons] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

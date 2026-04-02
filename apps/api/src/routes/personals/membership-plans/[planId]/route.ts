@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { parseJsonArray } from "@/lib/utils/json";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  planId: z.string().min(1),
+  planId: z.string().cuid("planId deve ser um CUID valido"),
 });
 
 type MembershipPlanPatchBody = {
@@ -37,12 +38,7 @@ function parseBenefits(benefits: string | string[] | null | undefined) {
     return [];
   }
 
-  try {
-    const parsed = JSON.parse(benefits);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return parseJsonArray<string>(benefits);
 }
 
 export const PATCH = createSafeHandler(

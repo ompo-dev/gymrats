@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
 import {
   getTrainingLibraryPlanDetail,
@@ -49,7 +50,7 @@ export async function getLibraryPlansHandler(
 
     return successResponse({ data: libraryPlans });
   } catch (error) {
-    console.error("Error fetching library plans:", error);
+    log.error("Error fetching library plans", { error });
     return internalErrorResponse("Erro ao buscar treinos da biblioteca");
   }
 }
@@ -83,7 +84,7 @@ export async function getLibraryPlanDetailHandler(
 
     return successResponse({ data: plan });
   } catch (error) {
-    console.error("Error fetching library plan detail:", error);
+    log.error("Error fetching library plan detail", { error });
     return internalErrorResponse("Erro ao buscar treino da biblioteca");
   }
 }
@@ -276,7 +277,7 @@ export async function createLibraryPlanHandler(
       201,
     );
   } catch (error) {
-    console.error("Error creating library plan:", error);
+    log.error("Error creating library plan", { error });
     return internalErrorResponse("Erro ao criar plano na biblioteca");
   }
 }
@@ -361,7 +362,7 @@ export async function updateLibraryPlanHandler(
       message: "Plano editado com sucesso",
     });
   } catch (error) {
-    console.error("Error updating library plan:", error);
+    log.error("Error updating library plan", { error });
     return internalErrorResponse("Erro ao editar");
   }
 }
@@ -422,7 +423,7 @@ export async function deleteLibraryPlanHandler(
     });
     return successResponse({ message: "Plano deletado com sucesso" });
   } catch (error) {
-    console.error("Error deleting library plan:", error);
+    log.error("Error deleting library plan", { error });
     return internalErrorResponse("Erro ao deletar");
   }
 }
@@ -584,7 +585,7 @@ export async function activateLibraryPlanHandler(
       200,
     );
   } catch (error) {
-    console.error("Error activating library plan:", error);
+    log.error("Error activating library plan", { error });
     return internalErrorResponse("Erro ao ativar o plano gerando a cópia.");
   }
 }

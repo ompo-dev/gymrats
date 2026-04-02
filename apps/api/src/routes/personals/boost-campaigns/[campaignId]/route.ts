@@ -3,7 +3,9 @@ import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { NextResponse } from "@/runtime/next-server";
 
-const paramsSchema = z.object({ campaignId: z.string().min(1) });
+const paramsSchema = z.object({
+  campaignId: z.string().cuid("campaignId deve ser um CUID valido"),
+});
 
 /**
  * GET /api/personals/boost-campaigns/[campaignId]

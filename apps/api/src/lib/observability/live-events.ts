@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { redisConnection } from "@gymrats/cache";
+import { parseJsonSafe } from "@/lib/utils/json";
 
 const OBSERVABILITY_EVENTS_CHANNEL = "observability:events";
 
@@ -49,7 +50,10 @@ export async function subscribeToObservabilityLiveEvents(
     }
 
     try {
-      onEvent(JSON.parse(message) as ObservabilityLiveEvent);
+      const event = parseJsonSafe<ObservabilityLiveEvent>(message);
+      if (event) {
+        onEvent(event);
+      }
     } catch {
       // Ignore malformed events.
     }

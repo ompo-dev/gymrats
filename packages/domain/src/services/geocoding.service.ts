@@ -3,6 +3,7 @@
  * Converte endereço completo em latitude/longitude.
  * Rate limit Nominatim: 1 req/s — usamos delay entre chamadas se necessário.
  */
+import { log } from "../log";
 
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/search";
 const USER_AGENT = "GymRats/1.0 (contact@example.com)";
@@ -50,7 +51,9 @@ export async function geocodeAddress(
     });
 
     if (!res.ok) {
-      console.warn("[geocoding] Nominatim error:", res.status);
+      log.warn("Nominatim returned a non-success status", {
+        status: res.status,
+      });
       return null;
     }
 
@@ -64,7 +67,7 @@ export async function geocodeAddress(
 
     return { lat, lng: lon };
   } catch (error) {
-    console.warn("[geocoding] Erro ao geocodificar endereço:", error);
+    log.warn("Failed to geocode address", { error });
     return null;
   }
 }

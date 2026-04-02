@@ -1,5 +1,6 @@
 import { redisConnection } from "@gymrats/cache";
 import { recordCacheOperation } from "@/lib/runtime/request-context";
+import { parseJsonSafe } from "@/lib/utils/json";
 
 async function ensureRedisConnection() {
   if (redisConnection.status === "wait") {
@@ -27,7 +28,7 @@ export async function getCachedJson<T>(cacheKey: string) {
       return null;
     }
 
-    return JSON.parse(raw) as T;
+    return parseJsonSafe<T>(raw);
   } catch {
     recordCacheOperation({
       operation: "get",

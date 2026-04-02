@@ -1,3 +1,4 @@
+import { parseJsonArray } from "@gymrats/domain/json";
 import { db } from "@/lib/db";
 import { AccessService } from "@/lib/services/access/access.service";
 import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
@@ -50,7 +51,7 @@ export class GymMemberService {
               height: profile.height ?? 0,
               weight: profile.weight ?? 0,
               fitnessLevel: profile.fitnessLevel ?? "iniciante",
-              goals: profile.goals ? JSON.parse(profile.goals) : [],
+              goals: parseJsonArray<string>(profile.goals),
             }
           : undefined,
         progress: progress
@@ -99,7 +100,7 @@ export class GymMemberService {
                 height: profile.height ?? 0,
                 weight: profile.weight ?? 0,
                 fitnessLevel: profile.fitnessLevel ?? "iniciante",
-                goals: profile.goals ? JSON.parse(profile.goals) : [],
+                goals: parseJsonArray<string>(profile.goals),
               }
             : undefined,
           progress: progress
@@ -152,9 +153,7 @@ export class GymMemberService {
 
     const { student } = membership;
     const weightHistoryList = student.weightHistory ?? [];
-    const goals: string[] = student.profile?.goals
-      ? JSON.parse(student.profile.goals)
-      : [];
+    const goals = parseJsonArray<string>(student.profile?.goals);
     const hasWeightLossGoal = goals.includes("perder-peso");
     const currentWeight = student.profile?.weight ?? 0;
     const oldestWeight =
@@ -168,19 +167,14 @@ export class GymMemberService {
 
     const workoutHistory = student.workouts.map((wh) => {
       const setsParsed = (ex: { sets: string }) => {
-        try {
-          const s = JSON.parse(ex.sets);
-          return Array.isArray(s)
-            ? s.map((set: { weight?: number; reps?: number }, i: number) => ({
-                setNumber: i + 1,
-                weight: set.weight ?? 0,
-                reps: set.reps ?? 0,
-                completed: true,
-              }))
-            : [];
-        } catch {
-          return [];
-        }
+        return parseJsonArray<{ weight?: number; reps?: number }>(ex.sets).map(
+          (set, i) => ({
+            setNumber: i + 1,
+            weight: set.weight ?? 0,
+            reps: set.reps ?? 0,
+            completed: true,
+          }),
+        );
       };
       return {
         date: wh.date,
@@ -201,7 +195,7 @@ export class GymMemberService {
         })),
         overallFeedback: wh.overallFeedback ?? undefined,
         bodyPartsFatigued: wh.bodyPartsFatigued
-          ? (JSON.parse(wh.bodyPartsFatigued) as string[])
+          ? parseJsonArray<string>(wh.bodyPartsFatigued)
           : [],
       };
     });
@@ -216,7 +210,7 @@ export class GymMemberService {
         : 0;
 
     const availableEquipment = student.profile?.availableEquipment
-      ? (JSON.parse(student.profile.availableEquipment) as string[])
+      ? parseJsonArray<string>(student.profile.availableEquipment)
       : [];
     const favoriteEquipment = availableEquipment;
 
@@ -266,15 +260,9 @@ export class GymMemberService {
         id: wh.id,
         date: wh.date,
         duration: wh.duration,
-        exercises: wh.exercises.map((ex) => ({
-          name: ex.exerciseName,
-          sets: (() => {
-            try {
-              return JSON.parse(ex.sets);
-            } catch {
-              return [];
-            }
-          })(),
+          exercises: wh.exercises.map((ex) => ({
+            name: ex.exerciseName,
+            sets: parseJsonArray<Record<string, unknown>>(ex.sets),
         })),
       })),
       workoutHistory,

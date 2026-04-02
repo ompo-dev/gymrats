@@ -6,6 +6,7 @@
  * Suporta streaming para UX instantânea (Time-to-First-Token)
  */
 
+import { log } from "../log";
 import { cacheResponse, getCachedResponse } from "./cache";
 
 export interface ChatCompletionOptions {
@@ -31,7 +32,7 @@ export async function chatCompletion({
   const cacheKey = JSON.stringify({ messages, systemPrompt, responseFormat });
   const cached = getCachedResponse(cacheKey);
   if (cached) {
-    console.log("[AI] Cache hit - resposta reutilizada");
+    log.debug("DeepSeek cache hit", { responseFormat });
     return cached;
   }
 
@@ -211,7 +212,11 @@ export async function chatCompletionWithRetry(
 
       // Esperar antes de retry (exponential backoff)
       const delay = Math.min(1000 * 2 ** (attempt - 1), 10000);
-      console.warn(`[AI] Retry ${attempt}/${maxRetries} após ${delay}ms`);
+      log.warn("Retrying DeepSeek request after rate limit", {
+        attempt,
+        maxRetries,
+        delayMs: delay,
+      });
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }

@@ -2,6 +2,7 @@ import { updateStudentProfileSchema } from "@/lib/api/schemas/students.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { StudentDomainService } from "@/lib/services/student-domain.service";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
@@ -42,27 +43,23 @@ export const GET = createSafeHandler(
       profile: user.student.profile
         ? {
             ...user.student.profile,
-            goals: user.student.profile.goals
-              ? JSON.parse(user.student.profile.goals)
-              : [],
-            availableEquipment: user.student.profile.availableEquipment
-              ? JSON.parse(user.student.profile.availableEquipment)
-              : [],
-            physicalLimitations: user.student.profile.physicalLimitations
-              ? JSON.parse(user.student.profile.physicalLimitations)
-              : [],
-            motorLimitations: user.student.profile.motorLimitations
-              ? JSON.parse(user.student.profile.motorLimitations)
-              : [],
-            medicalConditions: user.student.profile.medicalConditions
-              ? JSON.parse(user.student.profile.medicalConditions)
-              : [],
-            limitationDetails: user.student.profile.limitationDetails
-              ? JSON.parse(user.student.profile.limitationDetails)
-              : null,
-            injuries: user.student.profile.injuries
-              ? JSON.parse(user.student.profile.injuries)
-              : [],
+            goals: parseJsonArray<string>(user.student.profile.goals),
+            availableEquipment: parseJsonArray<string>(
+              user.student.profile.availableEquipment,
+            ),
+            physicalLimitations: parseJsonArray<string>(
+              user.student.profile.physicalLimitations,
+            ),
+            motorLimitations: parseJsonArray<string>(
+              user.student.profile.motorLimitations,
+            ),
+            medicalConditions: parseJsonArray<string>(
+              user.student.profile.medicalConditions,
+            ),
+            limitationDetails: parseJsonSafe<Record<string, unknown>>(
+              user.student.profile.limitationDetails,
+            ),
+            injuries: parseJsonArray<string>(user.student.profile.injuries),
           }
         : null,
     });

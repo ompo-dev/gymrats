@@ -1,6 +1,7 @@
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { verifyResetCodeSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import {
   type VerifyResetCodeInput,
   verifyResetCodeUseCase,
@@ -9,7 +10,7 @@ import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 /**
  * POST /api/auth/verify-reset-code
- * Verifica se o código de recuperação é válido
+ * Verifica se o codigo de recuperacao e valido
  */
 export async function POST(request: NextRequest) {
   try {
@@ -46,11 +47,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result.data);
   } catch (error) {
-    console.error("Erro ao verificar código:", error);
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Erro ao verificar código. Tente novamente.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    log.error("Erro ao verificar codigo", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 },
+    );
   }
 }

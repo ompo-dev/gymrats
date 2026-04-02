@@ -5,7 +5,7 @@ import { StudentPersonalService } from "@/lib/services/personal/student-personal
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().cuid("id deve ser um CUID valido"),
 });
 
 export const GET = createSafeHandler(

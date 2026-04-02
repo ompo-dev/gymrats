@@ -6,11 +6,11 @@ import { PersonalGymService } from "@/lib/services/personal/personal-gym.service
 import { NextResponse } from "@/runtime/next-server";
 
 const linkSchema = z.object({
-  personalId: z.string().min(1),
+  personalId: z.string().cuid(),
 });
 
 const unlinkSchema = z.object({
-  personalId: z.string().min(1),
+  personalId: z.string().cuid(),
 });
 
 export const GET = createSafeHandler(

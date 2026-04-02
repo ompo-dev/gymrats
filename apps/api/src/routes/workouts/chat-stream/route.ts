@@ -17,6 +17,8 @@ import {
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import { hasPremiumAccess } from "@/lib/utils/subscription";
 
 /**
@@ -407,15 +409,15 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
             );
           if (profileData.gymType)
             profileInfo.push(`Tipo de academia: ${profileData.gymType}`);
-          if (profileData.goals) {
-            const goals = JSON.parse(profileData.goals);
-            if (Array.isArray(goals) && goals.length > 0) {
-              profileInfo.push(`Objetivos: ${goals.join(", ")}`);
-            }
+          const goals = parseJsonArray<string>(profileData.goals);
+          if (goals.length > 0) {
+            profileInfo.push(`Objetivos: ${goals.join(", ")}`);
           }
           if (profileData.physicalLimitations) {
-            const limitations = JSON.parse(profileData.physicalLimitations);
-            if (Array.isArray(limitations) && limitations.length > 0) {
+            const limitations = parseJsonArray<string>(
+              profileData.physicalLimitations,
+            );
+            if (limitations.length > 0) {
               profileInfo.push(`Limitações físicas: ${limitations.join(", ")}`);
             }
           }
@@ -524,7 +526,12 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
             message.trim().startsWith("{") ||
             message.trim().startsWith("[")
           ) {
-            const rawJson = JSON.parse(message);
+            const rawJson = parseJsonSafe<import("@/lib/types/api-error").JsonValue>(
+              message,
+            );
+            if (rawJson == null) {
+              throw new Error("JSON invÃ¡lido");
+            }
             parsed = tryParseImportedWorkout(rawJson);
             sendSSE(controller, "status", {
               status: "imported",
@@ -768,7 +775,9 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
 
         controller.close();
       } catch (error) {
-        console.error("[workouts/chat-stream] Erro:", error);
+        log.error("[workouts/chat-stream] Erro", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         const err = error instanceof Error ? error : new Error(String(error));
         sendSSE(controller, "error", {
           error: err.message || "Erro ao processar mensagem",

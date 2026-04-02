@@ -2,6 +2,7 @@ import {
   resetStudentWeeklyOverride,
   runMembershipBillingWorkflow,
 } from "@gymrats/workflows";
+import { log } from "@gymrats/domain/log";
 
 process.env.GYMRATS_RUNTIME_ROLE ??= "cron";
 
@@ -11,11 +12,11 @@ async function main() {
     runMembershipBillingWorkflow(),
   ]);
 
-  console.log("[cron] week-reset completed", weekReset);
-  console.log("[cron] membership-billing completed", membershipBilling);
+  log.info("Cron week-reset completed", { result: weekReset });
+  log.info("Cron membership-billing completed", { result: membershipBilling });
 }
 
 main().catch((error) => {
-  console.error("[cron] week-reset failed", error);
+  log.error("Cron runtime failed", { error });
   process.exitCode = 1;
 });

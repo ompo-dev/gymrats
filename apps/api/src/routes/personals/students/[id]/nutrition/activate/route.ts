@@ -6,6 +6,7 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { planOperationQueue } from "@/lib/queue/queues";
 import { assertPersonalStudentAccess } from "@/lib/services/nutrition/nutrition-access.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
@@ -62,10 +63,9 @@ export async function POST(
       202,
     );
   } catch (error) {
-    console.error(
-      "[personals/students/[id]/nutrition/activate] Erro POST:",
-      error,
-    );
+    log.error("[personals/students/[id]/nutrition/activate] Erro POST", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao ativar plano alimentar");
   }
 }

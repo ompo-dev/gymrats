@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  paymentId: z.string().min(1),
+  paymentId: z.string().cuid("paymentId deve ser um CUID valido"),
 });
 
 /**

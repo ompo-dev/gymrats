@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import pino from "pino";
 
 const ENTRY_PREFIX = "next:cache:entry:";
 const TAGS_KEY = "next:cache:tags";
@@ -6,6 +7,26 @@ const pendingWrites = new Map();
 const memoryEntries = new Map();
 const memoryTags = new Map();
 let hasWarnedAboutMemoryFallback = false;
+
+const log = pino(
+  {
+    name: "gymrats-next-cache",
+    level:
+      process.env.LOG_LEVEL ??
+      (process.env.NODE_ENV === "production" ? "info" : "debug"),
+    base: process.env.GYMRATS_RUNTIME_ROLE
+      ? { runtime: process.env.GYMRATS_RUNTIME_ROLE }
+      : undefined,
+    messageKey: "message",
+    timestamp: pino.stdTimeFunctions.isoTime,
+    formatters: {
+      level(label) {
+        return { level: label };
+      },
+    },
+  },
+  pino.destination({ sync: false, minLength: 4096 }),
+);
 
 function requiresManagedRedis() {
   const runtimeRole = process.env.GYMRATS_RUNTIME_ROLE;
@@ -37,7 +58,7 @@ const redis = redisUrl
 
 if (redis) {
   redis.on("error", (error) => {
-    console.error("[Next Redis Cache] Failed:", error);
+    log.error({ error }, "Next Redis cache connection failed");
   });
 } else if (
   (process.env.NODE_ENV !== "production" ||
@@ -46,8 +67,8 @@ if (redis) {
   !hasWarnedAboutMemoryFallback
 ) {
   hasWarnedAboutMemoryFallback = true;
-  console.warn(
-    "[Next Redis Cache] REDIS_URL ausente. Usando fallback em memoria no frontend.",
+  log.warn(
+    "REDIS_URL ausente. Usando fallback em memoria no cache handler do Next.",
   );
 }
 

@@ -5,6 +5,8 @@
  */
 
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
+import { auditLog } from "@/lib/security/audit-log";
 import { ReferralService } from "@/lib/services/referral.service";
 import { getCurrentSubscriptionUseCase } from "@/lib/use-cases/subscriptions";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
@@ -71,7 +73,9 @@ export async function getCurrentSubscriptionHandler(
 
     return successResponse({ subscription, isFirstPayment });
   } catch (error) {
-    console.error("[getCurrentSubscriptionHandler] Erro:", error);
+    log.error("[getCurrentSubscriptionHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao buscar assinatura", error);
   }
 }
@@ -224,6 +228,21 @@ export async function createSubscriptionHandler(
       },
     });
 
+    await auditLog({
+      action: "PAYMENT:INITIATED",
+      actorId: auth.userId,
+      targetId: subscriptionToUseId,
+      request,
+      result: "SUCCESS",
+      payload: {
+        domain: "student-subscription",
+        plan,
+        pixId: pix.id,
+        amount: pix.amount,
+        referralCodeApplied: Boolean(referralCode),
+      },
+    });
+
     return successResponse({
       pixId: pix.id,
       brCode: pix.brCode,
@@ -234,7 +253,9 @@ export async function createSubscriptionHandler(
       ...(referralCodeInvalid && { referralCodeInvalid: true }),
     });
   } catch (error) {
-    console.error("[createSubscriptionHandler] Erro:", error);
+    log.error("[createSubscriptionHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao criar assinatura", error);
   }
 }
@@ -275,7 +296,9 @@ export async function startTrialHandler(
 
     return successResponse({ message: "Trial iniciado com sucesso" });
   } catch (error) {
-    console.error("[startTrialHandler] Erro:", error);
+    log.error("[startTrialHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao iniciar trial", error);
   }
 }
@@ -310,10 +333,6 @@ export async function cancelSubscriptionHandler(
       return notFoundResponse("Assinatura não encontrada");
     }
 
-    console.log(
-      `[cancelSubscriptionHandler] Student ${studentId} cancelando sub ${subscription.id}`,
-    );
-
     const canceled = await db.subscription.update({
       where: { id: subscription.id },
       data: {
@@ -323,16 +342,27 @@ export async function cancelSubscriptionHandler(
       },
     });
 
-    console.log(
-      `[cancelSubscriptionHandler] Sucesso. Novo status: ${canceled.status}`,
-    );
+    await auditLog({
+      action: "SUBSCRIPTION:CANCELLED",
+      actorId: auth.userId,
+      targetId: canceled.id,
+      request,
+      result: "SUCCESS",
+      payload: {
+        domain: "student-subscription",
+        status: canceled.status,
+        studentId,
+      },
+    });
 
     return successResponse({
       subscription: canceled,
       message: "Assinatura cancelada com sucesso",
     });
   } catch (error) {
-    console.error("[cancelSubscriptionHandler] Erro:", error);
+    log.error("[cancelSubscriptionHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao cancelar assinatura", error);
   }
 }

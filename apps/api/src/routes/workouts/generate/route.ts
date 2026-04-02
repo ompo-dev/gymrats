@@ -4,10 +4,12 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import {
   generatePersonalizedWorkoutPlan,
   updateExercisesWithAlternatives,
 } from "@/lib/services/personalized-workout-generator";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 /**
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
         | null,
       height: student.profile.height,
       weight: student.profile.weight,
-      goals: student.profile.goals ? JSON.parse(student.profile.goals) : [],
+      goals: parseJsonArray<string>(student.profile.goals),
       weeklyWorkoutFrequency: student.profile.weeklyWorkoutFrequency,
       workoutDuration: student.profile.workoutDuration,
       // Preferências do onboarding (ESSENCIAIS para sets, reps e rest)
@@ -83,18 +85,16 @@ export async function POST(request: NextRequest) {
         | "peso-corporal"
         | null,
       activityLevel: student.profile.activityLevel,
-      physicalLimitations: student.profile.physicalLimitations
-        ? JSON.parse(student.profile.physicalLimitations)
-        : [],
-      motorLimitations: student.profile.motorLimitations
-        ? JSON.parse(student.profile.motorLimitations)
-        : [],
-      medicalConditions: student.profile.medicalConditions
-        ? JSON.parse(student.profile.medicalConditions)
-        : [],
-      limitationDetails: student.profile.limitationDetails
-        ? JSON.parse(student.profile.limitationDetails)
-        : null,
+      physicalLimitations: parseJsonArray<string>(
+        student.profile.physicalLimitations,
+      ),
+      motorLimitations: parseJsonArray<string>(student.profile.motorLimitations),
+      medicalConditions: parseJsonArray<string>(
+        student.profile.medicalConditions,
+      ),
+      limitationDetails: parseJsonSafe<Record<string, string | string[]>>(
+        student.profile.limitationDetails,
+      ),
     };
 
     // Gerar treinos personalizados
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       message: "Treinos personalizados gerados com sucesso",
     });
   } catch (error) {
-    console.error("[generateWorkouts] Erro:", error);
+    log.error("[generateWorkouts] Erro", { error });
     return internalErrorResponse("Erro ao gerar treinos personalizados", error);
   }
 }
@@ -138,7 +138,7 @@ export async function PATCH(request: NextRequest) {
       message: "Alternativas adicionadas aos exercícios com sucesso!",
     });
   } catch (error) {
-    console.error("[PATCH /api/workouts/generate] Erro:", error);
+    log.error("[PATCH /api/workouts/generate] Erro", { error });
     return internalErrorResponse("Erro ao atualizar alternativas", error);
   }
 }

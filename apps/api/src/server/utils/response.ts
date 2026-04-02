@@ -1,4 +1,5 @@
 import type { Context } from "elysia";
+import { log } from "@/lib/observability";
 
 type ResponseHeaders = Record<string, string>;
 
@@ -70,7 +71,9 @@ export function internalErrorResponse(
   message = "Erro interno do servidor",
   error?: unknown,
 ) {
-  console.error("[API Error]:", error);
+  log.error("[API Error]", {
+    error: error instanceof Error ? error.message : String(error),
+  });
   const details: Record<string, string> | undefined =
     error instanceof Error
       ? { message: error.message }

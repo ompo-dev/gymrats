@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { ReferralService } from "@/lib/services/referral.service";
@@ -34,7 +35,7 @@ export class WebhookService {
     data: AbacatePayWebhookPayload,
   ): Promise<void> {
     if (event !== "billing.paid") {
-      console.log(`[WebhookService] Evento ignorado: ${event}`);
+      log.debug("[WebhookService] Evento ignorado", { event });
       return;
     }
 
@@ -51,9 +52,7 @@ export class WebhookService {
       metadata.billingPeriod === "annual" ? "annual" : "monthly";
 
     if (!paymentId) {
-      console.error(
-        "[WebhookService] billing.paid sem id em billing ou pixQrCode",
-      );
+      log.error("[WebhookService] billing.paid sem id em billing ou pixQrCode");
       return;
     }
 
@@ -95,9 +94,9 @@ export class WebhookService {
       }
 
       await GymDomainService.settlePayment(payment.gymId, payment.id);
-      console.log(
-        `[WebhookService] Membership payment ${payment.id} regularizado via webhook`,
-      );
+      log.info("[WebhookService] Membership payment regularizado via webhook", {
+        paymentId: payment.id,
+      });
       await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
       return;
     }
@@ -164,9 +163,10 @@ export class WebhookService {
       }
       await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
-      console.log(
-        `[WebhookService] Processando indicação GYM: ${gymSub.gymId} | Amount: ${amount}`,
-      );
+      log.info("[WebhookService] Processando indicacao GYM", {
+        gymId: gymSub.gymId,
+        amount,
+      });
       await ReferralService.onFirstPaymentConfirmed(
         "GYM",
         gymSub.gymId,
@@ -199,9 +199,9 @@ export class WebhookService {
           canceledAt: null,
         },
       });
-      console.log(
-        `[WebhookService] PersonalSubscription ${personalSub.id} ativada`,
-      );
+      log.info("[WebhookService] PersonalSubscription ativada", {
+        personalSubscriptionId: personalSub.id,
+      });
       return;
     }
 
@@ -241,9 +241,9 @@ export class WebhookService {
             updatedAt: now,
           },
         });
-        console.log(
-          `[WebhookService] BoostCampaign ${boostCampaign.id} ativada via PIX`,
-        );
+        log.info("[WebhookService] BoostCampaign ativada via PIX", {
+          boostCampaignId: boostCampaign.id,
+        });
         return;
       }
 
@@ -284,16 +284,16 @@ export class WebhookService {
             data: { status: "paid", assignmentId: assignment.id },
           });
 
-          console.log(
-            `[WebhookService] PersonalStudentPayment ${personalPayment.id} pago`,
-          );
+          log.info("[WebhookService] PersonalStudentPayment pago", {
+            personalStudentPaymentId: personalPayment.id,
+          });
           return;
         }
       }
 
-      console.error(
-        `[WebhookService] Registro não encontrado para paymentId: ${paymentId} ou metadata id`,
-      );
+      log.error("[WebhookService] Registro nao encontrado para paymentId", {
+        paymentId,
+      });
       return;
     }
 
@@ -339,12 +339,14 @@ export class WebhookService {
       },
     });
 
-    console.log(
-      `[WebhookService] Assinatura do aluno ${subscription.studentId} atualizada para ${updatedPlanName}.`,
-    );
-    console.log(
-      `[WebhookService] Processando indicação STUDENT: ${subscription.studentId} | Amount: ${amount}`,
-    );
+    log.info("[WebhookService] Assinatura do aluno atualizada", {
+      studentId: subscription.studentId,
+      updatedPlanName,
+    });
+    log.info("[WebhookService] Processando indicacao STUDENT", {
+      studentId: subscription.studentId,
+      amount,
+    });
 
     await ReferralService.onFirstPaymentConfirmed(
       "STUDENT",

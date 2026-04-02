@@ -1,3 +1,4 @@
+import { parseJsonArray } from "@gymrats/domain/json";
 import type { ParsedFood } from "@/lib/ai/parsers/nutrition-parser";
 
 export interface NutritionChatMealReference {
@@ -56,14 +57,7 @@ export function isCompleteNutritionPlanRequest(message: string): boolean {
 export function parseJsonStringArray(
   value: string | null | undefined,
 ): string[] {
-  if (!value) return [];
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
+  return parseJsonArray<unknown>(value).map(String);
 }
 
 export function normalizeNutritionMealType(

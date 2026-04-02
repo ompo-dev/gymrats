@@ -1910,3 +1910,26 @@ model BusinessEvent {
   @@index([domain, occurredAt])
   @@map("business_events")
 }
+
+enum AuditLogResult {
+  SUCCESS
+  FAILURE
+}
+
+model AuditLog {
+  id         String         @id @default(cuid())
+  action     String
+  actorId    String?
+  targetId   String?
+  ip         String
+  userAgent  String?
+  requestId  String?
+  payload    Json?
+  result     AuditLogResult
+  occurredAt DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+
+  @@index([action, occurredAt])
+  @@index([actorId, occurredAt])
+  @@map("audit_logs")
+}

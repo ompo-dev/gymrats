@@ -5,12 +5,13 @@ import {
 import { createGymSubscriptionSchema } from "@/lib/api/schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { auditLog } from "@/lib/security/audit-log";
 import { ReferralService } from "@/lib/services/referral.service";
 import { createGymSubscriptionPix } from "@/lib/utils/subscription";
 import { NextResponse } from "@/runtime/next-server";
 
 export const POST = createSafeHandler(
-  async ({ gymContext, body }) => {
+  async ({ gymContext, body, req }) => {
     const gymId = gymContext?.gymId;
     if (!gymId) {
       return NextResponse.json(
@@ -164,6 +165,23 @@ export const POST = createSafeHandler(
         data: { abacatePayBillingId: pix.id },
       });
     }
+
+    await auditLog({
+      action: "PAYMENT:INITIATED",
+      actorId: gymContext?.user?.id ?? null,
+      targetId: subscriptionId ?? gymId,
+      request: req,
+      result: "SUCCESS",
+      payload: {
+        domain: "gym-subscription",
+        gymId,
+        plan: safePlan,
+        billingPeriod: safeBillingPeriod,
+        pixId: pix.id,
+        amount: pix.amount,
+        referralCodeApplied: Boolean(referralCode),
+      },
+    });
 
     return NextResponse.json({
       pixId: pix.id,

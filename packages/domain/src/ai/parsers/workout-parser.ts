@@ -1,4 +1,5 @@
 import type { JsonValue } from "@gymrats/types/api-error";
+import { log } from "../../log";
 
 /**
  * Parser de Respostas da IA para Treinos
@@ -719,7 +720,7 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
       message: parsed.message || "Comando processado com sucesso!",
     };
   } catch (error) {
-    console.error("[parseWorkoutResponse] Erro ao parsear:", error);
+    log.error("Failed to parse workout response", { error });
     throw new Error(
       `Erro ao processar resposta da IA: ${
         error instanceof Error ? error.message : "Erro desconhecido"

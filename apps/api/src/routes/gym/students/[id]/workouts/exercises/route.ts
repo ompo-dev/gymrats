@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
+import { log } from "@/lib/observability";
 import {
   calculateReps,
   calculateRest,
@@ -16,8 +17,30 @@ import {
   generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 import type { NextRequest } from "@/runtime/next-server";
+
+function normalizeStringArrayInput(
+  value: string | string[] | null | undefined,
+): string[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return parseJsonArray<string>(value);
+}
+
+function parseNullableStringArray(
+  value: string | null | undefined,
+): string[] | null {
+  const parsed = parseJsonSafe<unknown>(value);
+  if (!Array.isArray(parsed)) {
+    return null;
+  }
+
+  return parsed.filter((item): item is string => typeof item === "string");
+}
 
 /**
  * POST /api/gym/students/[id]/workouts/exercises
@@ -44,16 +67,13 @@ export async function POST(
     }
 
     const body = await request.json();
-    console.log(
-      "[gym/createExercise] Body recebido:",
-      JSON.stringify(body, null, 2),
-    );
 
     const validation = createWorkoutExerciseSchema.safeParse(body);
 
     if (!validation.success) {
-      console.error("[gym/createExercise] Erro de validação:", {
-        body,
+      log.warn("[gym/createExercise] Erro de validacao", {
+        bodyKeys:
+          body && typeof body === "object" ? Object.keys(body as object) : [],
         errors: validation.error.errors,
         formattedErrors: validation.error.errors.map((e) => ({
           path: e.path.join("."),
@@ -144,8 +164,8 @@ export async function POST(
     // Se ainda não encontrou, criar um novo exercício virtual usando os dados fornecidos
     // Isso permite adicionar exercícios que não estão no database educacional
     if (!exerciseInfo) {
-      console.log(
-        "[gym/createExercise] Exercício não encontrado no database, criando virtual:",
+      log.info(
+        "[gym/createExercise] Exercicio nao encontrado no database, criando virtual",
         {
           name: exerciseData.name,
           educationalId: exerciseData.educationalId,
@@ -163,19 +183,6 @@ export async function POST(
           .replace(/^-+|-+$/g, "");
 
       // Helper para normalizar arrays (aceita string JSON, array ou null)
-      const normalizeArray = (
-        value: string | string[] | null | undefined,
-      ): string[] => {
-        if (value == null) return [];
-        if (Array.isArray(value)) return value;
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      };
-
       // Helper para inferir grupo muscular baseado no nome
       const inferMuscleGroup = (name: string): MuscleGroup[] => {
         const normalized = name
@@ -310,13 +317,15 @@ export async function POST(
         return [];
       };
 
-      const primaryMuscles = normalizeArray(
+      const primaryMuscles = normalizeStringArrayInput(
         exerciseData.primaryMuscles ?? undefined,
       );
-      const secondaryMuscles = normalizeArray(
+      const secondaryMuscles = normalizeStringArrayInput(
         exerciseData.secondaryMuscles ?? undefined,
       );
-      const equipment = normalizeArray(exerciseData.equipment ?? undefined);
+      const equipment = normalizeStringArrayInput(
+        exerciseData.equipment ?? undefined,
+      );
 
       exerciseInfo = {
         id: generatedId,
@@ -333,32 +342,35 @@ export async function POST(
         equipment:
           equipment.length > 0 ? equipment : inferEquipment(exerciseData.name),
         instructions:
-          normalizeArray(exerciseData.instructions ?? undefined).length > 0
-            ? normalizeArray(exerciseData.instructions ?? undefined)
+          normalizeStringArrayInput(exerciseData.instructions ?? undefined)
+            .length > 0
+            ? normalizeStringArrayInput(exerciseData.instructions ?? undefined)
             : [
                 `Execute ${exerciseData.name} com forma correta`,
                 "Mantenha o movimento controlado",
                 "Use peso adequado",
               ],
         tips:
-          normalizeArray(exerciseData.tips ?? undefined).length > 0
-            ? normalizeArray(exerciseData.tips ?? undefined)
+          normalizeStringArrayInput(exerciseData.tips ?? undefined).length > 0
+            ? normalizeStringArrayInput(exerciseData.tips ?? undefined)
             : [
                 "Mantenha a forma correta",
                 "Controle o movimento",
                 "Use amplitude completa",
               ],
         commonMistakes:
-          normalizeArray(exerciseData.commonMistakes ?? undefined).length > 0
-            ? normalizeArray(exerciseData.commonMistakes ?? undefined)
+          normalizeStringArrayInput(exerciseData.commonMistakes ?? undefined)
+            .length > 0
+            ? normalizeStringArrayInput(exerciseData.commonMistakes ?? undefined)
             : [
                 "Não usar amplitude completa",
                 "Peso excessivo",
                 "Forma incorreta",
               ],
         benefits:
-          normalizeArray(exerciseData.benefits ?? undefined).length > 0
-            ? normalizeArray(exerciseData.benefits ?? undefined)
+          normalizeStringArrayInput(exerciseData.benefits ?? undefined)
+            .length > 0
+            ? normalizeStringArrayInput(exerciseData.benefits ?? undefined)
             : [
                 "Desenvolvimento muscular",
                 "Aumento de força",
@@ -367,12 +379,12 @@ export async function POST(
         scientificEvidence: exerciseData.scientificEvidence ?? undefined,
       };
 
-      console.log("[gym/createExercise] Exercício virtual criado:", {
+      log.info("[gym/createExercise] Exercicio virtual criado", {
         id: exerciseInfo.id,
         name: exerciseInfo.name,
       });
     } else {
-      console.log("[gym/createExercise] Exercício encontrado no database:", {
+      log.debug("[gym/createExercise] Exercicio encontrado no database", {
         id: exerciseInfo.id,
         name: exerciseInfo.name,
       });
@@ -396,9 +408,7 @@ export async function POST(
         | "intermediario"
         | "avancado"
         | undefined,
-      goals: student.profile.goals
-        ? (JSON.parse(student.profile.goals) as string[])
-        : undefined,
+      goals: parseJsonArray<string>(student.profile.goals),
     };
 
     const calculatedSets =
@@ -415,23 +425,6 @@ export async function POST(
       exerciseData.rest !== undefined
         ? exerciseData.rest
         : calculateRest(profile.restTime, profile.preferredRepRange);
-
-    // Helper para normalizar arrays (aceita string JSON, array ou já está normalizado)
-    const _normalizeArray = (
-      value: string | string[] | undefined | null,
-    ): string[] => {
-      if (!value) return [];
-      if (Array.isArray(value)) return value;
-      if (typeof value === "string") {
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    };
 
     if (!exerciseInfo) {
       return badRequestResponse("Erro ao processar exercício");
@@ -494,15 +487,15 @@ export async function POST(
 
     try {
       if (student?.profile && exerciseInfo) {
-        const physicalLimitations = student.profile.physicalLimitations
-          ? JSON.parse(student.profile.physicalLimitations)
-          : [];
-        const motorLimitations = student.profile.motorLimitations
-          ? JSON.parse(student.profile.motorLimitations)
-          : [];
-        const medicalConditions = student.profile.medicalConditions
-          ? JSON.parse(student.profile.medicalConditions)
-          : [];
+        const physicalLimitations = parseJsonArray<string>(
+          student.profile.physicalLimitations,
+        );
+        const motorLimitations = parseJsonArray<string>(
+          student.profile.motorLimitations,
+        );
+        const medicalConditions = parseJsonArray<string>(
+          student.profile.medicalConditions,
+        );
         const limitations = [
           ...physicalLimitations,
           ...motorLimitations,
@@ -533,10 +526,9 @@ export async function POST(
         }
       }
     } catch (altError) {
-      console.error(
-        "[gym/createExercise] Erro ao adicionar alternativas:",
-        altError,
-      );
+      log.error("[gym/createExercise] Erro ao adicionar alternativas", {
+        error: altError,
+      });
     }
 
     const exerciseWithAlternatives = await db.workoutExercise.findUnique({
@@ -544,27 +536,24 @@ export async function POST(
       include: { alternatives: true },
     });
 
-    const safeParse = (value: string | null | undefined): string[] | null => {
-      if (!value) return null;
-      try {
-        return JSON.parse(value);
-      } catch {
-        return null;
-      }
-    };
-
     const transformedExercise = exerciseWithAlternatives
       ? {
           ...exerciseWithAlternatives,
-          primaryMuscles: safeParse(exerciseWithAlternatives.primaryMuscles),
-          secondaryMuscles: safeParse(
+          primaryMuscles: parseNullableStringArray(
+            exerciseWithAlternatives.primaryMuscles,
+          ),
+          secondaryMuscles: parseNullableStringArray(
             exerciseWithAlternatives.secondaryMuscles,
           ),
-          equipment: safeParse(exerciseWithAlternatives.equipment),
-          instructions: safeParse(exerciseWithAlternatives.instructions),
-          tips: safeParse(exerciseWithAlternatives.tips),
-          commonMistakes: safeParse(exerciseWithAlternatives.commonMistakes),
-          benefits: safeParse(exerciseWithAlternatives.benefits),
+          equipment: parseNullableStringArray(exerciseWithAlternatives.equipment),
+          instructions: parseNullableStringArray(
+            exerciseWithAlternatives.instructions,
+          ),
+          tips: parseNullableStringArray(exerciseWithAlternatives.tips),
+          commonMistakes: parseNullableStringArray(
+            exerciseWithAlternatives.commonMistakes,
+          ),
+          benefits: parseNullableStringArray(exerciseWithAlternatives.benefits),
           alternatives: exerciseWithAlternatives.alternatives || [],
         }
       : null;
@@ -577,7 +566,7 @@ export async function POST(
       201,
     );
   } catch (error) {
-    console.error("[gym/createExercise] Error:", error);
+    log.error("[gym/createExercise] Error", { error });
     return internalErrorResponse("Erro ao adicionar exercício");
   }
 }

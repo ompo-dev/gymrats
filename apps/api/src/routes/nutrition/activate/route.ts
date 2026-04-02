@@ -7,6 +7,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { planOperationQueue } from "@/lib/queue/queues";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import type { NextRequest } from "@/runtime/next-server";
@@ -60,7 +61,9 @@ export async function POST(request: NextRequest) {
       202,
     );
   } catch (error) {
-    console.error("[nutrition/activate] Erro POST:", error);
+    log.error("[nutrition/activate] Erro POST", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao ativar plano alimentar");
   }
 }

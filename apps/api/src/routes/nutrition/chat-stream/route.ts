@@ -18,6 +18,7 @@ import {
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 const MAX_HISTORY = 4;
@@ -302,7 +303,9 @@ export async function POST(request: NextRequest) {
 
         controller.close();
       } catch (error) {
-        console.error("[nutrition/chat-stream] Erro:", error);
+        log.error("[nutrition/chat-stream] Erro", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         sendSSE(controller, "error", { error: "Erro inesperado" });
         controller.close();
       }

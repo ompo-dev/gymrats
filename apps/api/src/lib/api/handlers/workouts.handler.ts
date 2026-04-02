@@ -6,6 +6,7 @@
 
 import type { z } from "zod";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { completeWorkoutUseCase } from "@/lib/use-cases/workouts/complete-workout";
 import { deleteWorkoutProgressUseCase } from "@/lib/use-cases/workouts/delete-workout-progress";
 import { getUnitsUseCase } from "@/lib/use-cases/workouts/get-units";
@@ -50,7 +51,7 @@ export async function getUnitsHandler(
 
     return successResponse({ units });
   } catch (error) {
-    console.error("[getUnitsHandler] Erro:", error);
+    log.error("[getUnitsHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar treinos", error);
   }
 }
@@ -98,7 +99,7 @@ export async function getWeeklyPlanHandler(
       { "Cache-Control": "no-store, no-cache, must-revalidate" },
     );
   } catch (error) {
-    console.error("[getWeeklyPlanHandler] Erro:", error);
+    log.error("[getWeeklyPlanHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar plano semanal");
   }
 }
@@ -154,7 +155,7 @@ export async function completeWorkoutHandler(
       throw err;
     }
   } catch (error) {
-    console.error("[completeWorkoutHandler] Erro:", error);
+    log.error("[completeWorkoutHandler] Erro", { error });
     return internalErrorResponse("Erro ao completar workout", error);
   }
 }
@@ -216,7 +217,7 @@ export async function saveWorkoutProgressHandler(
 
     return successResponse({ message: "Progresso salvo com sucesso" });
   } catch (error) {
-    console.error("[saveWorkoutProgressHandler] Erro:", error);
+    log.error("[saveWorkoutProgressHandler] Erro", { error });
     return internalErrorResponse("Erro ao salvar progresso", error);
   }
 }
@@ -249,7 +250,7 @@ export async function getWorkoutProgressHandler(
 
     return successResponse({ progress });
   } catch (error) {
-    console.error("[getWorkoutProgressHandler] Erro:", error);
+    log.error("[getWorkoutProgressHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar progresso", error);
   }
 }
@@ -276,7 +277,7 @@ export async function deleteWorkoutProgressHandler(
 
     return successResponse({ message: "Progresso deletado com sucesso" });
   } catch (error) {
-    console.error("[deleteWorkoutProgressHandler] Erro:", error);
+    log.error("[deleteWorkoutProgressHandler] Erro", { error });
     const err = error as { code?: string };
     if (err.code === "P2025") {
       return successResponse({
@@ -316,7 +317,7 @@ export async function getWorkoutHistoryHandler(
       offset: result.offset,
     });
   } catch (error) {
-    console.error("[getWorkoutHistoryHandler] Erro:", error);
+    log.error("[getWorkoutHistoryHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar histórico", error);
   }
 }
@@ -367,7 +368,7 @@ export async function updateExerciseLogHandler(
       throw err;
     }
   } catch (error) {
-    console.error("[updateExerciseLogHandler] Erro:", error);
+    log.error("[updateExerciseLogHandler] Erro", { error });
     const err = error as { code?: string };
     if (err.code === "P2025")
       return notFoundResponse("Exercício não encontrado");
@@ -472,7 +473,7 @@ export async function updateWorkoutProgressExerciseHandler(
       totalVolume: newTotalVolume,
     });
   } catch (error) {
-    console.error("[updateWorkoutProgressExerciseHandler] Erro:", error);
+    log.error("[updateWorkoutProgressExerciseHandler] Erro", { error });
     if (
       error &&
       typeof error === "object" &&

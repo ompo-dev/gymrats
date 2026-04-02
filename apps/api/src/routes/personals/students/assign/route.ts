@@ -5,12 +5,12 @@ import { StudentPersonalService } from "@/lib/services/personal/student-personal
 import { NextResponse } from "@/runtime/next-server";
 
 const assignByPersonalSchema = z.object({
-  studentId: z.string().min(1),
-  gymId: z.string().optional(),
+  studentId: z.string().cuid("studentId deve ser um CUID valido"),
+  gymId: z.string().cuid("gymId deve ser um CUID valido").optional(),
 });
 
 const removeAssignmentSchema = z.object({
-  studentId: z.string().min(1),
+  studentId: z.string().cuid("studentId deve ser um CUID valido"),
 });
 
 export const POST = createSafeHandler(

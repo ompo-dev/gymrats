@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import {
   getActiveNutritionPlan,
   getDailyNutritionForStudent,
@@ -64,7 +65,7 @@ export async function getDailyNutritionHandler(
       >,
     );
   } catch (error) {
-    console.error("[getDailyNutritionHandler] Erro:", error);
+    log.error("[getDailyNutritionHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar nutricao", error);
   }
 }
@@ -128,7 +129,7 @@ export async function updateDailyNutritionHandler(
       message: "Nutricao atualizada com sucesso",
     });
   } catch (error) {
-    console.error("[updateDailyNutritionHandler] Erro:", error);
+    log.error("[updateDailyNutritionHandler] Erro", { error });
 
     if (isNutritionLibraryError(error, "PAST_DATE_READ_ONLY")) {
       return badRequestResponse(getNutritionLibraryErrorMessage(error));
@@ -153,7 +154,7 @@ export async function getActiveNutritionPlanHandler(
 
     return successResponse({ data: activeNutritionPlan });
   } catch (error) {
-    console.error("[getActiveNutritionPlanHandler] Erro:", error);
+    log.error("[getActiveNutritionPlanHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar plano alimentar ativo", error);
   }
 }
@@ -178,7 +179,7 @@ export async function searchFoodsHandler(
 
     return successResponse({ foods: result.foods });
   } catch (error) {
-    console.error("[searchFoodsHandler] Erro:", error);
+    log.error("[searchFoodsHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar alimentos", error);
   }
 }
@@ -198,7 +199,7 @@ export async function getFoodByIdHandler(
 
     return successResponse({ food });
   } catch (error) {
-    console.error("[getFoodByIdHandler] Erro:", error);
+    log.error("[getFoodByIdHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar alimento", error);
   }
 }

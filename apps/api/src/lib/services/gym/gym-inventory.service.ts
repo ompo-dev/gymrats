@@ -1,5 +1,6 @@
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import type {
   Equipment,
   GymProfile,
@@ -147,26 +148,12 @@ export class GymInventoryService {
 
     if (!gym || !gym.profile) return null;
 
-    let openingHours:
-      | {
-          open: string;
-          close: string;
-          days: string[];
-          byDay?: Record<string, { open: string; close: string }>;
-        }
-      | undefined;
-    if (gym.openingHours) {
-      try {
-        openingHours = JSON.parse(gym.openingHours) as {
-          open: string;
-          close: string;
-          days: string[];
-          byDay?: Record<string, { open: string; close: string }>;
-        };
-      } catch {
-        openingHours = undefined;
-      }
-    }
+    const openingHours = parseJsonSafe<{
+      open: string;
+      close: string;
+      days: string[];
+      byDay?: Record<string, { open: string; close: string }>;
+    }>(gym.openingHours);
 
     const profile = {
       id: gym.id,
@@ -280,7 +267,7 @@ export class GymInventoryService {
         | "trial",
       price: plan.price,
       duration: plan.duration,
-      benefits: plan.benefits ? JSON.parse(plan.benefits) : [],
+      benefits: parseJsonArray<string>(plan.benefits),
       isActive: plan.isActive,
     }));
   }

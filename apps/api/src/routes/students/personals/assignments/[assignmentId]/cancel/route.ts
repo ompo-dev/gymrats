@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  assignmentId: z.string().min(1),
+  assignmentId: z.string().cuid("assignmentId deve ser um CUID valido"),
 });
 
 /**

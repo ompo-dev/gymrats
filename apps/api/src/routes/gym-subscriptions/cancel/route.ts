@@ -1,10 +1,11 @@
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { auditLog } from "@/lib/security/audit-log";
 import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 import { NextResponse } from "@/runtime/next-server";
 
 export const POST = createSafeHandler(
-  async ({ gymContext }) => {
+  async ({ gymContext, req }) => {
     const gymId = gymContext?.gymId;
     if (!gymId) {
       return NextResponse.json(
@@ -84,6 +85,19 @@ export const POST = createSafeHandler(
       });
       await GymSubscriptionService.handleGymDowngrade(gymId);
     }
+
+    await auditLog({
+      action: "SUBSCRIPTION:CANCELLED",
+      actorId: gymContext?.user?.id ?? null,
+      targetId: subscription.id,
+      request: req,
+      result: "SUCCESS",
+      payload: {
+        domain: "gym-subscription",
+        gymId,
+        cascaded: isOldestCancelling,
+      },
+    });
 
     return NextResponse.json({
       message: "Assinatura cancelada com sucesso",

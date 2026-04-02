@@ -13,6 +13,7 @@ import {
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { parseJsonSafe } from "@/lib/utils/json";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 const conversationMessageSchema = z.object({
@@ -208,12 +209,17 @@ export const POST = createSafeHandler(
     // Suporte a importação simplificada (estilizado conforme original)
     if (message.trim().startsWith("{") || message.trim().startsWith("[")) {
       try {
-        const rawJson = JSON.parse(message);
+        const rawJson = parseJsonSafe<import("@/lib/types/api-error").JsonValue>(
+          message,
+        );
+        if (rawJson == null) {
+          throw new Error("JSON invÃ¡lido");
+        }
         // Simplified normalization for brevity in this refactor
         parsed = {
           intent: "create",
           action: "create_workouts",
-          workouts: Array.isArray(rawJson) ? rawJson : [rawJson],
+          workouts: (Array.isArray(rawJson) ? rawJson : [rawJson]) as unknown as ParsedWorkoutResponse["workouts"],
           message: "Treino importado com sucesso.",
         };
       } catch (_e) {}

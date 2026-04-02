@@ -4,6 +4,7 @@
  */
 
 import { db } from "@/lib/db";
+import { parseJsonArray } from "@/lib/utils/json";
 
 export interface GetWorkoutHistoryInput {
   studentId: string;
@@ -64,40 +65,33 @@ export async function getWorkoutHistoryUseCase(
     let calculatedVolume = 0;
     if (wh.exercises?.length > 0) {
       calculatedVolume = wh.exercises.reduce((acc, el) => {
-        try {
-          const sets = JSON.parse(el.sets);
-          if (Array.isArray(sets)) {
-            return (
-              acc +
-              sets.reduce(
-                (
-                  setAcc: number,
-                  set: { weight?: number; reps?: number; completed?: boolean },
-                ) => {
-                  if (set.weight && set.reps && (set.completed ?? true)) {
-                    return setAcc + set.weight * set.reps;
-                  }
-                  return setAcc;
-                },
-                0,
-              )
-            );
-          }
-        } catch {
-          // ignorar
+        const sets = parseJsonArray<{
+          weight?: number;
+          reps?: number;
+          completed?: boolean;
+        }>(el.sets);
+        if (sets.length > 0) {
+          return (
+            acc +
+            sets.reduce(
+              (
+                setAcc: number,
+                set: { weight?: number; reps?: number; completed?: boolean },
+              ) => {
+                if (set.weight && set.reps && (set.completed ?? true)) {
+                  return setAcc + set.weight * set.reps;
+                }
+                return setAcc;
+              },
+              0,
+            )
+          );
         }
         return acc;
       }, 0);
     }
 
-    let bodyPartsFatigued: string[] = [];
-    if (wh.bodyPartsFatigued) {
-      try {
-        bodyPartsFatigued = JSON.parse(wh.bodyPartsFatigued);
-      } catch {
-        // ignorar
-      }
-    }
+    const bodyPartsFatigued = parseJsonArray<string>(wh.bodyPartsFatigued);
 
     return {
       date: wh.date,
@@ -106,16 +100,11 @@ export async function getWorkoutHistoryUseCase(
       duration: wh.duration,
       totalVolume: wh.totalVolume ?? calculatedVolume,
       exercises: wh.exercises.map((el) => {
-        let sets: Array<{
+        const sets = parseJsonArray<{
           weight?: number;
           reps?: number;
           completed?: boolean;
-        }> = [];
-        try {
-          sets = JSON.parse(el.sets);
-        } catch {
-          // ignorar
-        }
+        }>(el.sets);
         return {
           id: el.id,
           exerciseId: el.exerciseId,

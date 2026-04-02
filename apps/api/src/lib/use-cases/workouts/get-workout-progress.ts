@@ -4,6 +4,7 @@
  */
 
 import { db } from "@/lib/db";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 
 export interface GetWorkoutProgressInput {
   studentId: string;
@@ -44,13 +45,10 @@ export async function getWorkoutProgressUseCase(
     return { progress: null };
   }
 
-  const exerciseLogs = JSON.parse(progress.exerciseLogs ?? "[]");
-  const skippedExercises = progress.skippedExercises
-    ? JSON.parse(progress.skippedExercises)
-    : [];
-  const selectedAlternatives = progress.selectedAlternatives
-    ? JSON.parse(progress.selectedAlternatives)
-    : {};
+  const exerciseLogs = parseJsonArray<unknown>(progress.exerciseLogs);
+  const skippedExercises = parseJsonArray<string>(progress.skippedExercises);
+  const selectedAlternatives =
+    parseJsonSafe<Record<string, string>>(progress.selectedAlternatives) ?? {};
 
   return {
     progress: {

@@ -12,6 +12,7 @@ import {
   updateStudentTargetWater,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
+import { log } from "@/lib/observability";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import type { NextRequest } from "@/runtime/next-server";
@@ -53,7 +54,9 @@ export async function GET(
       >,
     );
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition] Erro GET:", error);
+    log.error("[personals/students/[id]/nutrition] Erro GET", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao buscar nutricao");
   }
 }
@@ -120,7 +123,9 @@ export async function POST(
       message: "Nutricao atualizada com sucesso",
     });
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition] Erro POST:", error);
+    log.error("[personals/students/[id]/nutrition] Erro POST", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao atualizar nutricao");
   }
 }

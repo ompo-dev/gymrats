@@ -1,4 +1,5 @@
 import { resetStudentWeeklyOverride } from "@gymrats/workflows";
+import { log } from "@/lib/observability";
 import { NextResponse } from "@/runtime/next-server";
 
 /**
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     const result = await resetStudentWeeklyOverride();
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[week-reset cron] Erro:", error);
+    log.error("[week-reset cron] Erro", { error });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

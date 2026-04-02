@@ -1,5 +1,6 @@
 import { redisConnection } from "@gymrats/cache";
 import { createBootstrapResponse } from "@gymrats/domain";
+import { parseJsonSafe } from "@/lib/utils/json";
 import type { BootstrapSectionTimings } from "@gymrats/types/bootstrap";
 
 type CachedBootstrapPayload<T> = {
@@ -37,7 +38,7 @@ export async function getCachedBootstrap<T>(cacheKey: string) {
       return null;
     }
 
-    return JSON.parse(raw) as CachedBootstrapPayload<T>;
+    return parseJsonSafe<CachedBootstrapPayload<T>>(raw);
   } catch {
     return null;
   }

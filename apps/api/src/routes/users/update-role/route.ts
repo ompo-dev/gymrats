@@ -1,8 +1,9 @@
 import type { Gym, Student } from "@prisma/client";
-import { requireAuth } from "@/lib/api/middleware/auth.middleware";
-import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { requireAdmin } from "@/lib/api/middleware/auth.middleware";
 import { updateUserRoleSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
+import { auditLog } from "@/lib/security/audit-log";
 import {
   initializeGymTrial,
   initializeStudentTrial,
@@ -11,27 +12,31 @@ import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireAdmin(request);
     if ("error" in auth) {
       return auth.response;
     }
 
-    // Validar body com Zod
-    const validation = await validateBody(request, updateUserRoleSchema);
+    const body = (await request.json().catch(() => null)) as
+      | Record<string, unknown>
+      | null;
+    const validation = updateUserRoleSchema.safeParse(body);
+
     if (!validation.success) {
-      return validation.response;
+      return NextResponse.json(
+        { error: "Erro de validacao", details: validation.error.flatten() },
+        { status: 400 },
+      );
     }
 
     const role = validation.data.role as "STUDENT" | "GYM" | "PERSONAL";
-    const userId =
-      auth.user.role === "ADMIN" ? validation.data.userId : auth.userId;
+    const userId = validation.data.userId;
 
     const updatedUser = await db.user.update({
       where: { id: userId },
       data: { role },
     });
 
-    // Criar Student ou Gym se necessário e inicializar trial
     if (role === "STUDENT") {
       const existingStudent = await db.student.findUnique({
         where: { userId },
@@ -46,10 +51,7 @@ export async function POST(request: NextRequest) {
         student = existingStudent;
       }
 
-      // Inicializar trial automaticamente para o aluno
-      if (student) {
-        await initializeStudentTrial(student.id);
-      }
+      await initializeStudentTrial(student.id);
     } else if (role === "GYM") {
       const existingGym = await db.gym.findFirst({
         where: { userId },
@@ -70,10 +72,7 @@ export async function POST(request: NextRequest) {
         gym = existingGym;
       }
 
-      // Inicializar trial automaticamente para a academia
-      if (gym) {
-        await initializeGymTrial(gym.id);
-      }
+      await initializeGymTrial(gym.id);
     } else if (role === "PERSONAL") {
       const existingPersonal = await db.personal.findUnique({
         where: { userId },
@@ -89,6 +88,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    await auditLog({
+      action: "ROLE:CHANGED",
+      actorId: auth.userId,
+      targetId: updatedUser.id,
+      request,
+      payload: {
+        role: updatedUser.role,
+      },
+      result: "SUCCESS",
+    });
+
     return NextResponse.json({
       success: true,
       user: {
@@ -97,10 +107,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro ao atualizar role:", error);
-    const err = error instanceof Error ? error : new Error(String(error));
+    log.error("Erro ao atualizar role", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
-      { error: err.message || "Erro ao atualizar tipo de usuário" },
+      { error: "Erro interno do servidor" },
       { status: 500 },
     );
   }

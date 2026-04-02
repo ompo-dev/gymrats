@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { log } from "@gymrats/domain/log";
 
 function requiresManagedRedis() {
   const runtimeRole = process.env.GYMRATS_RUNTIME_ROLE;
@@ -40,5 +41,5 @@ export const redisConnection = new Redis(resolveRedisUrl(), {
 });
 
 redisConnection.on("error", (error) => {
-  console.error("[Redis Connection] Failed:", error);
+  log.error("Redis connection failed", { error });
 });

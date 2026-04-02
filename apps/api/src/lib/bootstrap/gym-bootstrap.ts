@@ -16,6 +16,7 @@ import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { GymMemberService } from "@/lib/services/gym/gym-member.service";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { getTimeMs } from "@/lib/utils/date-safe";
+import { parseJsonArray } from "@/lib/utils/json";
 
 export const DEFAULT_GYM_BOOTSTRAP_SECTIONS: GymDataSection[] = [
   "profile",
@@ -154,15 +155,9 @@ function transformMembersToStudents(
         fitnessLevel: (profile.fitnessLevel as string) ?? "beginner",
         goals: Array.isArray(profile.goals)
           ? profile.goals
-          : typeof profile.goals === "string"
-            ? (() => {
-                try {
-                  return JSON.parse(profile.goals) ?? [];
-                } catch {
-                  return [];
-                }
-              })()
-            : [],
+          : parseJsonArray<string>(
+              typeof profile.goals === "string" ? profile.goals : null,
+            ),
         weeklyWorkoutFrequency: (profile.weeklyWorkoutFrequency as number) ?? 0,
       },
       progress: {

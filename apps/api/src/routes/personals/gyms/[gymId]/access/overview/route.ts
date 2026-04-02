@@ -5,7 +5,7 @@ import { AccessService } from "@/lib/services/access/access.service";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  gymId: z.string().min(1),
+  gymId: z.string().cuid("gymId deve ser um CUID valido"),
 });
 
 export const GET = createSafeHandler(

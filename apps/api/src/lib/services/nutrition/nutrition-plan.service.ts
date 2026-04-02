@@ -5,6 +5,7 @@ import {
   setCachedJson,
 } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import {
   getNutritionLibraryPlanDetail as getNutritionLibraryPlanDetailCached,
   invalidateNutritionLibraryCache,
@@ -161,9 +162,11 @@ async function retryNutritionWrite<T>(
         throw error;
       }
 
-      console.warn(
-        `[nutrition] Retry ${attempt}/${maxAttempts - 1} for ${label} after Prisma transaction race`,
-      );
+      log.warn("[nutrition] Retry after Prisma transaction race", {
+        label,
+        attempt,
+        maxAttempts,
+      });
       await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
     }
   }

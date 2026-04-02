@@ -1,6 +1,7 @@
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { blockProductionDevelopmentRoute } from "@/lib/security/development-route";
 import { NextResponse } from "@/runtime/next-server";
 
 /**
@@ -11,6 +12,14 @@ import { NextResponse } from "@/runtime/next-server";
  */
 export const POST = createSafeHandler(
   async ({ req, personalContext }) => {
+    const blockedResponse = await blockProductionDevelopmentRoute({
+      request: req,
+      actorId: personalContext?.user.id ?? null,
+    });
+    if (blockedResponse) {
+      return blockedResponse;
+    }
+
     const pixId = req.nextUrl.searchParams.get("pixId");
     if (!pixId) {
       return NextResponse.json(

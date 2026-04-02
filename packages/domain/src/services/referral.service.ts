@@ -1,5 +1,6 @@
 import { db } from "@gymrats/db";
 import type { Prisma } from "@prisma/client";
+import { log } from "../log";
 
 type Referral = Prisma.ReferralGetPayload<Record<string, never>>;
 
@@ -106,9 +107,11 @@ export class ReferralService {
     amountCents: number,
     paymentId: string,
   ): Promise<Referral | null> {
-    console.log(
-      `[ReferralService] Tentando converter: ${referredType} | ID: ${referredId} | Payment: ${paymentId}`,
-    );
+    log.info("Attempting to convert referral after first payment", {
+      referredType,
+      referredId,
+      paymentId,
+    });
 
     const referral = await db.referral.findFirst({
       where: {
@@ -119,15 +122,20 @@ export class ReferralService {
     });
 
     if (!referral) {
-      console.warn(
-        `[ReferralService] Registro PENDING NÃO ENCONTRADO para ${referredType} ID ${referredId}`,
-      );
+      log.warn("Pending referral not found for first payment conversion", {
+        referredType,
+        referredId,
+        paymentId,
+      });
       return null;
     }
 
-    console.log(
-      `[ReferralService] ✅ Registro PENDING encontrado! ID: ${referral.id}. Calculando comissão...`,
-    );
+    log.info("Pending referral found for first payment conversion", {
+      referralId: referral.id,
+      referredType,
+      referredId,
+      paymentId,
+    });
 
     // 50% commission mapped in cents
     const commissionCents = Math.floor(amountCents * 0.5);

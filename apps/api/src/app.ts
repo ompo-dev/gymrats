@@ -1,15 +1,28 @@
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { webhookQueue } from "@gymrats/cache";
+import { parseJsonSafe } from "@gymrats/domain/json";
 import { resetStudentWeeklyOverride } from "@gymrats/workflows";
 import { log } from "@/lib/observability";
+import { auditLog } from "@/lib/security/audit-log";
+import { claimWebhookReplayKey } from "@/lib/security/webhook-replay";
 import { apiApp as baseApiApp } from "./server/app";
 
 export const apiApp = baseApiApp
   .post("/api/webhooks/abacatepay", async ({ body, request, set }) => {
     try {
       const signature = request.headers.get("x-webhook-signature");
+      const path = new URL(request.url).pathname;
 
       if (!signature) {
+        await auditLog({
+          action: "PAYMENT:WEBHOOK",
+          request: request.headers,
+          payload: {
+            path,
+            reason: "missing_signature",
+          },
+          result: "FAILURE",
+        });
         set.status = 400;
         return { error: "Missing webhook signature" };
       }
@@ -23,24 +36,71 @@ export const apiApp = baseApiApp
       );
 
       if (!isSignatureValid) {
+        await auditLog({
+          action: "PAYMENT:WEBHOOK",
+          request: request.headers,
+          payload: {
+            path,
+            reason: "invalid_signature",
+          },
+          result: "FAILURE",
+        });
         set.status = 400;
         return { error: "Invalid cryptographic signature" };
       }
 
+      const isFirstDelivery = await claimWebhookReplayKey(signature, rawBody);
+      if (!isFirstDelivery) {
+        await auditLog({
+          action: "PAYMENT:WEBHOOK",
+          request: request.headers,
+          payload: {
+            path,
+            replay: true,
+          },
+          result: "SUCCESS",
+        });
+        return { received: true, replay: true };
+      }
+
       const parsedBody =
         typeof body === "string"
-          ? (JSON.parse(rawBody) as {
-              event: string;
-              data: Record<string, unknown>;
-            })
+          ? parseJsonSafe<{
+              event?: string;
+              data?: Record<string, unknown>;
+            }>(rawBody)
           : ((body ?? {}) as {
               event?: string;
               data?: Record<string, unknown>;
             });
 
+      if (!parsedBody?.event || !parsedBody.data) {
+        await auditLog({
+          action: "PAYMENT:WEBHOOK",
+          request: request.headers,
+          payload: {
+            path,
+            reason: "invalid_json",
+          },
+          result: "FAILURE",
+        });
+        set.status = 400;
+        return { error: "Invalid webhook payload" };
+      }
+
       await webhookQueue.add("process-payment", {
         event: parsedBody.event ?? "unknown",
         data: parsedBody.data ?? {},
+      });
+
+      await auditLog({
+        action: "PAYMENT:WEBHOOK",
+        request: request.headers,
+        payload: {
+          path,
+          event: parsedBody.event,
+        },
+        result: "SUCCESS",
       });
 
       return { received: true, queued: true };

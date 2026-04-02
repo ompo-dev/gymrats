@@ -3,6 +3,7 @@ import {
   GYM_PLANS_CONFIG,
 } from "@gymrats/access-control/plans-config";
 import { db } from "@gymrats/db";
+import { log } from "./log";
 
 export type StudentTrialResult =
   | {
@@ -67,7 +68,7 @@ export async function initializeStudentTrial(
 
     return { success: true, subscription };
   } catch (error) {
-    console.error("Erro ao inicializar trial do aluno:", error);
+    log.error("Failed to initialize student trial", { studentId, error });
     return null;
   }
 }
@@ -113,7 +114,7 @@ export async function initializeGymTrial(gymId: string) {
 
     return subscription;
   } catch (error) {
-    console.error("Erro ao inicializar trial da academia:", error);
+    log.error("Failed to initialize gym trial", { gymId, error });
     return null;
   }
 }

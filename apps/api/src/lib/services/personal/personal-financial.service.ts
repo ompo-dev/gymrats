@@ -1,5 +1,6 @@
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
+import { parseJsonArray } from "@/lib/utils/json";
 import type {
   BoostCampaign,
   Coupon,
@@ -178,22 +179,12 @@ export class PersonalFinancialService {
       where: { personalId },
       orderBy: { price: "asc" },
     });
-    const payload = plans.map((plan) => {
-      let benefits: string[] = [];
-      if (typeof plan.benefits === "string") {
-        try {
-          benefits = JSON.parse(plan.benefits);
-        } catch {
-          benefits = [];
-        }
-      } else if (Array.isArray(plan.benefits)) {
-        benefits = plan.benefits;
-      }
-      return {
-        ...plan,
-        benefits,
-      };
-    });
+    const payload = plans.map((plan) => ({
+      ...plan,
+      benefits: Array.isArray(plan.benefits)
+        ? plan.benefits
+        : parseJsonArray<string>(plan.benefits),
+    }));
 
     await setCachedJson(
       cacheKey,

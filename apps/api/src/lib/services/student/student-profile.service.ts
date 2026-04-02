@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { StudentProfileData } from "@/lib/types/student-unified";
+import { parseJsonArray } from "@/lib/utils/json";
 
 function serializeStringArray(value: string[] | undefined): string | null {
   return value && value.length > 0 ? JSON.stringify(value) : null;
@@ -17,7 +18,7 @@ export const StudentProfileService = {
     const profile = student.profile;
     return {
       ...profile,
-      goals: profile.goals ? JSON.parse(profile.goals) : [],
+      goals: parseJsonArray<string>(profile.goals),
       hasWeightLossGoal: profile.goals
         ? profile.goals.includes("perder-peso")
         : false,

@@ -4,6 +4,7 @@
  */
 
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 
 export type EnsureRoleResult =
   | { ok: true; studentId?: string; gymId?: string; personalId?: string }
@@ -30,7 +31,7 @@ export async function ensureStudentRole(
 
     return { ok: true, studentId: student.id };
   } catch (error) {
-    console.error("[ensureStudentRole] Erro:", error);
+    log.error("[ensureStudentRole] Erro", { error });
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao criar perfil",
@@ -67,7 +68,7 @@ export async function ensureGymRole(
 
     return { ok: true, gymId: gym.id };
   } catch (error) {
-    console.error("[ensureGymRole] Erro:", error);
+    log.error("[ensureGymRole] Erro", { error });
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao criar perfil",
@@ -102,7 +103,7 @@ export async function ensurePersonalRole(
 
     return { ok: true, personalId: personal.id };
   } catch (error) {
-    console.error("[ensurePersonalRole] Erro:", error);
+    log.error("[ensurePersonalRole] Erro", { error });
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao criar perfil",

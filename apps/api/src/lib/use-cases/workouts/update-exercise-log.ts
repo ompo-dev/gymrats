@@ -4,6 +4,7 @@
  */
 
 import { db } from "@/lib/db";
+import { parseJsonArray } from "@/lib/utils/json";
 
 export interface UpdateExerciseLogInput {
   historyId: string;
@@ -80,7 +81,11 @@ export async function updateExerciseLogUseCase(
   let newTotalVolume = 0;
   for (const ex of allExercises) {
     try {
-      const exerciseSets = JSON.parse(ex.sets);
+      const exerciseSets = parseJsonArray<{
+        weight?: number;
+        reps?: number;
+        completed?: boolean;
+      }>(ex.sets);
       if (Array.isArray(exerciseSets)) {
         newTotalVolume += exerciseSets.reduce(
           (
@@ -105,16 +110,11 @@ export async function updateExerciseLogUseCase(
     data: { totalVolume: newTotalVolume },
   });
 
-  let parsedSets: Array<{
+  const parsedSets = parseJsonArray<{
     weight?: number;
     reps?: number;
     completed?: boolean;
-  }> = [];
-  try {
-    parsedSets = JSON.parse(updated.sets);
-  } catch {
-    // ignorar
-  }
+  }>(updated.sets);
 
   return {
     exerciseLog: {

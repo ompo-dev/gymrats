@@ -3,6 +3,7 @@ import {
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
+import { log } from "@/lib/observability";
 import { populateWorkoutExercisesWithEducationalData } from "@/lib/services/populate-workout-exercises-educational-data";
 import type { NextRequest } from "@/runtime/next-server";
 
@@ -24,7 +25,9 @@ export async function POST(request: NextRequest) {
       ...result,
     });
   } catch (error) {
-    console.error("[populateEducationalData] Erro:", error);
+    log.error("[populateEducationalData] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(
       "Erro ao popular exercícios com dados educacionais",
       error,

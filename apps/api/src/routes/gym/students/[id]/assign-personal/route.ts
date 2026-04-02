@@ -5,15 +5,15 @@ import { StudentPersonalService } from "@/lib/services/personal/student-personal
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().cuid(),
 });
 
 const assignSchema = z.object({
-  personalId: z.string().min(1),
+  personalId: z.string().cuid(),
 });
 
 const removeSchema = z.object({
-  personalId: z.string().min(1),
+  personalId: z.string().cuid(),
 });
 
 export const POST = createSafeHandler(
@@ -40,19 +40,21 @@ export const POST = createSafeHandler(
 );
 
 export const DELETE = createSafeHandler(
-  async ({ params, body }) => {
+  async ({ gymContext, params, body }) => {
     if (!featureFlags.personalEnabled) {
       return NextResponse.json(
         { error: "Módulo Personal desabilitado" },
         { status: 503 },
       );
     }
+    const gymId = gymContext?.gymId || "";
     const studentId = params?.id || "";
     const { personalId } = body as { personalId: string };
 
     const assignment = await StudentPersonalService.removeAssignment({
       studentId,
       personalId,
+      gymId,
     });
 
     return NextResponse.json({ assignment });

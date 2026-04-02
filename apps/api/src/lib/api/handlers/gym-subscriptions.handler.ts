@@ -9,6 +9,8 @@ import {
   getGymPlanConfig,
 } from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
+import { auditLog } from "@/lib/security/audit-log";
 import { ReferralService } from "@/lib/services/referral.service";
 import { createGymSubscriptionPix } from "@/lib/utils/subscription";
 import type { NextRequest, NextResponse } from "@/runtime/next-server";
@@ -73,7 +75,7 @@ export async function getCurrentGymSubscriptionHandler(
     });
 
     if (subscription) {
-      console.log("[API] Gym Subscription retornada:", {
+      log.debug("[API] Gym Subscription retornada", {
         id: subscription.id,
         plan: subscription.plan,
         billingPeriod: subscription.billingPeriod,
@@ -142,7 +144,9 @@ export async function getCurrentGymSubscriptionHandler(
       isFirstPayment,
     });
   } catch (error) {
-    console.error("[getCurrentGymSubscriptionHandler] Erro:", error);
+    log.error("[getCurrentGymSubscriptionHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao buscar assinatura", error);
   }
 }
@@ -301,6 +305,23 @@ export async function createGymSubscriptionHandler(
       }
     }
 
+    await auditLog({
+      action: "PAYMENT:INITIATED",
+      actorId: auth.userId,
+      targetId: existingSubscription?.id ?? gymId,
+      request,
+      result: "SUCCESS",
+      payload: {
+        domain: "gym-subscription",
+        gymId,
+        plan,
+        billingPeriod,
+        pixId: pix.id,
+        amount: pix.amount,
+        referralCodeApplied: Boolean(referralCode),
+      },
+    });
+
     return successResponse({
       pixId: pix.id,
       brCode: pix.brCode,
@@ -309,7 +330,9 @@ export async function createGymSubscriptionHandler(
       expiresAt: pix.expiresAt,
     });
   } catch (error) {
-    console.error("[createGymSubscriptionHandler] Erro:", error);
+    log.error("[createGymSubscriptionHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao criar assinatura", error);
   }
 }
@@ -370,7 +393,9 @@ export async function startGymTrialHandler(
 
     return successResponse({ subscription });
   } catch (error) {
-    console.error("[startGymTrialHandler] Erro:", error);
+    log.error("[startGymTrialHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao iniciar trial", error);
   }
 }
@@ -426,11 +451,25 @@ export async function cancelGymSubscriptionHandler(
       },
     });
 
+    await auditLog({
+      action: "SUBSCRIPTION:CANCELLED",
+      actorId: auth.userId,
+      targetId: subscription.id,
+      request,
+      result: "SUCCESS",
+      payload: {
+        domain: "gym-subscription",
+        gymId,
+      },
+    });
+
     return successResponse({
       message: "Assinatura cancelada com sucesso",
     });
   } catch (error) {
-    console.error("[cancelGymSubscriptionHandler] Erro:", error);
+    log.error("[cancelGymSubscriptionHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao cancelar assinatura", error);
   }
 }
