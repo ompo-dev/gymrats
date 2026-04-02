@@ -1,6 +1,6 @@
 import { clearAuthToken } from "@/lib/auth/token-client";
 import type { ApiError } from "@/lib/types";
-import { actionClient as apiClient } from "@/lib/actions/client";
+import { apiClient } from "@/lib/api/client";
 
 export interface LoginCredentials {
   email: string;
