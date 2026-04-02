@@ -1,4 +1,5 @@
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
+import { invalidateAuthSessionCacheForUser } from "@/lib/auth/session-cache";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { geocodeAddress } from "@/lib/services/geocoding.service";
@@ -50,6 +51,8 @@ async function syncActiveGym(userId: string, gymId: string) {
       lastActiveGymId: gymId,
     },
   });
+
+  await invalidateAuthSessionCacheForUser(userId);
 }
 
 export async function POST(request: NextRequest) {

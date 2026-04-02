@@ -34,6 +34,13 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "apps/api/src/lib/db.ts"),
       },
       {
+        find: "@/lib/auth/session-cache",
+        replacement: path.resolve(
+          __dirname,
+          "apps/api/src/lib/auth/session-cache.ts",
+        ),
+      },
+      {
         find: "@/lib/utils/json",
         replacement: path.resolve(__dirname, "apps/api/src/lib/utils/json.ts"),
       },
@@ -53,6 +60,13 @@ export default defineConfig({
         replacement: path.resolve(
           __dirname,
           "apps/api/src/lib/runtime/request-context.ts",
+        ),
+      },
+      {
+        find: "@/lib/cache/resource-cache",
+        replacement: path.resolve(
+          __dirname,
+          "apps/api/src/lib/cache/resource-cache.ts",
         ),
       },
       {

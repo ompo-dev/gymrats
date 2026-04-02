@@ -40,6 +40,18 @@ export const redisConnection = new Redis(resolveRedisUrl(), {
   lazyConnect: true,
 });
 
+export async function ensureRedisConnection() {
+  if (
+    redisConnection.status === "ready" ||
+    redisConnection.status === "connect" ||
+    redisConnection.status === "connecting"
+  ) {
+    return;
+  }
+
+  await redisConnection.connect();
+}
+
 redisConnection.on("error", (error) => {
   log.error("Redis connection failed", { error });
 });

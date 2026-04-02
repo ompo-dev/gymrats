@@ -1,6 +1,7 @@
 import type { Gym, Student } from "@prisma/client";
 import { requireAdmin } from "@/lib/api/middleware/auth.middleware";
 import { updateUserRoleSchema } from "@/lib/api/schemas";
+import { invalidateAuthSessionCacheForUser } from "@/lib/auth/session-cache";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { auditLog } from "@/lib/security/audit-log";
@@ -98,6 +99,8 @@ export async function POST(request: NextRequest) {
       },
       result: "SUCCESS",
     });
+
+    await invalidateAuthSessionCacheForUser(updatedUser.id);
 
     return NextResponse.json({
       success: true,

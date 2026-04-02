@@ -3,6 +3,11 @@ import {
   extractCookieValue,
 } from "@gymrats/domain/auth-tokens";
 import { auth } from "@/lib/auth-config";
+import {
+  cacheAuthSessionResolution,
+  extractAuthSessionCacheTokens,
+  getCachedAuthSessionResolution,
+} from "@/lib/auth/session-cache";
 import { db } from "@/lib/db";
 import { getSessionUseCase } from "@/lib/use-cases/auth";
 import { getSession } from "@/lib/utils/session";
@@ -77,6 +82,29 @@ function createResolution(headers: Headers): Promise<ResolvedSessionResult> {
   );
 }
 
+async function createCachedResolution(
+  headers: Headers,
+): Promise<ResolvedSessionResult> {
+  const cacheTokens = extractAuthSessionCacheTokens(headers);
+  const cached = await getCachedAuthSessionResolution(cacheTokens);
+  if (cached) {
+    return cached as ResolvedSessionResult;
+  }
+
+  const resolution = await createResolution(headers);
+  const resolvedSessionToken =
+    resolution.ok && resolution.data.sessionToken
+      ? resolution.data.sessionToken
+      : null;
+
+  await cacheAuthSessionResolution(
+    [...cacheTokens, resolvedSessionToken],
+    resolution,
+  );
+
+  return resolution;
+}
+
 export function resolveAuthSessionFromHeaders(headers?: Headers | null) {
   if (!headers) {
     return createResolution(new Headers());
@@ -87,7 +115,7 @@ export function resolveAuthSessionFromHeaders(headers?: Headers | null) {
     return cached;
   }
 
-  const resolution = createResolution(headers);
+  const resolution = createCachedResolution(headers);
   headersCache.set(headers, resolution);
   return resolution;
 }

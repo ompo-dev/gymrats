@@ -1,5 +1,6 @@
 import { setActiveGymSchema } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { invalidateAuthSessionCacheForUser } from "@/lib/auth/session-cache";
 import { db } from "@/lib/db";
 import { NextResponse } from "@/runtime/next-server";
 
@@ -44,6 +45,8 @@ export const POST = createSafeHandler(
         lastActiveGymId: gymId,
       },
     });
+
+    await invalidateAuthSessionCacheForUser(userId);
 
     return NextResponse.json({ activeGymId: gymId });
   },

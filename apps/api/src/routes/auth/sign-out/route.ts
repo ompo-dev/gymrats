@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-config";
+import { invalidateAuthSessionCache } from "@/lib/auth/session-cache";
 import { log } from "@/lib/observability";
 import { auditLog } from "@/lib/security/audit-log";
 import { signOutUseCase } from "@/lib/use-cases/auth";
@@ -50,6 +51,12 @@ export async function POST(request: NextRequest) {
       request,
       result: "SUCCESS",
     });
+
+    await invalidateAuthSessionCache([
+      authHeaderToken,
+      cookieAuthToken,
+      cookieBetterAuthToken,
+    ]);
 
     const response = NextResponse.json({ success: true });
     response.cookies.delete("auth_token");
