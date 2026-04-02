@@ -14,18 +14,10 @@ const querySchema = z.object({
 
 export const GET = createSafeHandler(
   async ({ query }) => {
-    const sinceHours = query.sinceHours ?? 24;
-    const dataset = await getObservabilityDataset(sinceHours);
-
+    const dataset = await getObservabilityDataset(query.sinceHours ?? 24);
     return NextResponse.json({
       windowHours: dataset.windowHours,
-      counts: dataset.counts,
-      api: dataset.api,
       cache: dataset.cache,
-      webVitals: dataset.webVitals,
-      domains: dataset.domains,
-      recentEvents: dataset.recentEvents.slice(0, 25),
-      recentBusinessEvents: dataset.recentBusinessEvents,
       note: dataset.note,
     });
   },

@@ -1,6 +1,11 @@
 import type { ZodType } from "zod";
 import { log, recordApiRequest } from "@/lib/observability";
-import { getRequestId } from "@/lib/runtime/request-context";
+import {
+  getRequestId,
+  recordAuthTime,
+  recordHandlerTime,
+  recordResponseTime,
+} from "@/lib/runtime/request-context";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import {
   requireAdmin,
@@ -94,7 +99,8 @@ async function parseRequestBody(
   }
 }
 
-function attachStandardHeaders(response: NextResponse, startedAt: number) {
+function attachStandardHeaders(response: Response, startedAt: number) {
+  const responseStartedAt = Date.now();
   const requestId = getRequestId();
   const latencyMs = Date.now() - startedAt;
 
@@ -102,6 +108,7 @@ function attachStandardHeaders(response: NextResponse, startedAt: number) {
   if (requestId) {
     response.headers.set("X-Request-Id", requestId);
   }
+  recordResponseTime(Date.now() - responseStartedAt);
 
   return {
     latencyMs,
@@ -150,7 +157,7 @@ export function createSafeHandler<
   TBody = Record<string, string | number | boolean | object | null>,
   TQuery = Record<string, string | number | boolean | object | null>,
 >(
-  handler: (ctx: SafeHandlerContext<TBody, TQuery>) => Promise<NextResponse>,
+  handler: (ctx: SafeHandlerContext<TBody, TQuery>) => Promise<Response>,
   options: HandlerOptions<TBody, TQuery> = {},
 ) {
   return async (
@@ -174,8 +181,10 @@ export function createSafeHandler<
     let adminContext: SafeHandlerContext["adminContext"];
 
     try {
+      const authStartedAt = Date.now();
       if (options.auth === "gym") {
         const result = await requireGym(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -207,6 +216,7 @@ export function createSafeHandler<
         gymContext = nextGymContext;
       } else if (options.auth === "student") {
         const result = await requireStudent(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -229,6 +239,7 @@ export function createSafeHandler<
         };
       } else if (options.auth === "personal") {
         const result = await requirePersonal(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -251,6 +262,7 @@ export function createSafeHandler<
         };
       } else if (options.auth === "admin") {
         const result = await requireAdmin(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -269,6 +281,8 @@ export function createSafeHandler<
           session: result.session as Record<string, unknown>,
           user: result.user as AuthUser,
         };
+      } else {
+        recordAuthTime(Date.now() - authStartedAt);
       }
 
       let body: TBody = {} as TBody;
@@ -315,10 +329,12 @@ export function createSafeHandler<
         !!req.headers.get("x-idempotency-key");
 
       if (!shouldUseIdempotency) {
+        const handlerStartedAt = Date.now();
         const handled = attachStandardHeaders(
           await handler(handlerContext),
           startedAt,
         );
+        recordHandlerTime(Date.now() - handlerStartedAt);
         recordApiRequest(
           buildMetricContext(logMetaBase, {
             status: handled.response.status,
@@ -407,7 +423,9 @@ export function createSafeHandler<
       });
 
       try {
+        const handlerStartedAt = Date.now();
         const response = await handler(handlerContext);
+        recordHandlerTime(Date.now() - handlerStartedAt);
         const responseClone = response.clone();
         const responseText = await responseClone.text();
         await completeIdempotencyKey({

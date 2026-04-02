@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { actionClient } from "@/lib/actions/client";
+import { log } from "@/lib/observability/logger";
 
 // Dados completos de uma academia
 export interface GymData {
@@ -86,7 +87,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
       // SEGUNDO: Atualizar a UI via estado local apenas após o backend ter validado
       set({ activeGymId: gymId });
     } catch (error) {
-      console.error("Erro ao salvar academia ativa:", error);
+      log.error("Erro ao salvar academia ativa", { error, gymId });
     }
   },
 
@@ -135,7 +136,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
         });
       }
     } catch (error) {
-      console.error("Erro ao carregar academias:", error);
+      log.error("Erro ao carregar academias", { error });
     } finally {
       set({ isLoading: false });
     }

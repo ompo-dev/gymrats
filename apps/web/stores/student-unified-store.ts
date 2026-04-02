@@ -11,6 +11,7 @@ import { create } from "zustand";
 
 import { actionClient as apiClient } from "@/lib/actions/client";
 import { waitForJobCompletion } from "@/lib/api/job-client";
+import { log } from "@/lib/observability/logger";
 import type {
   DailyNutrition,
   DifficultyLevel,
@@ -294,7 +295,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             },
           }));
         } catch (error) {
-          console.error("[loadAll] Erro ao carregar dados:", error);
+          log.error("[loadAll] Erro ao carregar dados", { error });
           set((state) => ({
             data: {
               ...state.data,
@@ -323,7 +324,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         // Evitar múltiplas chamadas simultâneas se já está carregando tudo
         // Mas permitir se for apenas prioridades específicas
         if (currentState.data.metadata.isLoading && !onlyPriorities) {
-          console.log("[loadAllPrioritized] Já está carregando, aguardando...");
+          log.debug("[loadAllPrioritized] Ja esta carregando, aguardando");
           return;
         }
 
@@ -369,17 +370,18 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           if (remainingSections.length > 0) {
             // Carregar em background sem bloquear (não aguardar)
             loadSectionsIncremental(set, remainingSections).catch((error) => {
-              console.error(
-                "[loadAllPrioritized] Erro ao carregar seções restantes:",
-                error,
+              log.error(
+                "[loadAllPrioritized] Erro ao carregar secoes restantes",
+                { error, remainingSections },
               );
             });
           }
         } catch (error) {
-          console.error(
-            "[loadAllPrioritized] Erro ao carregar prioridades:",
+          log.error("[loadAllPrioritized] Erro ao carregar prioridades", {
             error,
-          );
+            priorities,
+            onlyPriorities,
+          });
           // Não propagar erro - já atualizamos o que conseguimos
         }
       },
@@ -412,7 +414,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             },
           }));
         } catch (error) {
-          console.error("[loadEssential] Erro:", error);
+          log.error("[loadEssential] Erro", { error });
           set((state) => ({
             data: {
               ...state.data,
@@ -437,7 +439,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await Promise.all([get().loadProfile(), get().loadWeightHistory()]);
         } catch (error) {
-          console.error("[loadStudentCore] Erro:", error);
+          log.error("[loadStudentCore] Erro", { error });
         }
       },
 
@@ -453,7 +455,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             "dayPasses",
           ]);
         } catch (error) {
-          console.error("[loadFinancial] Erro:", error);
+          log.error("[loadFinancial] Erro", { error });
         }
       },
 
@@ -741,7 +743,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await apiClient.put("/api/students/progress", updates);
         } catch (error) {
-          console.error("Erro ao atualizar progresso:", error);
+          log.error("Erro ao atualizar progresso", { error });
           // Reverter para o estado anterior em caso de erro
           set((state) => ({
             data: {
@@ -844,7 +846,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             await get().loadWorkouts(true);
           }
         } catch (error) {
-          console.error("Erro ao criar unit:", error);
+          log.error("Erro ao criar unit", { error, data });
           set((state) => ({
             data: {
               ...state.data,
@@ -874,7 +876,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await apiClient.put(`/api/workouts/units/${unitId}`, data);
         } catch (error) {
-          console.error("Erro ao atualizar unit:", error);
+          log.error("Erro ao atualizar unit", { error, unitId, data });
           set((state) => ({
             data: {
               ...state.data,
@@ -897,7 +899,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await apiClient.delete(`/api/workouts/units/${unitId}`);
         } catch (error) {
-          console.error("Erro ao deletar unit:", error);
+          log.error("Erro ao deletar unit", { error, unitId });
           set((state) => ({
             data: {
               ...state.data,
@@ -970,7 +972,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
           return tempId;
         } catch (error) {
-          console.error("Erro ao criar workout:", error);
+          log.error("Erro ao criar workout", { error, data });
           // Reverter optimistic update em caso de erro
           set((state) => ({
             data: {
@@ -1029,7 +1031,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await apiClient.put(`/api/workouts/manage/${workoutId}`, data);
         } catch (error) {
-          console.error("Erro ao atualizar workout:", error);
+          log.error("Erro ao atualizar workout", { error, workoutId, data });
           set((state) => ({
             data: {
               ...state.data,
@@ -1091,7 +1093,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await apiClient.delete(`/api/workouts/manage/${workoutId}`);
         } catch (error) {
-          console.error("Erro ao deletar workout:", error);
+          log.error("Erro ao deletar workout", { error, workoutId });
           // Reverter optimistic update
           set((state) => ({
             data: {
@@ -1433,7 +1435,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             get().loadWeeklyPlan(true),
           ]);
         } catch (error) {
-          console.error("Erro ao adicionar exercício:", error);
+          log.error("Erro ao adicionar exercicio", { error, workoutId, data });
           // Reverter optimistic update
           set((state) => ({
             data: {
@@ -1500,7 +1502,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await apiClient.put(`/api/workouts/exercises/${exerciseId}`, data);
         } catch (error) {
-          console.error("Erro ao atualizar exercício:", error);
+          log.error("Erro ao atualizar exercicio", { error, exerciseId, data });
           set((state) => ({
             data: {
               ...state.data,
@@ -1583,7 +1585,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           await apiClient.delete(`/api/workouts/exercises/${exerciseId}`);
         } catch (error) {
-          console.error("Erro ao deletar exercício:", error);
+          log.error("Erro ao deletar exercicio", { error, exerciseId });
           // Reverter optimistic update
           if (exerciseToDelete && workoutId) {
             set((state) => {

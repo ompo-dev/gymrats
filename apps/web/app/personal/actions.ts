@@ -11,6 +11,7 @@ import {
   getApiErrorMessage,
   reviveDate,
 } from "@/lib/api/server-action-utils";
+import { log } from "@/lib/observability/logger";
 import type {
   BoostCampaign,
   Coupon,
@@ -111,7 +112,7 @@ export async function getPersonalProfile(): Promise<PersonalProfile | null> {
       atendimentoRemoto: payload.personal.atendimentoRemoto,
     };
   } catch (error) {
-    console.error("[getPersonalProfile] Erro:", error);
+    log.error("[getPersonalProfile] Erro", { error });
     return null;
   }
 }
@@ -142,7 +143,7 @@ export async function getPersonalAffiliations(): Promise<
       },
     }));
   } catch (error) {
-    console.error("[getPersonalAffiliations] Erro:", error);
+    log.error("[getPersonalAffiliations] Erro", { error });
     return [];
   }
 }
@@ -156,7 +157,7 @@ export async function getPersonalStudents(
     );
     return payload.students;
   } catch (error) {
-    console.error("[getPersonalStudents] Erro:", error);
+    log.error("[getPersonalStudents] Erro", { error, gymId });
     return [];
   }
 }
@@ -191,7 +192,7 @@ export async function getPersonalStudentAssignments(
       gym: assignment.gym ?? null,
     }));
   } catch (error) {
-    console.error("[getPersonalStudentAssignments] Erro:", error);
+    log.error("[getPersonalStudentAssignments] Erro", { error, gymId });
     return [];
   }
 }
@@ -211,7 +212,7 @@ export async function getPersonalStudentById(
     );
     return payload.student;
   } catch (error) {
-    console.error("[getPersonalStudentById] Erro:", error);
+    log.error("[getPersonalStudentById] Erro", { error, studentId });
     return null;
   }
 }
@@ -229,7 +230,7 @@ export async function getPersonalFinancialSummary(): Promise<FinancialSummary | 
     }>("/api/personals/financial-summary");
     return payload.financialSummary;
   } catch (error) {
-    console.error("[getPersonalFinancialSummary] Erro:", error);
+    log.error("[getPersonalFinancialSummary] Erro", { error });
     return null;
   }
 }
@@ -241,7 +242,7 @@ export async function getPersonalExpenses(): Promise<Expense[]> {
     );
     return reviveExpenses(payload.expenses);
   } catch (error) {
-    console.error("[getPersonalExpenses] Erro:", error);
+    log.error("[getPersonalExpenses] Erro", { error });
     return [];
   }
 }
@@ -253,7 +254,7 @@ export async function getPersonalCoupons(): Promise<Coupon[]> {
     );
     return reviveCoupons(payload.coupons);
   } catch (error) {
-    console.error("[getPersonalCoupons] Erro:", error);
+    log.error("[getPersonalCoupons] Erro", { error });
     return [];
   }
 }
@@ -272,7 +273,7 @@ export async function createPersonalCoupon(data: {
       data,
     );
   } catch (error) {
-    console.error("[createPersonalCoupon] Erro:", error);
+    log.error("[createPersonalCoupon] Erro", { error, data });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao criar cupom"),
@@ -287,7 +288,7 @@ export async function getPersonalPayments(): Promise<Payment[]> {
     );
     return revivePayments(payload.payments);
   } catch (error) {
-    console.error("[getPersonalPayments] Erro:", error);
+    log.error("[getPersonalPayments] Erro", { error });
     return [];
   }
 }
@@ -300,7 +301,7 @@ export async function deletePersonalCoupon(
       buildApiPath("/api/personals/coupons", { couponId }),
     );
   } catch (error) {
-    console.error("[deletePersonalCoupon] Erro:", error);
+    log.error("[deletePersonalCoupon] Erro", { error, couponId });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao excluir cupom"),
@@ -315,7 +316,7 @@ export async function getPersonalBoostCampaigns(): Promise<BoostCampaign[]> {
     );
     return reviveCampaigns(payload.campaigns);
   } catch (error) {
-    console.error("[getPersonalBoostCampaigns] Erro:", error);
+    log.error("[getPersonalBoostCampaigns] Erro", { error });
     return [];
   }
 }
@@ -344,7 +345,7 @@ export async function createPersonalBoostCampaign(data: {
       | { success: false; error: string }
     >("/api/personals/boost-campaigns", data);
   } catch (error) {
-    console.error("[createPersonalBoostCampaign] Erro:", error);
+    log.error("[createPersonalBoostCampaign] Erro", { error, data });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro interno ao criar campanha"),
@@ -360,7 +361,7 @@ export async function deletePersonalBoostCampaign(
       buildApiPath("/api/personals/boost-campaigns", { campaignId }),
     );
   } catch (error) {
-    console.error("[deletePersonalBoostCampaign] Erro:", error);
+    log.error("[deletePersonalBoostCampaign] Erro", { error, campaignId });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao excluir campanha"),
@@ -392,7 +393,7 @@ export async function getPersonalBoostCampaignPix(campaignId: string): Promise<
       | { success: false; error: string }
     >(`/api/personals/boost-campaigns/${campaignId}/pix`);
   } catch (error) {
-    console.error("[getPersonalBoostCampaignPix] Erro:", error);
+    log.error("[getPersonalBoostCampaignPix] Erro", { error, campaignId });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao gerar PIX"),
@@ -409,7 +410,7 @@ export async function getPersonalMembershipPlans(): Promise<
     );
     return payload.plans;
   } catch (error) {
-    console.error("[getPersonalMembershipPlans] Erro:", error);
+    log.error("[getPersonalMembershipPlans] Erro", { error });
     return [];
   }
 }
@@ -448,7 +449,7 @@ export async function getPersonalSubscription(): Promise<PersonalSubscriptionDat
     }>("/api/personals/subscription");
     return reviveSubscription(payload.subscription);
   } catch (error) {
-    console.error("[getPersonalSubscription] Erro:", error);
+    log.error("[getPersonalSubscription] Erro", { error });
     return null;
   }
 }

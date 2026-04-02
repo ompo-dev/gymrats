@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { actionClient as apiClient } from "@/lib/actions/client";
+import { log } from "@/lib/observability/logger";
 import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 import type {
   BoostCampaign,
@@ -648,7 +649,11 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
         updateStoreWithSection(set, sectionData, Date.now() - start, section);
         setSectionsReady([section]);
       } catch (error) {
-        console.error(`[GymUnifiedStore] erro ao carregar ${section}:`, error);
+        log.error(`[GymUnifiedStore] erro ao carregar ${section}`, {
+          error,
+          section,
+          force,
+        });
         setSectionError(section, error);
       }
     },

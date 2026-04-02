@@ -20,7 +20,7 @@ export function buildServerApiUrl(path: string): string {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-async function buildForwardHeaders(
+export async function buildForwardHeaders(
   initHeaders?: HeadersInit,
 ): Promise<Headers> {
   const incomingHeaders = await headers();

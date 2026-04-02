@@ -4,6 +4,7 @@ import { Check, Plus, TrendingUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DuoButton, DuoStatCard } from "@/components/duo";
+import { log as logger } from "@/lib/observability/logger";
 import type { ExerciseLog, SetLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -158,6 +159,16 @@ function WeightTrackerSimple({
   };
 
   // Atualizar peso ou reps de uma série
+  const validSets = useMemo(
+    () => sets.filter((set) => set.weight > 0 && set.reps > 0),
+    [sets],
+  );
+
+  const totalVolume = useMemo(
+    () => validSets.reduce((acc, set) => acc + set.weight * set.reps, 0),
+    [validSets],
+  );
+
   const handleSetUpdate = (
     index: number,
     field: "weight" | "reps",
@@ -177,16 +188,18 @@ function WeightTrackerSimple({
       }
       // Debounce para não salvar a cada digitação (500ms)
       saveTimeoutRef.current = setTimeout(() => {
-        saveProgress();
+        saveProgress(newSets);
       }, 500);
     }
   };
 
   // Salvar progresso automaticamente (chamado quando completa série ou atualiza dados)
   // Esta função salva sem fechar o modal
-  const saveProgress = () => {
+  const saveProgress = (setsSnapshot: SetLog[] = sets) => {
     // Filtrar apenas séries válidas (com peso E reps preenchidos)
-    const validSets = sets.filter((set) => set.weight > 0 && set.reps > 0);
+    const validSets = setsSnapshot.filter(
+      (set) => set.weight > 0 && set.reps > 0,
+    );
 
     // Se não houver nenhuma série válida, não salvar
     if (validSets.length === 0) {
@@ -212,7 +225,7 @@ function WeightTrackerSimple({
       formCheckScore: existingLog?.formCheckScore,
     };
 
-    console.log("💾 WeightTracker salvando progresso automático:", {
+    logger.debug("WeightTracker saving progress", {
       exerciseName: log.exerciseName,
       logId: log.id,
       sets: log.sets.length,
@@ -237,13 +250,13 @@ function WeightTrackerSimple({
     // Salvar progresso automaticamente quando completa uma série
     // Usar setTimeout para garantir que o estado foi atualizado
     setTimeout(() => {
-      saveProgress();
+      saveProgress(newSets);
     }, 0);
   };
 
   // Finalizar exercício - filtrar séries vazias
   const handleFinish = () => {
-    console.log("🏋️ WeightTracker handleFinish CHAMADO:", {
+    logger.debug("WeightTracker finish requested", {
       exerciseName,
       totalSets: sets.length,
       validSets: sets.filter((set) => set.weight > 0 && set.reps > 0).length,
@@ -256,7 +269,10 @@ function WeightTrackerSimple({
 
     // Se não houver nenhuma série válida, não permite finalizar
     if (validSets.length === 0) {
-      console.warn("⚠️ Nenhuma série válida! Não é possível finalizar.");
+    logger.warn("WeightTracker finish ignored without valid sets", {
+      exerciseId,
+      exerciseName,
+    });
       return;
     }
 
@@ -278,7 +294,7 @@ function WeightTrackerSimple({
       difficulty: existingLog?.difficulty || "ideal",
       formCheckScore: existingLog?.formCheckScore,
     };
-    console.log("🏋️ WeightTracker chamando onComplete:", {
+    logger.debug("WeightTracker completing exercise", {
       exerciseName: log.exerciseName,
       logId: log.id,
       isUpdate: !!existingLog,
@@ -293,12 +309,7 @@ function WeightTrackerSimple({
   };
 
   // Verificar se há pelo menos uma série válida para finalizar
-  const hasValidSets = sets.some((set) => set.weight > 0 && set.reps > 0);
-
-  // Calcular volume total apenas das séries válidas
-  const totalVolume = sets
-    .filter((set) => set.weight > 0 && set.reps > 0)
-    .reduce((acc, set) => acc + set.weight * set.reps, 0);
+  const hasValidSets = validSets.length > 0;
 
   const isCompleted = safeLog?.sets && safeLog.sets.length > 0;
 

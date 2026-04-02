@@ -6,6 +6,7 @@ import {
   getApiErrorMessage,
   reviveDate,
 } from "@/lib/api/server-action-utils";
+import { log } from "@/lib/observability/logger";
 import type {
   BoostCampaign,
   CheckIn,
@@ -148,7 +149,7 @@ export async function getCurrentUserInfo() {
       role: payload.user?.role ?? null,
     };
   } catch (error) {
-    console.error("[getCurrentUserInfo] Erro:", error);
+    log.error("[getCurrentUserInfo] Erro", { error });
     return { isAdmin: false, role: null };
   }
 }
@@ -160,7 +161,7 @@ export async function getGymProfile(): Promise<GymProfile | null> {
     );
     return reviveGymProfile(payload.profile);
   } catch (error) {
-    console.error("[getGymProfile] Erro:", error);
+    log.error("[getGymProfile] Erro", { error });
     return null;
   }
 }
@@ -172,7 +173,7 @@ export async function getGymEquipment(): Promise<Equipment[]> {
     );
     return normalizeEquipmentList(payload.equipment);
   } catch (error) {
-    console.error("[getGymEquipment] Erro:", error);
+    log.error("[getGymEquipment] Erro", { error });
     return [];
   }
 }
@@ -186,7 +187,7 @@ export async function getGymEquipmentById(
     );
     return normalizeEquipmentItem(payload.equipment);
   } catch (error) {
-    console.error("[getGymEquipmentById] Erro:", error);
+    log.error("[getGymEquipmentById] Erro", { error, equipmentId });
     return null;
   }
 }
@@ -196,7 +197,7 @@ export async function getGymMembershipPlans() {
     const payload = await serverApiGet<{ plans: unknown[] }>("/api/gyms/plans");
     return payload.plans;
   } catch (error) {
-    console.error("[getGymMembershipPlans] Erro:", error);
+    log.error("[getGymMembershipPlans] Erro", { error });
     return [];
   }
 }
@@ -208,7 +209,7 @@ export async function getGymStudents(): Promise<StudentData[]> {
     );
     return payload.students;
   } catch (error) {
-    console.error("[getGymStudents] Erro:", error);
+    log.error("[getGymStudents] Erro", { error });
     return [];
   }
 }
@@ -220,7 +221,7 @@ export async function getGymRecentCheckIns(): Promise<CheckIn[]> {
     );
     return reviveCheckIns(payload.checkIns);
   } catch (error) {
-    console.error("[getGymRecentCheckIns] Erro:", error);
+    log.error("[getGymRecentCheckIns] Erro", { error });
     return [];
   }
 }
@@ -234,7 +235,7 @@ export async function getGymStudentById(
     );
     return payload.student;
   } catch (error) {
-    console.error("[getGymStudentById] Erro:", error);
+    log.error("[getGymStudentById] Erro", { error, studentId });
     return null;
   }
 }
@@ -246,7 +247,7 @@ export async function getGymFinancialSummary(): Promise<FinancialSummary | null>
     );
     return payload.summary;
   } catch (error) {
-    console.error("[getGymFinancialSummary] Erro:", error);
+    log.error("[getGymFinancialSummary] Erro", { error });
     return null;
   }
 }
@@ -260,7 +261,7 @@ export async function getGymStudentPayments(
     );
     return revivePayments(payload.payments);
   } catch (error) {
-    console.error("[getGymStudentPayments] Erro:", error);
+    log.error("[getGymStudentPayments] Erro", { error, studentId });
     return [];
   }
 }
@@ -272,7 +273,7 @@ export async function getGymPayments(): Promise<Payment[]> {
     );
     return revivePayments(payload.payments);
   } catch (error) {
-    console.error("[getGymPayments] Erro:", error);
+    log.error("[getGymPayments] Erro", { error });
     return [];
   }
 }
@@ -284,7 +285,7 @@ export async function getGymExpenses(): Promise<Expense[]> {
     );
     return reviveExpenses(payload.expenses);
   } catch (error) {
-    console.error("[getGymExpenses] Erro:", error);
+    log.error("[getGymExpenses] Erro", { error });
     return [];
   }
 }
@@ -296,7 +297,7 @@ export async function getGymStats(): Promise<GymStats | null> {
     );
     return payload.stats;
   } catch (error) {
-    console.error("[getGymStats] Erro:", error);
+    log.error("[getGymStats] Erro", { error });
     return null;
   }
 }
@@ -308,7 +309,7 @@ export async function getGymCoupons(): Promise<Coupon[]> {
     );
     return reviveCoupons(payload.coupons);
   } catch (error) {
-    console.error("[getGymCoupons] Erro:", error);
+    log.error("[getGymCoupons] Erro", { error });
     return [];
   }
 }
@@ -324,7 +325,7 @@ export async function createGymCoupon(data: {
   try {
     return await serverApiPost<{ success: true }>("/api/gyms/coupons", data);
   } catch (error) {
-    console.error("[createGymCoupon] Erro:", error);
+    log.error("[createGymCoupon] Erro", { error, data });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao criar cupom"),
@@ -339,7 +340,7 @@ export async function getGymBoostCampaigns() {
     );
     return reviveCampaigns(payload.campaigns);
   } catch (error) {
-    console.error("[getGymBoostCampaigns] Erro:", error);
+    log.error("[getGymBoostCampaigns] Erro", { error });
     return [];
   }
 }
@@ -368,7 +369,7 @@ export async function createBoostCampaign(data: {
       | { success: false; error: string }
     >("/api/gyms/boost-campaigns", data);
   } catch (error) {
-    console.error("[createBoostCampaign] Erro:", error);
+    log.error("[createBoostCampaign] Erro", { error, data });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro interno ao criar campanha"),
@@ -388,7 +389,7 @@ export async function deleteGymCoupon(
       buildApiPath("/api/gyms/coupons", { couponId }),
     );
   } catch (error) {
-    console.error("[deleteGymCoupon] Erro:", error);
+    log.error("[deleteGymCoupon] Erro", { error, couponId });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao excluir cupom"),
@@ -404,7 +405,7 @@ export async function deleteBoostCampaign(
       buildApiPath("/api/gyms/boost-campaigns", { campaignId }),
     );
   } catch (error) {
-    console.error("[deleteBoostCampaign] Erro:", error);
+    log.error("[deleteBoostCampaign] Erro", { error, campaignId });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao excluir campanha"),
@@ -436,7 +437,7 @@ export async function getBoostCampaignPix(campaignId: string): Promise<
       | { success: false; error: string }
     >(`/api/gyms/boost-campaigns/${campaignId}/pix`);
   } catch (error) {
-    console.error("[getBoostCampaignPix] Erro:", error);
+    log.error("[getBoostCampaignPix] Erro", { error, campaignId });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao gerar PIX"),
@@ -449,7 +450,7 @@ export async function getGymBalanceWithdraws(): Promise<BalanceWithdraws> {
     const payload = await serverApiGet<BalanceWithdraws>("/api/gyms/withdraws");
     return reviveBalanceWithdraws(payload);
   } catch (error) {
-    console.error("[getGymBalanceWithdraws] Erro:", error);
+    log.error("[getGymBalanceWithdraws] Erro", { error });
     return { balanceReais: 0, balanceCents: 0, withdraws: [] };
   }
 }
@@ -470,7 +471,7 @@ export async function createGymWithdraw(data: {
       | { success: false; error: string }
     >("/api/gyms/withdraws", data);
   } catch (error) {
-    console.error("[createGymWithdraw] Erro:", error);
+    log.error("[createGymWithdraw] Erro", { error, data });
     return {
       success: false,
       error: getApiErrorMessage(error, "Erro ao criar saque"),
@@ -487,7 +488,7 @@ export async function getGymSubscription() {
 
     return reviveGymSubscription(payload.subscription, payload.isFirstPayment);
   } catch (error) {
-    console.error("[getGymSubscription] Erro:", error);
+    log.error("[getGymSubscription] Erro", { error });
     return null;
   }
 }
@@ -499,7 +500,7 @@ export async function startGymTrial() {
     );
     return { success: true, ...payload };
   } catch (error) {
-    console.error("[startGymTrial] Erro:", error);
+    log.error("[startGymTrial] Erro", { error });
     return {
       error: getApiErrorMessage(error, "Erro ao iniciar trial"),
     };
@@ -512,7 +513,7 @@ export async function syncGymSubscriptionPrices() {
       { success: true; updated: boolean; message?: string } | { error: string }
     >("/api/gym-subscriptions/sync-prices");
   } catch (error) {
-    console.error("[syncGymSubscriptionPrices] Erro:", error);
+    log.error("[syncGymSubscriptionPrices] Erro", { error });
     return {
       error: getApiErrorMessage(error, "Erro ao sincronizar precos"),
     };
