@@ -96,6 +96,10 @@ export function useDomainBootstrap<TData, TSection extends string>({
     [domain, sections],
   );
   const mountedRef = useRef(true);
+  const queryFnRef = useRef(queryFn);
+  const latestDataRef = useRef<DomainBootstrapResult<TData> | undefined>(
+    undefined,
+  );
   const [state, setState] = useState<DomainBootstrapState<TData>>({
     data: undefined,
     error: null,
@@ -111,10 +115,18 @@ export function useDomainBootstrap<TData, TSection extends string>({
     };
   }, []);
 
+  useEffect(() => {
+    queryFnRef.current = queryFn;
+  }, [queryFn]);
+
+  useEffect(() => {
+    latestDataRef.current = state.data;
+  }, [state.data]);
+
   const runQuery = useCallback(
     async (fresh = false) => {
       if (!fresh && !isEnabled) {
-        return state.data;
+        return latestDataRef.current;
       }
 
       if (mountedRef.current) {
@@ -127,7 +139,7 @@ export function useDomainBootstrap<TData, TSection extends string>({
       }
 
       try {
-        const result = await resolveBootstrapQuery(cacheKey, queryFn);
+        const result = await resolveBootstrapQuery(cacheKey, queryFnRef.current);
 
         if (mountedRef.current) {
           setState({
@@ -157,7 +169,7 @@ export function useDomainBootstrap<TData, TSection extends string>({
         throw resolvedError;
       }
     },
-    [cacheKey, isEnabled, queryFn, state.data],
+    [cacheKey, isEnabled],
   );
 
   useEffect(() => {
