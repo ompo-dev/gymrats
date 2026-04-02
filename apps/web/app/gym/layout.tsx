@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { DEFAULT_GYM_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { readGymBootstrap } from "@/lib/actions/bootstrap-readers";
+import { requireProtectedRouteAccess } from "@/lib/auth/server-route-guard";
 import type { GymUnifiedData } from "@/lib/types/gym-unified";
 import { GymLayoutContent } from "./layout-content";
 
@@ -15,6 +16,8 @@ type GymLayoutProfile = {
 };
 
 async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
+  await requireProtectedRouteAccess("/gym");
+
   let initialBootstrap: Partial<GymUnifiedData> | null = null;
   let profile: GymLayoutProfile | null = null;
 

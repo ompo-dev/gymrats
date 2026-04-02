@@ -65,11 +65,14 @@ function createResolution(headers: Headers): Promise<ResolvedSessionResult> {
     {
       headers,
       authHeaderToken: extractBearerToken(headers),
-      cookieAuthToken: extractCookieValue(headers, "auth_token"),
+      cookieAuthToken:
+        extractCookieValue(headers, "auth_token") ||
+        extractCookieValue(headers, "__Secure-auth_token"),
       cookieBetterAuthToken: extractCookieValue(
         headers,
         "better-auth.session_token",
-      ),
+      ) ||
+        extractCookieValue(headers, "__Secure-better-auth.session_token"),
     },
   );
 }

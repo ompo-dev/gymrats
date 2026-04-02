@@ -1,3 +1,10 @@
+export const SESSION_COOKIE_NAMES = [
+  "auth_token",
+  "__Secure-auth_token",
+  "better-auth.session_token",
+  "__Secure-better-auth.session_token",
+] as const;
+
 export function extractCookieValue(
   headers: Headers,
   name: string,
@@ -33,7 +40,9 @@ export function extractSessionTokenFromHeaders(
 ): string | null {
   return (
     extractBearerToken(headers) ||
-    extractCookieValue(headers, "auth_token") ||
-    extractCookieValue(headers, "better-auth.session_token")
+    SESSION_COOKIE_NAMES.map((cookieName) =>
+      extractCookieValue(headers, cookieName),
+    ).find((token): token is string => Boolean(token)) ||
+    null
   );
 }

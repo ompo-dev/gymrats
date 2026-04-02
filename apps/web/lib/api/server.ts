@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { extractSessionTokenFromHeaders } from "@gymrats/domain/auth-tokens";
 import { resolveApiBaseUrl } from "./resolve-api-base-url";
 
 type JsonObject = Record<string, unknown>;
@@ -19,24 +20,6 @@ export function buildServerApiUrl(path: string): string {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function extractSessionTokenFromCookie(
-  cookieHeader: string | null,
-): string | null {
-  if (!cookieHeader) {
-    return null;
-  }
-
-  for (const cookieChunk of cookieHeader.split(";")) {
-    const [rawName, ...rawValueParts] = cookieChunk.trim().split("=");
-    if (rawName === "auth_token" || rawName === "better-auth.session_token") {
-      const rawValue = rawValueParts.join("=");
-      return rawValue ? decodeURIComponent(rawValue) : null;
-    }
-  }
-
-  return null;
-}
-
 async function buildForwardHeaders(
   initHeaders?: HeadersInit,
 ): Promise<Headers> {
@@ -48,7 +31,9 @@ async function buildForwardHeaders(
     outgoingHeaders.set("cookie", cookie);
   }
 
-  const sessionToken = extractSessionTokenFromCookie(cookie);
+  const sessionToken = extractSessionTokenFromHeaders(
+    new Headers(cookie ? { cookie } : undefined),
+  );
   if (sessionToken && !outgoingHeaders.has("authorization")) {
     outgoingHeaders.set("authorization", `Bearer ${sessionToken}`);
   }

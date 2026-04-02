@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { readStudentBootstrap } from "@/lib/actions/bootstrap-readers";
+import { requireProtectedRouteAccess } from "@/lib/auth/server-route-guard";
 import type { StudentData } from "@/lib/types/student-unified";
 import { StudentLayoutContent } from "./layout-content";
 
@@ -10,6 +11,8 @@ async function StudentLayoutWrapper({
 }: {
   children: React.ReactNode;
 }) {
+  await requireProtectedRouteAccess("/student");
+
   let initialBootstrap: Partial<StudentData> | null = null;
   let profileResolved = false;
 

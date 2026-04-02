@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { DEFAULT_PERSONAL_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { readPersonalBootstrap } from "@/lib/actions/bootstrap-readers";
+import { requireProtectedRouteAccess } from "@/lib/auth/server-route-guard";
 import type { PersonalUnifiedData } from "@/lib/types/personal-unified";
 import { PersonalLayoutContent } from "./layout-content";
 
@@ -10,6 +11,8 @@ async function PersonalLayoutWrapper({
 }: {
   children: React.ReactNode;
 }) {
+  await requireProtectedRouteAccess("/personal");
+
   let initialBootstrap: Partial<PersonalUnifiedData> | null = null;
 
   try {

@@ -6,6 +6,7 @@
 
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
+import { SESSION_COOKIE_NAMES } from "@gymrats/domain/auth-tokens";
 import { getRequestContextCookie } from "../../runtime/request-context";
 
 export interface AuthResult {
@@ -49,9 +50,9 @@ export function extractAuthToken(request: NextRequest): string | null {
     return authHeader.replace("Bearer ", "").trim();
   }
 
-  const cookieToken =
-    request.cookies.get("auth_token")?.value ||
-    request.cookies.get("better-auth.session_token")?.value;
+  const cookieToken = SESSION_COOKIE_NAMES.map((cookieName) =>
+    request.cookies.get(cookieName)?.value,
+  ).find((value): value is string => Boolean(value));
   if (cookieToken) return cookieToken;
 
   return null;
@@ -69,8 +70,9 @@ export async function requireAuth(
     if (!result.ok) {
       const sessionToken =
         extractAuthToken(request) ||
-        getRequestContextCookie("auth_token") ||
-        getRequestContextCookie("better-auth.session_token");
+        SESSION_COOKIE_NAMES.map((cookieName) =>
+          getRequestContextCookie(cookieName),
+        ).find((value): value is string => Boolean(value));
       return {
         response: NextResponse.json(
           { error: sessionToken ? "Sessao invalida" : "Nao autenticado" },

@@ -1,8 +1,8 @@
 import { featureFlags } from "@gymrats/config";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { readAuthSession } from "@/lib/actions/auth-readers";
 import { readCachedApi } from "@/lib/actions/cached-reader";
+import { requireProtectedRouteAccess } from "@/lib/auth/server-route-guard";
 
 type ObservabilitySummary = {
   windowHours: number;
@@ -120,20 +120,12 @@ async function getErrors() {
 
 async function AdminObservabilityContent() {
   await connection();
+  await requireProtectedRouteAccess("/admin/observability");
 
   if (!featureFlags.observabilityDashboardEnabled) {
     return (
       <div className="p-6 text-sm text-duo-gray-dark">
         Dashboard desabilitado.
-      </div>
-    );
-  }
-
-  const session = await readAuthSession().catch(() => null);
-  if (session?.user?.role !== "ADMIN") {
-    return (
-      <div className="p-6 text-sm text-duo-gray-dark">
-        Acesso restrito a administradores.
       </div>
     );
   }
