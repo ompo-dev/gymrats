@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
 import {
   EditUnitModal,
@@ -60,6 +60,7 @@ export function StudentLayoutContent({
   const nutritionLibraryModal = useModalState("nutrition-library");
   const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
   const currentXP = storeProgress?.totalXP ?? initialProgress.xp;
+  const lastHydratedBootstrapRef = useRef<Partial<StudentData> | null>(null);
   const [_tab, setTab] = useQueryState(
     "tab",
     parseAsString.withDefault("home"),
@@ -71,10 +72,14 @@ export function StudentLayoutContent({
   }, []);
 
   useEffect(() => {
-    if (!initialBootstrap) {
+    if (
+      !initialBootstrap ||
+      lastHydratedBootstrapRef.current === initialBootstrap
+    ) {
       return;
     }
 
+    lastHydratedBootstrapRef.current = initialBootstrap;
     hydrateInitial(initialBootstrap);
   }, [hydrateInitial, initialBootstrap]);
 

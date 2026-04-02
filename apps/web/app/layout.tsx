@@ -8,8 +8,7 @@ import { LegacyCacheCleanup } from "@/app/legacy-cache-cleanup";
 import { DuoThemeProvider } from "@/components/duo/theme-provider";
 import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
-import { AuthSessionProvider } from "@/components/providers/auth-session-provider";
-import { AuthSessionSeed } from "@/components/providers/auth-session-seed";
+import { AuthSessionBoundary } from "@/components/providers/auth-session-boundary";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -115,15 +114,14 @@ export default function RootLayout({
           <ErrorBoundary>
             <DuoThemeProvider>
               <Suspense fallback={null}>
-                <AuthSessionProvider>
-                  <AuthSessionSeed />
+                <AuthSessionBoundary>
                   <LegacyCacheCleanup />
                   <Suspense fallback={null}>
                     <PerformanceOptimizer />
                   </Suspense>
                   {children}
                   <Analytics />
-                </AuthSessionProvider>
+                </AuthSessionBoundary>
               </Suspense>
             </DuoThemeProvider>
           </ErrorBoundary>

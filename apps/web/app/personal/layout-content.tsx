@@ -8,7 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   AppLayout,
   type TabConfig,
@@ -36,16 +36,22 @@ export function PersonalLayoutContent({
   const pathname = usePathname();
   const router = useRouter();
   const { hydrateInitial } = usePersonal("actions");
+  const lastHydratedBootstrapRef =
+    useRef<Partial<PersonalUnifiedData> | null>(null);
   const isOnboarding =
     typeof pathname === "string" && pathname.includes("/onboarding");
   const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
   const canAccessPersonal = role === "PERSONAL" || role === "ADMIN" || isAdmin;
 
   useEffect(() => {
-    if (!initialBootstrap) {
+    if (
+      !initialBootstrap ||
+      lastHydratedBootstrapRef.current === initialBootstrap
+    ) {
       return;
     }
 
+    lastHydratedBootstrapRef.current = initialBootstrap;
     hydrateInitial(initialBootstrap);
   }, [hydrateInitial, initialBootstrap]);
 

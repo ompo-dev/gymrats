@@ -8,7 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   AppLayout,
   type TabConfig,
@@ -36,16 +36,21 @@ export function GymLayoutContent({
   const pathname = usePathname();
   const router = useRouter();
   const { hydrateInitial } = useGym("actions");
+  const lastHydratedBootstrapRef = useRef<Partial<GymUnifiedData> | null>(null);
   const isOnboarding =
     typeof pathname === "string" && pathname.includes("/onboarding");
   const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
   const canAccessGym = role === "GYM" || role === "ADMIN" || isAdmin;
 
   useEffect(() => {
-    if (!initialBootstrap) {
+    if (
+      !initialBootstrap ||
+      lastHydratedBootstrapRef.current === initialBootstrap
+    ) {
       return;
     }
 
+    lastHydratedBootstrapRef.current = initialBootstrap;
     hydrateInitial(initialBootstrap);
   }, [hydrateInitial, initialBootstrap]);
 

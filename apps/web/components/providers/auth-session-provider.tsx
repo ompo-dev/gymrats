@@ -27,6 +27,7 @@ export function AuthSessionProvider({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isSessionLoading = useAuthStore((state) => state.isSessionLoading);
   const sessionUser = useAuthStore((state) => state.sessionUser);
+  const lastSessionSyncAt = useAuthStore((state) => state.lastSessionSyncAt);
   const syncSession = useAuthStore((state) => state.syncSession);
   const hasHydratedInitialSessionRef = useRef(false);
 
@@ -40,7 +41,12 @@ export function AuthSessionProvider({
   }, [initialSession, syncSession]);
 
   useEffect(() => {
-    if (sessionUser || isSessionLoading) {
+    if (
+      initialSession !== undefined ||
+      sessionUser ||
+      isSessionLoading ||
+      lastSessionSyncAt
+    ) {
       return;
     }
 
@@ -49,7 +55,13 @@ export function AuthSessionProvider({
     }
 
     void ensureSession();
-  }, [ensureSession, isAuthenticated, isSessionLoading, sessionUser]);
+  }, [
+    ensureSession,
+    isAuthenticated,
+    isSessionLoading,
+    lastSessionSyncAt,
+    sessionUser,
+  ]);
 
   return children;
 }
