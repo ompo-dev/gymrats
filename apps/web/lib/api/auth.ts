@@ -1,8 +1,6 @@
 import { clearAuthToken } from "@/lib/auth/token-client";
-// Auth precisa passar pelo browser em /api/auth/* para que a rewrite do web
-// propague Set-Cookie no dominio da Vercel. Server Actions quebram esse fluxo.
 import type { ApiError } from "@/lib/types";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 
 export interface LoginCredentials {
   email: string;
