@@ -6,6 +6,14 @@ import { AuthCallbackScreen } from "@/components/screens/public";
 import { type AuthSessionResponse, authApi } from "@/lib/api/auth";
 import { useAuthStore } from "@/stores";
 
+function resolveSafeNextPath(nextValue: string | null): string | null {
+  if (!nextValue || !nextValue.startsWith("/") || nextValue.startsWith("//")) {
+    return null;
+  }
+
+  return nextValue;
+}
+
 function AuthCallbackPageContent() {
   const searchParams = useSearchParams();
   const syncSession = useAuthStore((state) => state.syncSession);
@@ -42,9 +50,12 @@ function AuthCallbackPageContent() {
       const userRole = sessionResponse.user.role;
       setStatus("success");
       const hasReferral = document.cookie.includes("gymrats_referral");
+      const nextPath = resolveSafeNextPath(searchParams.get("next"));
 
       const redirectURL =
-        userRole === "PENDING"
+        nextPath && userRole !== "PENDING"
+          ? nextPath
+          : userRole === "PENDING"
           ? "/auth/register/user-type"
           : userRole === "GYM"
             ? hasReferral
@@ -91,7 +102,13 @@ function AuthCallbackPageContent() {
         setStatus("error");
 
         setTimeout(() => {
-          window.location.replace("/welcome?error=google");
+          const fallbackUrl = new URL("/welcome", window.location.origin);
+          const nextPath = resolveSafeNextPath(searchParams.get("next"));
+          fallbackUrl.searchParams.set("error", "google");
+          if (nextPath) {
+            fallbackUrl.searchParams.set("next", nextPath);
+          }
+          window.location.replace(fallbackUrl.toString());
         }, 2000);
       }
     };
