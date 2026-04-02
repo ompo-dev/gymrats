@@ -13,9 +13,9 @@ import {
   AppLayout,
   type TabConfig,
 } from "@/components/templates/layouts/app-layout";
-import { useGym } from "@/hooks/use-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymUnifiedData } from "@/lib/types/gym-unified";
+import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
 interface GymLayoutContentProps {
   children: React.ReactNode;
@@ -35,7 +35,7 @@ export function GymLayoutContent({
 }: GymLayoutContentProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { hydrateInitial } = useGym("actions");
+  const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
   const lastHydratedBootstrapRef = useRef<Partial<GymUnifiedData> | null>(null);
   const isOnboarding =
     typeof pathname === "string" && pathname.includes("/onboarding");

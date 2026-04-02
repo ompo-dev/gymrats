@@ -22,8 +22,8 @@ import {
   type TabConfig,
 } from "@/components/templates/layouts/app-layout";
 import { useModalState } from "@/hooks/use-modal-state";
-import { useStudent } from "@/hooks/use-student";
 import type { StudentData } from "@/lib/types/student-unified";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
@@ -46,16 +46,17 @@ export function StudentLayoutContent({
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const storeProgress = useStudent("progress") as unknown as
+  const storeProgress = useStudentUnifiedStore(
+    (state) => state.data.progress,
+  ) as unknown as
     | import("@/lib/types").UserProgress
     | undefined;
-  const {
-    actions: { hydrateInitial },
-    loaders: { loadWeeklyPlan },
-  } = useStudent("actions", "loaders") as {
-    actions: { hydrateInitial: (data: Partial<StudentData>) => void };
-    loaders: { loadWeeklyPlan: (force?: boolean) => Promise<void> };
-  };
+  const hydrateInitial = useStudentUnifiedStore(
+    (state) => state.hydrateInitial,
+  );
+  const loadWeeklyPlan = useStudentUnifiedStore(
+    (state) => state.loadWeeklyPlan,
+  );
   const editPlanModal = useModalState("edit-plan");
   const nutritionLibraryModal = useModalState("nutrition-library");
   const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;

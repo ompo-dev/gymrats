@@ -13,9 +13,9 @@ import {
   AppLayout,
   type TabConfig,
 } from "@/components/templates/layouts/app-layout";
-import { usePersonal } from "@/hooks/use-personal";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { PersonalUnifiedData } from "@/lib/types/personal-unified";
+import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 
 interface PersonalLayoutContentProps {
   children: React.ReactNode;
@@ -35,7 +35,9 @@ export function PersonalLayoutContent({
 }: PersonalLayoutContentProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { hydrateInitial } = usePersonal("actions");
+  const hydrateInitial = usePersonalUnifiedStore(
+    (state) => state.hydrateInitial,
+  );
   const lastHydratedBootstrapRef =
     useRef<Partial<PersonalUnifiedData> | null>(null);
   const isOnboarding =

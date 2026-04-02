@@ -3,7 +3,6 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { buildApiPath } from "@/lib/api/server-action-utils";
 import {
-  buildForwardHeadersSnapshot,
   buildServerApiUrl,
   parseServerApiJsonResponse,
   serverApiRequest,
@@ -18,7 +17,6 @@ export interface CachedReadInput {
   tags?: readonly string[];
   profile?: CacheProfile;
   scope?: CacheScope;
-  forwardedHeaders?: Record<string, string>;
 }
 
 const CACHE_LIFE_PROFILES: Record<
@@ -74,14 +72,7 @@ async function readWithPrivateCache<T>(input: CachedReadInput): Promise<T> {
   applyCacheProfile(input.profile);
   cacheTag(...tags);
 
-  return serverApiRequest<T>(
-    path,
-    {
-      method: "GET",
-      headers: input.forwardedHeaders,
-    },
-    { skipForwardHeaders: true },
-  );
+  return serverApiRequest<T>(path, { method: "GET" });
 }
 
 async function readWithDefaultCache<T>(input: CachedReadInput): Promise<T> {
@@ -143,10 +134,7 @@ export async function readCachedApi<T>(input: CachedReadInput): Promise<T> {
     return readWithDefaultCache<T>(input);
   }
 
-  return readWithPrivateCache<T>({
-    ...input,
-    forwardedHeaders: await buildForwardHeadersSnapshot(),
-  });
+  return readWithPrivateCache<T>(input);
 }
 
 export function isServerApiError(error: unknown): error is ServerApiError {
