@@ -1,71 +1,66 @@
-import { describe, expect, it, vi } from "vitest";
-import type { GetSessionDeps } from "@/lib/use-cases/auth/use-cases";
-import { getAuthSessionFromRequestHeaders } from "./middleware-auth";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { getAuthSession } from "./middleware-auth";
 
-function createDeps(): GetSessionDeps {
-  return {
-    getBetterAuthSession: vi.fn().mockResolvedValue(null),
-    findUserById: vi.fn().mockResolvedValue(null),
-    getSessionTokenById: vi.fn().mockResolvedValue(null),
-    getSessionByToken: vi.fn().mockResolvedValue(null),
-  };
-}
+const fetchMock = vi.fn<typeof fetch>();
 
-describe("getAuthSessionFromRequestHeaders", () => {
-  it("returns the legacy session when auth_token resolves directly", async () => {
-    const deps = createDeps();
-    vi.mocked(deps.getSessionByToken).mockResolvedValue({
-      id: "session-1",
-      token: "legacy-token",
-      sessionToken: "legacy-token",
-      user: {
-        id: "user-1",
-        email: "legacy@example.com",
-        name: "Legacy User",
-        role: "STUDENT",
-        gyms: [],
-        student: null,
-        personal: null,
-        activeGymId: null,
-      },
-    } as Awaited<ReturnType<GetSessionDeps["getSessionByToken"]>>);
-
-    const result = await getAuthSessionFromRequestHeaders(
-      new Headers({ cookie: "auth_token=legacy-token" }),
-      deps,
-    );
-
-    expect(result?.user.id).toBe("user-1");
-    expect(result?.session.token).toBe("legacy-token");
-    expect(deps.getBetterAuthSession).not.toHaveBeenCalled();
+describe("getAuthSession", () => {
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
   });
 
-  it("falls back to the Better Auth session when the legacy lookup misses", async () => {
-    const deps = createDeps();
-    vi.mocked(deps.getBetterAuthSession).mockResolvedValue({
-      user: { id: "user-2" },
-      session: { id: "ba-session-1" },
-    } as Awaited<ReturnType<GetSessionDeps["getBetterAuthSession"]>>);
-    vi.mocked(deps.findUserById).mockResolvedValue({
-      id: "user-2",
-      email: "social@example.com",
-      name: "Social User",
-      role: "STUDENT",
-      gyms: [],
-      student: null,
-      personal: null,
-      activeGymId: null,
-    });
-    vi.mocked(deps.getSessionTokenById).mockResolvedValue("legacy-from-ba");
-
-    const result = await getAuthSessionFromRequestHeaders(
-      new Headers({ cookie: "better-auth.session_token=ba-token" }),
-      deps,
+  it("returns null when the auth session endpoint rejects the request", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: "Nao autenticado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
     );
 
-    expect(result?.user.id).toBe("user-2");
-    expect(result?.session.id).toBe("ba-session-1");
-    expect(result?.session.token).toBe("ba-token");
-    expect(deps.getBetterAuthSession).toHaveBeenCalledTimes(1);
+    const result = await getAuthSession({
+      url: "https://gym-rats-testes.vercel.app/student",
+      headers: new Headers({ cookie: "auth_token=token-1" }),
+    });
+
+    expect(result).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe("https://gym-rats-testes.vercel.app/api/auth/session");
+    expect(init?.headers).toBeInstanceOf(Headers);
+  });
+
+  it("returns the normalized user when the auth session endpoint succeeds", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          user: {
+            id: "user-1",
+            email: "user@example.com",
+            name: "User",
+            role: "STUDENT",
+            hasGym: false,
+            hasStudent: true,
+          },
+          session: {
+            id: "session-1",
+            token: "token-1",
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const result = await getAuthSession({
+      url: "https://gym-rats-testes.vercel.app/student",
+      headers: new Headers({ cookie: "auth_token=token-1" }),
+    });
+
+    expect(result?.user.role).toBe("STUDENT");
+    expect(result?.session?.token).toBe("token-1");
   });
 });

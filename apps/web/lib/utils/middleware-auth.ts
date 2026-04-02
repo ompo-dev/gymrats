@@ -1,84 +1,14 @@
-import {
-  extractBearerToken,
-  extractCookieValue,
-} from "@gymrats/domain/auth-tokens";
 import { isPublicRoute } from "@gymrats/domain/middleware-auth";
-import type { GetSessionDeps, GetSessionOutput } from "@/lib/use-cases/auth/use-cases";
-import { getSessionUseCase } from "@/lib/use-cases/auth/use-cases";
-import { auth } from "@/lib/auth-config";
-import { db } from "@/lib/db";
+import type { AuthSessionResponse } from "@/lib/api/auth";
 import type { NextRequest } from "next/server";
 import type { AppAuthRole } from "../auth/route-access";
-import { getSession } from "./session";
-
-const SESSION_USER_INCLUDE = {
-  student: {
-    select: {
-      id: true,
-      subscription: {
-        select: {
-          plan: true,
-          status: true,
-          trialEnd: true,
-          currentPeriodEnd: true,
-        },
-      },
-    },
-  },
-  personal: { select: { id: true } },
-  gyms: {
-    select: {
-      id: true,
-      plan: true,
-      subscription: {
-        select: {
-          plan: true,
-          status: true,
-          currentPeriodEnd: true,
-        },
-      },
-    },
-  },
-} as const;
 
 type ResolvedAuthSession = {
-  session: GetSessionOutput["session"];
-  user: Omit<GetSessionOutput["user"], "role"> & {
+  session: AuthSessionResponse["session"];
+  user: Omit<AuthSessionResponse["user"], "role"> & {
     role: AppAuthRole;
   };
 };
-
-const defaultGetSessionDeps: GetSessionDeps = {
-  getBetterAuthSession: async (requestHeaders) =>
-    auth.api.getSession({ headers: requestHeaders }),
-  findUserById: (userId) =>
-    db.user.findUnique({
-      where: { id: userId },
-      include: SESSION_USER_INCLUDE,
-    }),
-  getSessionTokenById: async (sessionId) => {
-    const sessionFromDb = await db.session.findUnique({
-      where: { id: sessionId },
-      select: { token: true, sessionToken: true },
-    });
-
-    return sessionFromDb?.token || sessionFromDb?.sessionToken || null;
-  },
-  getSessionByToken: getSession,
-};
-
-function readSessionInput(headers: Headers) {
-  return {
-    headers,
-    authHeaderToken: extractBearerToken(headers),
-    cookieAuthToken:
-      extractCookieValue(headers, "auth_token") ||
-      extractCookieValue(headers, "__Secure-auth_token"),
-    cookieBetterAuthToken:
-      extractCookieValue(headers, "better-auth.session_token") ||
-      extractCookieValue(headers, "__Secure-better-auth.session_token"),
-  };
-}
 
 function normalizeRole(role: string): AppAuthRole {
   switch (role) {
@@ -93,27 +23,60 @@ function normalizeRole(role: string): AppAuthRole {
   }
 }
 
-export { isPublicRoute };
+function buildForwardHeaders(request: Pick<NextRequest, "headers">): Headers {
+  const outgoingHeaders = new Headers();
+  const cookie = request.headers.get("cookie");
+  const authorization = request.headers.get("authorization");
+  const userAgent = request.headers.get("user-agent");
 
-export async function getAuthSessionFromRequestHeaders(
-  headers: Headers,
-  deps: GetSessionDeps = defaultGetSessionDeps,
-): Promise<ResolvedAuthSession | null> {
-  const result = await getSessionUseCase(deps, readSessionInput(headers));
+  if (cookie) {
+    outgoingHeaders.set("cookie", cookie);
+  }
 
-  if (!result.ok) {
+  if (authorization) {
+    outgoingHeaders.set("authorization", authorization);
+  }
+
+  if (userAgent) {
+    outgoingHeaders.set("user-agent", userAgent);
+  }
+
+  return outgoingHeaders;
+}
+
+function toResolvedAuthSession(
+  payload: AuthSessionResponse,
+): ResolvedAuthSession | null {
+  if (!payload?.user?.id) {
     return null;
   }
 
   return {
-    session: result.data.session,
+    session: payload.session ?? null,
     user: {
-      ...result.data.user,
-      role: normalizeRole(result.data.user.role),
+      ...payload.user,
+      role: normalizeRole(payload.user.role),
     },
   };
 }
 
-export async function getAuthSession(request: Pick<NextRequest, "headers">) {
-  return getAuthSessionFromRequestHeaders(request.headers);
+export { isPublicRoute };
+
+export async function getAuthSession(request: Pick<NextRequest, "headers" | "url">) {
+  const sessionUrl = new URL("/api/auth/session", request.url);
+  const response = await fetch(sessionUrl, {
+    method: "GET",
+    headers: buildForwardHeaders(request),
+    cache: "no-store",
+  }).catch(() => null);
+
+  if (!response?.ok) {
+    return null;
+  }
+
+  const payload = (await response.json().catch(() => null)) as
+    | AuthSessionResponse
+    | null;
+
+  return payload ? toResolvedAuthSession(payload) : null;
 }
