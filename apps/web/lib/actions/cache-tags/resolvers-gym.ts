@@ -2,7 +2,101 @@ import { buildTag, withMetadata } from "./helpers";
 import type { CacheMetadata, RouteContext } from "./types";
 
 export function resolveGymMetadata(context: RouteContext): CacheMetadata | null {
-  const [root, resource, resourceId, nestedResource] = context.segments;
+  const [root, resource, resourceId, nestedResource, leafId] = context.segments;
+
+  if (root === "gym" && resource === "students") {
+    const baseTags = [
+      "gym:students",
+      ...(resourceId ? [buildTag("gym", "students", resourceId)] : []),
+    ];
+
+    if (nestedResource === "weekly-plan" || nestedResource === "workouts") {
+      return withMetadata(
+        "gym",
+        "student-workouts",
+        "minutes",
+        "private",
+        [
+          ...baseTags,
+          "student:workouts",
+          "student:weekly-plan",
+          ...(resourceId ? [buildTag("gym", "student-workouts", resourceId)] : []),
+          ...(leafId ? [buildTag("gym", "student-workouts", resourceId, leafId)] : []),
+        ],
+        ["gym:dashboard", "gym:bootstrap:self"],
+      );
+    }
+
+    if (nestedResource === "nutrition") {
+      return withMetadata(
+        "gym",
+        "student-nutrition",
+        "minutes",
+        "private",
+        [
+          ...baseTags,
+          "student:nutrition",
+          ...(resourceId ? [buildTag("gym", "student-nutrition", resourceId)] : []),
+          ...(leafId ? [buildTag("gym", "student-nutrition", resourceId, leafId)] : []),
+        ],
+        ["gym:dashboard", "gym:bootstrap:self"],
+      );
+    }
+
+    if (nestedResource === "assign-personal") {
+      return withMetadata(
+        "gym",
+        "student-assignment",
+        "seconds",
+        "private",
+        [
+          ...baseTags,
+          ...(resourceId ? [buildTag("gym", "student-assignment", resourceId)] : []),
+        ],
+        ["gym:dashboard", "gym:bootstrap:self", "personal:students"],
+      );
+    }
+
+    return withMetadata(
+      "gym",
+      "students",
+      "minutes",
+      "private",
+      baseTags,
+      ["gym:dashboard", "gym:bootstrap:self"],
+    );
+  }
+
+  if (root === "gym" && resource === "personals") {
+    return withMetadata(
+      "gym",
+      "personals",
+      "minutes",
+      "private",
+      [
+        "gym:personals",
+        ...(resourceId ? [buildTag("gym", "personals", resourceId)] : []),
+        ...(resourceId && nestedResource
+          ? [buildTag("gym", "personals", resourceId, nestedResource)]
+          : []),
+      ],
+      ["gym:dashboard", "gym:bootstrap:self"],
+    );
+  }
+
+  if (root === "gym" && resource === "boost-campaigns") {
+    return withMetadata(
+      "gym",
+      "campaigns",
+      resourceId ? "seconds" : "minutes",
+      "private",
+      [
+        "gym:campaigns",
+        ...(resourceId ? [buildTag("gym", "campaigns", resourceId)] : []),
+      ],
+      ["gym:dashboard", "gym:bootstrap:self"],
+    );
+  }
 
   if (root === "gym-subscriptions") {
     return withMetadata(

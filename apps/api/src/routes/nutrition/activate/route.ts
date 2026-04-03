@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
-import { planOperationQueue } from "@/lib/queue/queues";
+import { activateNutritionLibraryPlanForStudent } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import type { NextRequest } from "@/runtime/next-server";
 
@@ -44,21 +44,17 @@ export async function POST(request: NextRequest) {
       return unauthorizedResponse("Voce nao tem acesso a este plano alimentar");
     }
 
-    const job = await planOperationQueue.add(
-      "activate-nutrition-library-plan",
-      {
-        studentId,
-        libraryPlanId: validation.data.libraryPlanId,
-      },
+    const activePlan = await activateNutritionLibraryPlanForStudent(
+      studentId,
+      validation.data.libraryPlanId,
     );
 
     return successResponse(
       {
-        jobId: String(job.id),
-        status: "queued",
-        message: "Ativacao do plano alimentar enviada para processamento",
+        data: activePlan,
+        message: "Plano alimentar ativado com sucesso",
       },
-      202,
+      200,
     );
   } catch (error) {
     log.error("[nutrition/activate] Erro POST", {

@@ -26,14 +26,6 @@ export const SECTION_ROUTES: Record<PersonalDataSection, string> = {
   membershipPlans: "/api/personals/membership-plans",
 };
 
-function withFreshParam(route: string, force = false) {
-  if (!force) {
-    return route;
-  }
-
-  return `${route}${route.includes("?") ? "&" : "?"}fresh=1`;
-}
-
 const loadingSections = new Set<PersonalDataSection>();
 const loadingPromises = new Map<
   PersonalDataSection,
@@ -47,44 +39,58 @@ export function clearLoadingState() {
 
 export async function loadSection(
   section: PersonalDataSection,
-  force = false,
+  options: boolean | { force?: boolean; fresh?: boolean } = false,
 ): Promise<Partial<PersonalUnifiedData>> {
+  const normalizedOptions =
+    typeof options === "boolean" ? { force: options } : options;
+  const forceReload = normalizedOptions.force ?? false;
+  const bypassCache = normalizedOptions.fresh ?? false;
+
+  if (forceReload) {
+    loadingSections.delete(section);
+    loadingPromises.delete(section);
+  }
+
   const existing = loadingPromises.get(section);
   if (existing) return existing;
 
   const promise = (async () => {
     loadingSections.add(section);
     try {
-      const route = withFreshParam(SECTION_ROUTES[section], force);
+      const route = SECTION_ROUTES[section];
+      const config = {
+        ...(bypassCache ? { fresh: true } : {}),
+      };
       if (section === "profile") {
         const res = await apiClient.get<{ personal: PersonalProfile | null }>(
           route,
+          config,
         );
         return { profile: res.data.personal };
       }
       if (section === "affiliations") {
         const res = await apiClient.get<{
           affiliations: PersonalAffiliation[];
-        }>(route);
+        }>(route, config);
         return { affiliations: res.data.affiliations || [] };
       }
       if (section === "students") {
         const res = await apiClient.get<{
           students: PersonalStudentAssignment[];
-        }>(route);
+        }>(route, config);
         return { students: res.data.students || [] };
       }
       if (section === "studentDirectory") {
         const res = await apiClient.get<{
           students: PersonalUnifiedData["studentDirectory"];
-        }>(route);
+        }>(route, config);
         return { studentDirectory: res.data.students || [] };
       }
       if (section === "subscription") {
         const res = await apiClient
           .get<{
             subscription: PersonalSubscriptionData | null;
-          }>(route)
+          }>(route, config)
           .catch(() => ({ data: { subscription: null } }));
         return { subscription: res.data.subscription ?? null };
       }
@@ -92,7 +98,7 @@ export async function loadSection(
         const res = await apiClient
           .get<{
             financialSummary: FinancialSummary | null;
-          }>(route)
+          }>(route, config)
           .catch(() => ({ data: { financialSummary: null } }));
         return { financialSummary: res.data.financialSummary ?? null };
       }
@@ -100,7 +106,7 @@ export async function loadSection(
         const res = await apiClient
           .get<{
             expenses: Expense[];
-          }>(route)
+          }>(route, config)
           .catch(() => ({ data: { expenses: [] } }));
         return { expenses: res.data.expenses || [] };
       }
@@ -108,7 +114,7 @@ export async function loadSection(
         const res = await apiClient
           .get<{
             payments: PersonalUnifiedData["payments"];
-          }>(route)
+          }>(route, config)
           .catch(() => ({ data: { payments: [] } }));
         return { payments: res.data.payments || [] };
       }
@@ -116,7 +122,7 @@ export async function loadSection(
         const res = await apiClient
           .get<{
             coupons: PersonalUnifiedData["coupons"];
-          }>(route)
+          }>(route, config)
           .catch(() => ({ data: { coupons: [] } }));
         return { coupons: res.data.coupons || [] };
       }
@@ -124,7 +130,7 @@ export async function loadSection(
         const res = await apiClient
           .get<{
             campaigns: PersonalUnifiedData["campaigns"];
-          }>(route)
+          }>(route, config)
           .catch(() => ({ data: { campaigns: [] } }));
         return { campaigns: res.data.campaigns || [] };
       }
@@ -132,7 +138,7 @@ export async function loadSection(
         const res = await apiClient
           .get<{
             plans: PersonalUnifiedData["membershipPlans"];
-          }>(route)
+          }>(route, config)
           .catch(() => ({ data: { plans: [] } }));
         return { membershipPlans: res.data.plans || [] };
       }

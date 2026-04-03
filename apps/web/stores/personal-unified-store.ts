@@ -304,9 +304,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
           try {
             const response = await apiClient.get<{
               student: PersonalUnifiedData["studentDirectory"][number];
-            }>(
-              `/api/personals/students/${studentId}/student-data${force ? "?fresh=1" : ""}`,
-            );
+            }>(`/api/personals/students/${studentId}/student-data`);
             set((state) => ({
               data: {
                 ...state.data,
@@ -335,7 +333,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             const response = await apiClient.get<{
               payments: PersonalUnifiedData["payments"];
             }>(`/api/personals/payments`, {
-              params: { studentId, ...(force ? { fresh: "1" } : {}) },
+              params: { studentId },
             });
             set((state) => ({
               data: {

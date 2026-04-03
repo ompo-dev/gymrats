@@ -275,7 +275,7 @@ function StudentNutritionLibraryModal() {
   const loadStudentPlanDetail = async (planId: string) => {
     const response = await apiClient.get<{
       data?: NutritionPlanData | null;
-    }>(`/api/nutrition/library/${planId}?fresh=1`);
+    }>(`/api/nutrition/library/${planId}`);
     return response.data.data ?? null;
   };
 
@@ -451,7 +451,7 @@ function ScopedNutritionLibraryModal({
     const response = await apiClient.get<{
       data?: NutritionPlanData | null;
     }>(
-      `/api/${scope}/students/${studentId}/nutrition/library/${planId}?fresh=1`,
+      `/api/${scope}/students/${studentId}/nutrition/library/${planId}`,
     );
     return response.data.data ?? null;
   };

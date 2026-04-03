@@ -24,6 +24,57 @@ export function resolvePersonalMetadata(
     );
   }
 
+  if (root === "personals" && resource === "students" && resourceId) {
+    const baseTags = [
+      "personal:students",
+      buildTag("personal", "students", resourceId),
+    ];
+
+    if (nestedResource === "student-data") {
+      return withMetadata(
+        "personal",
+        "student-detail",
+        "minutes",
+        "private",
+        [...baseTags, buildTag("personal", "student-detail", resourceId)],
+        ["personal:directory", "personal:dashboard", "personal:bootstrap:self"],
+      );
+    }
+
+    if (nestedResource === "weekly-plan" || nestedResource === "workouts") {
+      return withMetadata(
+        "personal",
+        "student-workouts",
+        "minutes",
+        "private",
+        [
+          ...baseTags,
+          "student:workouts",
+          "student:weekly-plan",
+          buildTag("personal", "student-workouts", resourceId),
+          ...(leafId ? [buildTag("personal", "student-workouts", resourceId, leafId)] : []),
+        ],
+        ["personal:dashboard", "personal:bootstrap:self"],
+      );
+    }
+
+    if (nestedResource === "nutrition") {
+      return withMetadata(
+        "personal",
+        "student-nutrition",
+        "minutes",
+        "private",
+        [
+          ...baseTags,
+          "student:nutrition",
+          buildTag("personal", "student-nutrition", resourceId),
+          ...(leafId ? [buildTag("personal", "student-nutrition", resourceId, leafId)] : []),
+        ],
+        ["personal:dashboard", "personal:bootstrap:self"],
+      );
+    }
+  }
+
   if (root === "personals" && resource === "profile") {
     return withMetadata(
       "personal",

@@ -689,6 +689,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       activateLibraryPlan: async (planId: string) => {
         const state = get();
+        const previousWeeklyPlan = state.data.weeklyPlan;
         const libraryPlan = state.data.libraryPlans?.find(
           (p) => p.id === planId,
         );
@@ -707,6 +708,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                 title: libraryPlan.title,
                 description: libraryPlan.description,
                 slots: optimisticSlots,
+                sourceLibraryPlanId: planId,
               },
             },
           }));
@@ -722,9 +724,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           }
           await get().loadWeeklyPlan(true);
         } catch (error) {
-          if (libraryPlan) {
-            await get().loadWeeklyPlan(true);
-          }
+          set((s) => ({
+            data: {
+              ...s.data,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
           throw error;
         }
       },
