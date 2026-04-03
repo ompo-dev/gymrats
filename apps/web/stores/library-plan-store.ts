@@ -91,12 +91,15 @@ const updateStudentLibraryPlans = (
   }));
 };
 
-const refreshLibraryViews = async () => {
+const refreshActiveWeeklyPlanIfNeeded = async (planId: string) => {
   const studentStore = useStudentUnifiedStore.getState();
-  await Promise.allSettled([
-    studentStore.loadLibraryPlans(),
-    studentStore.loadWeeklyPlan(true),
-  ]);
+  const activeSourcePlanId = studentStore.data.weeklyPlan?.sourceLibraryPlanId;
+
+  if (activeSourcePlanId !== planId) {
+    return;
+  }
+
+  await studentStore.loadWeeklyPlan(true);
 };
 
 const createOptimisticWorkout = (payload: {
@@ -222,7 +225,7 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
 
     try {
       await apiClient.patch(`/api/workouts/library/${planId}`, payload);
-      await refreshLibraryViews();
+      await refreshActiveWeeklyPlanIfNeeded(planId);
     } catch (error) {
       useStudentUnifiedStore.setState((state) => ({
         data: {
@@ -277,7 +280,7 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
         id: realId,
       }));
 
-      await refreshLibraryViews();
+      await refreshActiveWeeklyPlanIfNeeded(planId);
       return realId;
     } catch (error) {
       useStudentUnifiedStore.setState((state) => ({
@@ -304,7 +307,7 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
 
     try {
       await apiClient.put(`/api/workouts/manage/${workoutId}`, payload);
-      await refreshLibraryViews();
+      await refreshActiveWeeklyPlanIfNeeded(planId);
     } catch (error) {
       useStudentUnifiedStore.setState((state) => ({
         data: {
@@ -327,7 +330,7 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
 
     try {
       await apiClient.delete(`/api/workouts/manage/${workoutId}`);
-      await refreshLibraryViews();
+      await refreshActiveWeeklyPlanIfNeeded(planId);
     } catch (error) {
       useStudentUnifiedStore.setState((state) => ({
         data: {
@@ -392,7 +395,7 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
         ...(realExercise ?? {}),
       }));
 
-      await refreshLibraryViews();
+      await refreshActiveWeeklyPlanIfNeeded(planId);
     } catch (error) {
       useStudentUnifiedStore.setState((state) => ({
         data: {
@@ -418,7 +421,7 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
 
     try {
       await apiClient.put(`/api/workouts/exercises/${exerciseId}`, payload);
-      await refreshLibraryViews();
+      await refreshActiveWeeklyPlanIfNeeded(planId);
     } catch (error) {
       useStudentUnifiedStore.setState((state) => ({
         data: {
@@ -441,7 +444,7 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
 
     try {
       await apiClient.delete(`/api/workouts/exercises/${exerciseId}`);
-      await refreshLibraryViews();
+      await refreshActiveWeeklyPlanIfNeeded(planId);
     } catch (error) {
       useStudentUnifiedStore.setState((state) => ({
         data: {

@@ -1,11 +1,10 @@
 "use server";
 
-import { serverApiDelete, serverApiGet, serverApiPost } from "@/lib/api/server";
 import {
-  buildApiPath,
-  getApiErrorMessage,
-  reviveDate,
-} from "@/lib/api/server-action-utils";
+  executeWebMutationAction,
+  executeWebReadAction,
+} from "@/lib/actions/web-actions";
+import { getApiErrorMessage, reviveDate } from "@/lib/api/server-action-utils";
 import { log } from "@/lib/observability/logger";
 import type {
   BoostCampaign,
@@ -44,6 +43,43 @@ type BalanceWithdraws = {
     completedAt: Date | string | null;
   }>;
 };
+
+type ActionQuery = Record<string, string | number | boolean | null | undefined>;
+
+async function readGymAction<T>(
+  path: string,
+  options?: {
+    query?: ActionQuery;
+    fresh?: boolean;
+  },
+) {
+  return executeWebReadAction<T>({
+    path,
+    query: options?.query,
+    fresh: options?.fresh,
+  });
+}
+
+async function postGymAction<T>(
+  path: string,
+  body?: unknown,
+  query?: ActionQuery,
+) {
+  return executeWebMutationAction<T>({
+    path,
+    method: "POST",
+    body,
+    query,
+  });
+}
+
+async function deleteGymAction<T>(path: string, query?: ActionQuery) {
+  return executeWebMutationAction<T>({
+    path,
+    method: "DELETE",
+    query,
+  });
+}
 
 function reviveGymProfile(profile: GymProfile | null): GymProfile | null {
   if (!profile) {
@@ -142,7 +178,7 @@ function reviveGymSubscription(
 
 export async function getCurrentUserInfo() {
   try {
-    const payload = await serverApiGet<SessionPayload>("/api/auth/session");
+    const payload = await readGymAction<SessionPayload>("/api/auth/session");
 
     return {
       isAdmin: payload.user?.role === "ADMIN",
@@ -156,7 +192,7 @@ export async function getCurrentUserInfo() {
 
 export async function getGymProfile(): Promise<GymProfile | null> {
   try {
-    const payload = await serverApiGet<{ profile: GymProfile | null }>(
+    const payload = await readGymAction<{ profile: GymProfile | null }>(
       "/api/gyms/profile",
     );
     return reviveGymProfile(payload.profile);
@@ -168,7 +204,7 @@ export async function getGymProfile(): Promise<GymProfile | null> {
 
 export async function getGymEquipment(): Promise<Equipment[]> {
   try {
-    const payload = await serverApiGet<{ equipment: Equipment[] }>(
+    const payload = await readGymAction<{ equipment: Equipment[] }>(
       "/api/gyms/equipment",
     );
     return normalizeEquipmentList(payload.equipment);
@@ -182,7 +218,7 @@ export async function getGymEquipmentById(
   equipmentId: string,
 ): Promise<Equipment | null> {
   try {
-    const payload = await serverApiGet<{ equipment: Equipment }>(
+    const payload = await readGymAction<{ equipment: Equipment }>(
       `/api/gyms/equipment/${equipmentId}`,
     );
     return normalizeEquipmentItem(payload.equipment);
@@ -194,7 +230,9 @@ export async function getGymEquipmentById(
 
 export async function getGymMembershipPlans() {
   try {
-    const payload = await serverApiGet<{ plans: unknown[] }>("/api/gyms/plans");
+    const payload = await readGymAction<{ plans: unknown[] }>(
+      "/api/gyms/plans",
+    );
     return payload.plans;
   } catch (error) {
     log.error("[getGymMembershipPlans] Erro", { error });
@@ -204,7 +242,7 @@ export async function getGymMembershipPlans() {
 
 export async function getGymStudents(): Promise<StudentData[]> {
   try {
-    const payload = await serverApiGet<{ students: StudentData[] }>(
+    const payload = await readGymAction<{ students: StudentData[] }>(
       "/api/gyms/students",
     );
     return payload.students;
@@ -216,7 +254,7 @@ export async function getGymStudents(): Promise<StudentData[]> {
 
 export async function getGymRecentCheckIns(): Promise<CheckIn[]> {
   try {
-    const payload = await serverApiGet<{ checkIns: CheckIn[] }>(
+    const payload = await readGymAction<{ checkIns: CheckIn[] }>(
       "/api/gyms/checkins/recent",
     );
     return reviveCheckIns(payload.checkIns);
@@ -230,7 +268,7 @@ export async function getGymStudentById(
   studentId: string,
 ): Promise<StudentData | null> {
   try {
-    const payload = await serverApiGet<{ student: StudentData }>(
+    const payload = await readGymAction<{ student: StudentData }>(
       `/api/gyms/students/${studentId}`,
     );
     return payload.student;
@@ -242,7 +280,7 @@ export async function getGymStudentById(
 
 export async function getGymFinancialSummary(): Promise<FinancialSummary | null> {
   try {
-    const payload = await serverApiGet<{ summary: FinancialSummary | null }>(
+    const payload = await readGymAction<{ summary: FinancialSummary | null }>(
       "/api/gyms/financial-summary",
     );
     return payload.summary;
@@ -256,8 +294,9 @@ export async function getGymStudentPayments(
   studentId: string,
 ): Promise<Payment[]> {
   try {
-    const payload = await serverApiGet<{ payments: Payment[] }>(
-      buildApiPath("/api/gyms/payments", { studentId }),
+    const payload = await readGymAction<{ payments: Payment[] }>(
+      "/api/gyms/payments",
+      { query: { studentId } },
     );
     return revivePayments(payload.payments);
   } catch (error) {
@@ -268,7 +307,7 @@ export async function getGymStudentPayments(
 
 export async function getGymPayments(): Promise<Payment[]> {
   try {
-    const payload = await serverApiGet<{ payments: Payment[] }>(
+    const payload = await readGymAction<{ payments: Payment[] }>(
       "/api/gyms/payments",
     );
     return revivePayments(payload.payments);
@@ -280,7 +319,7 @@ export async function getGymPayments(): Promise<Payment[]> {
 
 export async function getGymExpenses(): Promise<Expense[]> {
   try {
-    const payload = await serverApiGet<{ expenses: Expense[] }>(
+    const payload = await readGymAction<{ expenses: Expense[] }>(
       "/api/gyms/expenses",
     );
     return reviveExpenses(payload.expenses);
@@ -292,7 +331,7 @@ export async function getGymExpenses(): Promise<Expense[]> {
 
 export async function getGymStats(): Promise<GymStats | null> {
   try {
-    const payload = await serverApiGet<{ stats: GymStats | null }>(
+    const payload = await readGymAction<{ stats: GymStats | null }>(
       "/api/gyms/stats",
     );
     return payload.stats;
@@ -304,7 +343,7 @@ export async function getGymStats(): Promise<GymStats | null> {
 
 export async function getGymCoupons(): Promise<Coupon[]> {
   try {
-    const payload = await serverApiGet<{ coupons: Coupon[] }>(
+    const payload = await readGymAction<{ coupons: Coupon[] }>(
       "/api/gyms/coupons",
     );
     return reviveCoupons(payload.coupons);
@@ -323,7 +362,7 @@ export async function createGymCoupon(data: {
   expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiPost<{ success: true }>("/api/gyms/coupons", data);
+    return await postGymAction<{ success: true }>("/api/gyms/coupons", data);
   } catch (error) {
     log.error("[createGymCoupon] Erro", { error, data });
     return {
@@ -335,7 +374,7 @@ export async function createGymCoupon(data: {
 
 export async function getGymBoostCampaigns() {
   try {
-    const payload = await serverApiGet<{ campaigns: BoostCampaign[] }>(
+    const payload = await readGymAction<{ campaigns: BoostCampaign[] }>(
       "/api/gyms/boost-campaigns",
     );
     return reviveCampaigns(payload.campaigns);
@@ -356,7 +395,7 @@ export async function createBoostCampaign(data: {
   radiusKm?: number;
 }) {
   try {
-    return await serverApiPost<
+    return await postGymAction<
       | {
           success: true;
           brCode: string;
@@ -385,9 +424,9 @@ export async function deleteGymCoupon(
   couponId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiDelete<{ success: true }>(
-      buildApiPath("/api/gyms/coupons", { couponId }),
-    );
+    return await deleteGymAction<{ success: true }>("/api/gyms/coupons", {
+      couponId,
+    });
   } catch (error) {
     log.error("[deleteGymCoupon] Erro", { error, couponId });
     return {
@@ -401,8 +440,11 @@ export async function deleteBoostCampaign(
   campaignId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiDelete<{ success: true }>(
-      buildApiPath("/api/gyms/boost-campaigns", { campaignId }),
+    return await deleteGymAction<{ success: true }>(
+      "/api/gyms/boost-campaigns",
+      {
+        campaignId,
+      },
     );
   } catch (error) {
     log.error("[deleteBoostCampaign] Erro", { error, campaignId });
@@ -425,7 +467,7 @@ export async function getBoostCampaignPix(campaignId: string): Promise<
   | { success: false; error: string }
 > {
   try {
-    return await serverApiGet<
+    return await readGymAction<
       | {
           success: true;
           brCode: string;
@@ -435,7 +477,7 @@ export async function getBoostCampaignPix(campaignId: string): Promise<
           expiresAt?: string;
         }
       | { success: false; error: string }
-    >(`/api/gyms/boost-campaigns/${campaignId}/pix`);
+    >(`/api/gyms/boost-campaigns/${campaignId}/pix`, { fresh: true });
   } catch (error) {
     log.error("[getBoostCampaignPix] Erro", { error, campaignId });
     return {
@@ -447,7 +489,9 @@ export async function getBoostCampaignPix(campaignId: string): Promise<
 
 export async function getGymBalanceWithdraws(): Promise<BalanceWithdraws> {
   try {
-    const payload = await serverApiGet<BalanceWithdraws>("/api/gyms/withdraws");
+    const payload = await readGymAction<BalanceWithdraws>(
+      "/api/gyms/withdraws",
+    );
     return reviveBalanceWithdraws(payload);
   } catch (error) {
     log.error("[getGymBalanceWithdraws] Erro", { error });
@@ -463,7 +507,7 @@ export async function createGymWithdraw(data: {
   | { success: false; error: string }
 > {
   try {
-    return await serverApiPost<
+    return await postGymAction<
       | {
           success: true;
           withdraw: { id: string; amount: number; status: string };
@@ -481,7 +525,7 @@ export async function createGymWithdraw(data: {
 
 export async function getGymSubscription() {
   try {
-    const payload = await serverApiGet<{
+    const payload = await readGymAction<{
       subscription: Record<string, unknown> | null;
       isFirstPayment?: boolean;
     }>("/api/gym-subscriptions/current");
@@ -495,7 +539,7 @@ export async function getGymSubscription() {
 
 export async function startGymTrial() {
   try {
-    const payload = await serverApiPost<Record<string, unknown>>(
+    const payload = await postGymAction<Record<string, unknown>>(
       "/api/gym-subscriptions/start-trial",
     );
     return { success: true, ...payload };
@@ -509,7 +553,7 @@ export async function startGymTrial() {
 
 export async function syncGymSubscriptionPrices() {
   try {
-    return await serverApiPost<
+    return await postGymAction<
       { success: true; updated: boolean; message?: string } | { error: string }
     >("/api/gym-subscriptions/sync-prices");
   } catch (error) {

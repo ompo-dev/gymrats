@@ -41,7 +41,6 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
     setTitle,
     description,
     setDescription,
-    setIsEditingUnitInputs,
     workoutTitle,
     setWorkoutTitle,
     workoutMuscleGroup,
@@ -108,10 +107,6 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
                 description={description}
                 onTitleChange={setTitle}
                 onDescriptionChange={setDescription}
-                onTitleFocus={() => setIsEditingUnitInputs(true)}
-                onTitleBlur={() => setIsEditingUnitInputs(false)}
-                onDescriptionFocus={() => setIsEditingUnitInputs(true)}
-                onDescriptionBlur={() => setIsEditingUnitInputs(false)}
                 onSave={handleSaveUnit}
                 isWeeklyPlanMode={isWeeklyPlanMode}
                 onResetWeek={handleResetWeek}

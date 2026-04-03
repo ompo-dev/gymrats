@@ -1,24 +1,17 @@
 import type { BootstrapResponse } from "@gymrats/types/bootstrap";
-import { serverApiGet } from "@/lib/api/server";
-import { buildApiPath } from "@/lib/api/server-action-utils";
+import { getStudentBootstrapAction } from "@/lib/actions/web-actions";
 import type { UserProgress } from "@/lib/types";
 
 export async function getStudentProfileData() {
   try {
-    const response = await serverApiGet<
-      BootstrapResponse<Record<string, unknown>>
-    >(
-      buildApiPath("/api/students/bootstrap", {
-        sections: [
-          "user",
-          "progress",
-          "profile",
-          "workoutHistory",
-          "personalRecords",
-          "weightHistory",
-        ].join(","),
-      }),
-    );
+    const response = (await getStudentBootstrapAction([
+      "user",
+      "progress",
+      "profile",
+      "workoutHistory",
+      "personalRecords",
+      "weightHistory",
+    ])) as BootstrapResponse<Record<string, unknown>>;
     const payload = response.data;
 
     const user = payload.user as

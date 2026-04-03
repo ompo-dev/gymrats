@@ -31,7 +31,7 @@ export interface UseEditUnitModalProps {
   isLibraryMode?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
-  onPlanUpdated?: () => void;
+  onPlanUpdated?: () => void | Promise<void>;
   apiMode?: "student" | "gym";
   studentId?: string;
   weeklyPlan?: WeeklyPlanData | null;
@@ -71,30 +71,20 @@ export function useEditUnitModal({
   ) as unknown as WeeklyPlanData | null;
   const storeLoaders = useStudent("loaders");
 
-  const storeLibraryPlan = useStudentUnifiedStore((state) =>
-    isLibraryMode && weeklyPlanOverride?.id
-      ? (state.data.libraryPlans?.find(
-          (plan) => plan.id === weeklyPlanOverride.id,
-        ) ?? null)
-      : null,
-  );
-
   const weeklyPlan: WeeklyPlanData | null = isGymMode
     ? (weeklyPlanOverride ?? null)
     : isLibraryMode
-      ? ((storeLibraryPlan ??
-          weeklyPlanOverride) as unknown as WeeklyPlanData | null)
+      ? (weeklyPlanOverride ?? null)
       : storeWeeklyPlan;
 
-  const loadWeeklyPlan =
-    isGymMode || isLibraryMode
-      ? loadWeeklyPlanOverride
-      : storeLoaders.loadWeeklyPlan;
+  const loadWeeklyPlan = isGymMode
+    ? loadWeeklyPlanOverride
+    : storeLoaders.loadWeeklyPlan;
 
   const isOpen = isWeeklyPlanMode ? (isOpenProp ?? false) : isOpenEditUnit;
   const close = isWeeklyPlanMode ? (onCloseProp ?? (() => {})) : closeEditUnit;
 
-  const planSlots = useMemo<PlanSlotData[]>(() => {
+  const sourcePlanSlots = useMemo<PlanSlotData[]>(() => {
     if (!weeklyPlan?.slots) return [];
     return Array.isArray(weeklyPlan.slots)
       ? (weeklyPlan.slots as PlanSlotData[])
@@ -110,10 +100,14 @@ export function useEditUnitModal({
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [isEditingUnitInputs, setIsEditingUnitInputs] = useState(false);
   const [workoutTitle, setWorkoutTitle] = useState("");
   const [workoutMuscleGroup, setWorkoutMuscleGroup] = useState<string>("");
   const requiresLocalListDraft = isGymMode || isLibraryMode;
+  const requiresLocalPlanSlotsDraft =
+    isWeeklyPlanMode && requiresLocalListDraft;
+  const [planSlotsDraft, setPlanSlotsDraft] = useState<PlanSlotData[] | null>(
+    null,
+  );
   const [workoutItemsDraft, setWorkoutItemsDraft] = useState<
     WorkoutSession[] | null
   >(null);
@@ -126,6 +120,8 @@ export function useEditUnitModal({
   const [deleteWorkoutConfirmationId, setDeleteWorkoutConfirmationId] =
     useState<string | null>(null);
   const [weeklyPlanSlotsKey, setWeeklyPlanSlotsKey] = useState(0);
+  const planSlotsDraftSourceIdRef = useRef<string | null>(null);
+  const lastHydratedUnitSnapshotRef = useRef<string | null>(null);
 
   const unit = useStudentUnifiedStore(
     (state) =>
@@ -136,6 +132,14 @@ export function useEditUnitModal({
     if (!unit?.workouts?.length) return [];
     return [...unit.workouts].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [unit?.workouts]);
+
+  const planSlots = useMemo(
+    () =>
+      requiresLocalPlanSlotsDraft
+        ? (planSlotsDraft ?? sourcePlanSlots)
+        : sourcePlanSlots,
+    [planSlotsDraft, requiresLocalPlanSlotsDraft, sourcePlanSlots],
+  );
 
   const exercisesRawFromStore = useStudentUnifiedStore((state) => {
     if (!editingWorkoutId || !unitId) return null;
@@ -211,6 +215,63 @@ export function useEditUnitModal({
     );
   }, [requiresLocalListDraft, sortedExercises]);
 
+  useEffect(() => {
+    if (!requiresLocalPlanSlotsDraft) return;
+
+    if (!isOpen) {
+      planSlotsDraftSourceIdRef.current = null;
+      setPlanSlotsDraft(null);
+      return;
+    }
+
+    const currentPlanId = weeklyPlan?.id ?? null;
+    if (!currentPlanId) return;
+
+    const isNewPlan = planSlotsDraftSourceIdRef.current !== currentPlanId;
+    const hasDetailedSource = sourcePlanSlots.some((slot) => slot.workout?.id);
+
+    if (isNewPlan || hasDetailedSource) {
+      planSlotsDraftSourceIdRef.current = currentPlanId;
+      setPlanSlotsDraft(sourcePlanSlots);
+    }
+  }, [isOpen, requiresLocalPlanSlotsDraft, sourcePlanSlots, weeklyPlan?.id]);
+
+  const patchPlanSlotDraft = useCallback(
+    (slotId: string, updater: (slot: PlanSlotData) => PlanSlotData) => {
+      if (!requiresLocalPlanSlotsDraft) return;
+
+      setPlanSlotsDraft((current) => {
+        const baseSlots = current ?? sourcePlanSlots;
+        return baseSlots.map((slot) =>
+          slot.id === slotId ? updater(slot) : slot,
+        );
+      });
+    },
+    [requiresLocalPlanSlotsDraft, sourcePlanSlots],
+  );
+
+  const patchWorkoutInPlanDraft = useCallback(
+    (
+      workoutId: string,
+      updater: (workout: WorkoutSession) => WorkoutSession,
+    ) => {
+      if (!requiresLocalPlanSlotsDraft) return;
+
+      setPlanSlotsDraft((current) => {
+        const baseSlots = current ?? sourcePlanSlots;
+        return baseSlots.map((slot) =>
+          slot.workout?.id === workoutId
+            ? {
+                ...slot,
+                workout: updater(slot.workout),
+              }
+            : slot,
+        );
+      });
+    },
+    [requiresLocalPlanSlotsDraft, sourcePlanSlots],
+  );
+
   const calculatedEstimatedTime = useMemo(() => {
     if (!exercises.length) return 0;
 
@@ -257,6 +318,13 @@ export function useEditUnitModal({
           muscleGroup: maybeMuscleGroup as MuscleGroup,
         }),
       };
+
+      if (isWeeklyPlanMode) {
+        patchWorkoutInPlanDraft(workoutId, (workout) => ({
+          ...workout,
+          ...payload,
+        }));
+      }
 
       if (isGymMode) {
         if (!studentId) {
@@ -321,7 +389,9 @@ export function useEditUnitModal({
       actions,
       isGymMode,
       isLibraryMode,
+      isWeeklyPlanMode,
       onPlanUpdated,
+      patchWorkoutInPlanDraft,
       studentId,
       weeklyPlan?.id,
     ],
@@ -364,13 +434,18 @@ export function useEditUnitModal({
 
   useEffect(() => {
     if (sourceUnitSnapshot) {
-      if (!isEditingUnitInputs) {
+      const sourceId = isWeeklyPlanMode ? (weeklyPlan?.id ?? "weekly") : unitId;
+      const snapshotKey = `${sourceId ?? "unknown"}::${sourceUnitSnapshot.title}::${sourceUnitSnapshot.description}`;
+
+      if (lastHydratedUnitSnapshotRef.current !== snapshotKey) {
         setTitle(sourceUnitSnapshot.title);
         setDescription(sourceUnitSnapshot.description);
+        lastHydratedUnitSnapshotRef.current = snapshotKey;
       }
       return;
     }
 
+    lastHydratedUnitSnapshotRef.current = null;
     setEditingWorkoutId(null);
     setShowExerciseSearch(false);
     setTitle("");
@@ -379,13 +454,11 @@ export function useEditUnitModal({
     setDeleteConfirmationId(null);
     setDeleteWorkoutConfirmationId(null);
     setChatSlotId(null);
+    setPlanSlotsDraft(null);
+    planSlotsDraftSourceIdRef.current = null;
     setWorkoutItemsDraft(null);
     setExerciseItemsDraft(null);
-  }, [
-    isEditingUnitInputs,
-    isOpen,
-    sourceUnitSnapshot,
-  ]);
+  }, [isOpen, isWeeklyPlanMode, sourceUnitSnapshot, unitId, weeklyPlan?.id]);
 
   useEffect(() => {
     if (activeWorkout) {
@@ -609,28 +682,39 @@ export function useEditUnitModal({
       const slot = planSlots.find((candidate) => candidate.id === slotId);
       if (!slot?.workout) return;
 
+      if (isGymMode && !studentId) {
+        toast.error("Aluno nao identificado");
+        return;
+      }
+
+      if (isLibraryMode && !weeklyPlan?.id) {
+        toast.error("Plano da biblioteca nao identificado");
+        return;
+      }
+
       setLoadingSlotId(slotId);
+      const previousPlanSlots = requiresLocalPlanSlotsDraft ? planSlots : null;
+
+      patchPlanSlotDraft(slotId, (currentSlot) => ({
+        ...currentSlot,
+        type: "rest",
+        workout: undefined,
+        completed: false,
+        completedAt: undefined,
+      }));
 
       try {
         if (isGymMode) {
-          if (!studentId) {
-            toast.error("Aluno nao identificado");
-            return;
-          }
-
+          const resolvedStudentId = studentId ?? "";
           await useStudentDetailStore.getState().deleteWorkout({
             scope: "gym",
-            studentId,
+            studentId: resolvedStudentId,
             workoutId: slot.workout.id,
           });
         } else if (isLibraryMode) {
-          if (!weeklyPlan?.id) {
-            toast.error("Plano da biblioteca nao identificado");
-            return;
-          }
-
+          const resolvedPlanId = weeklyPlan?.id ?? "";
           await useLibraryPlanStore.getState().deleteWorkout({
-            planId: weeklyPlan.id,
+            planId: resolvedPlanId,
             workoutId: slot.workout.id,
           });
         } else {
@@ -641,6 +725,9 @@ export function useEditUnitModal({
         onPlanUpdated?.();
         toast.success("Treino removido. O dia foi marcado como descanso.");
       } catch (error) {
+        if (previousPlanSlots) {
+          setPlanSlotsDraft(previousPlanSlots);
+        }
         log.error("Edit unit modal failed to remove workout from slot", {
           error,
           slotId,
@@ -660,7 +747,9 @@ export function useEditUnitModal({
       isLibraryMode,
       loadWeeklyPlan,
       onPlanUpdated,
+      patchPlanSlotDraft,
       planSlots,
+      requiresLocalPlanSlotsDraft,
       studentId,
       weeklyPlan?.id,
     ],
@@ -668,7 +757,39 @@ export function useEditUnitModal({
 
   const handleAddWorkoutToSlot = useCallback(
     async (slotId: string, dayName: string) => {
+      if (isGymMode && !studentId) {
+        toast.error("Aluno nao identificado");
+        return;
+      }
+
+      if (isLibraryMode && !weeklyPlan?.id) {
+        toast.error("Plano da biblioteca nao identificado");
+        return;
+      }
+
       setLoadingSlotId(slotId);
+      const previousPlanSlots = requiresLocalPlanSlotsDraft ? planSlots : null;
+      const tempWorkoutId = `temp-weekly-workout-${Date.now()}`;
+
+      patchPlanSlotDraft(slotId, (slot) => ({
+        ...slot,
+        type: "workout",
+        workout: {
+          id: tempWorkoutId,
+          title: `Treino ${dayName}`,
+          description: "",
+          type: "strength",
+          muscleGroup: "full-body" as unknown as MuscleGroup,
+          difficulty: "iniciante",
+          estimatedTime: 0,
+          xpReward: 50,
+          locked: false,
+          completed: false,
+          exercises: [],
+        },
+        completed: false,
+        completedAt: undefined,
+      }));
 
       try {
         const payload = {
@@ -681,30 +802,35 @@ export function useEditUnitModal({
           estimatedTime: 0,
         };
 
+        let createdWorkoutId: string | null = null;
+
         if (isGymMode) {
-          if (!studentId) {
-            toast.error("Aluno nao identificado");
-            return;
-          }
-
-          await useStudentDetailStore.getState().createWorkout({
-            scope: "gym",
-            studentId,
-            payload,
-          });
+          const resolvedStudentId = studentId ?? "";
+          createdWorkoutId = await useStudentDetailStore
+            .getState()
+            .createWorkout({
+              scope: "gym",
+              studentId: resolvedStudentId,
+              payload,
+            });
         } else if (isLibraryMode) {
-          if (!weeklyPlan?.id) {
-            toast.error("Plano da biblioteca nao identificado");
-            return;
-          }
-
-          await useLibraryPlanStore.getState().addWorkoutToSlot({
-            planId: weeklyPlan.id,
-            payload,
-          });
+          const resolvedPlanId = weeklyPlan?.id ?? "";
+          createdWorkoutId = await useLibraryPlanStore
+            .getState()
+            .addWorkoutToSlot({
+              planId: resolvedPlanId,
+              payload,
+            });
         } else {
-          await actions.addWeeklyPlanWorkout(payload);
+          createdWorkoutId = await actions.addWeeklyPlanWorkout(payload);
           await loadWeeklyPlan?.(true);
+        }
+
+        if (createdWorkoutId) {
+          patchWorkoutInPlanDraft(tempWorkoutId, (workout) => ({
+            ...workout,
+            id: createdWorkoutId,
+          }));
         }
 
         onPlanUpdated?.();
@@ -712,6 +838,9 @@ export function useEditUnitModal({
           "Treino adicionado. Adicione exercicios ou use o Chat IA.",
         );
       } catch (error) {
+        if (previousPlanSlots) {
+          setPlanSlotsDraft(previousPlanSlots);
+        }
         log.error("Edit unit modal failed to add workout to slot", {
           error,
           slotId,
@@ -731,6 +860,10 @@ export function useEditUnitModal({
       isLibraryMode,
       loadWeeklyPlan,
       onPlanUpdated,
+      patchPlanSlotDraft,
+      patchWorkoutInPlanDraft,
+      planSlots,
+      requiresLocalPlanSlotsDraft,
       studentId,
       weeklyPlan?.id,
     ],
@@ -936,8 +1069,6 @@ export function useEditUnitModal({
     setTitle,
     description,
     setDescription,
-    isEditingUnitInputs,
-    setIsEditingUnitInputs,
 
     workoutTitle,
     setWorkoutTitle,

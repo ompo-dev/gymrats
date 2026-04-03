@@ -1,6 +1,6 @@
 "use server";
 
-import { serverApiPost } from "@/lib/api/server";
+import { executeWebMutationAction } from "@/lib/actions/web-actions";
 import { getApiErrorMessage } from "@/lib/api/server-action-utils";
 import { validateOnboarding } from "./schemas";
 import type { OnboardingData } from "./steps/types";
@@ -72,9 +72,12 @@ export async function submitOnboarding(formData: OnboardingData) {
       };
     }
 
-    return await serverApiPost<{ success: boolean; error?: string }>(
-      "/api/students/onboarding",
-      normalizedData,
+    return await executeWebMutationAction<{ success: boolean; error?: string }>(
+      {
+        path: "/api/students/onboarding",
+        method: "POST",
+        body: normalizedData,
+      },
     );
   } catch (error) {
     console.error("Erro no onboarding:", error);

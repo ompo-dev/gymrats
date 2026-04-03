@@ -1,18 +1,22 @@
 "use server";
 
-import { serverApiPost } from "@/lib/api/server";
+import { executeWebMutationAction } from "@/lib/actions/web-actions";
 import { getApiErrorMessage } from "@/lib/api/server-action-utils";
 import type { GymOnboardingData } from "./steps/types";
 
 export async function submitNewGym(formData: GymOnboardingData) {
   try {
-    return await serverApiPost<{
+    return await executeWebMutationAction<{
       success: boolean;
       gymId?: string;
       error?: string;
-    }>("/api/gyms/onboarding", {
-      ...formData,
-      createAdditional: true,
+    }>({
+      path: "/api/gyms/onboarding",
+      method: "POST",
+      body: {
+        ...formData,
+        createAdditional: true,
+      },
     });
   } catch (error) {
     console.error("Erro ao criar nova academia:", error);
@@ -25,11 +29,15 @@ export async function submitNewGym(formData: GymOnboardingData) {
 
 export async function submitGymOnboarding(formData: GymOnboardingData) {
   try {
-    return await serverApiPost<{
+    return await executeWebMutationAction<{
       success: boolean;
       gymId?: string;
       error?: string;
-    }>("/api/gyms/onboarding", formData);
+    }>({
+      path: "/api/gyms/onboarding",
+      method: "POST",
+      body: formData,
+    });
   } catch (error) {
     console.error("Erro ao salvar perfil da academia:", error);
     return {

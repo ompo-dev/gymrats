@@ -1,16 +1,10 @@
 "use server";
 
 import {
-  serverApiDelete,
-  serverApiGet,
-  serverApiPatch,
-  serverApiPost,
-} from "@/lib/api/server";
-import {
-  buildApiPath,
-  getApiErrorMessage,
-  reviveDate,
-} from "@/lib/api/server-action-utils";
+  executeWebMutationAction,
+  executeWebReadAction,
+} from "@/lib/actions/web-actions";
+import { getApiErrorMessage, reviveDate } from "@/lib/api/server-action-utils";
 import { log } from "@/lib/observability/logger";
 import type {
   BoostCampaign,
@@ -37,6 +31,38 @@ export interface PersonalMembershipPlan {
   duration: number;
   benefits?: string[] | string | null;
   isActive: boolean;
+}
+
+type ActionQuery = Record<string, string | number | boolean | null | undefined>;
+
+async function readPersonalAction<T>(
+  path: string,
+  options?: {
+    query?: ActionQuery;
+    fresh?: boolean;
+  },
+) {
+  return executeWebReadAction<T>({
+    path,
+    query: options?.query,
+    fresh: options?.fresh,
+  });
+}
+
+async function mutatePersonalAction<T>(
+  method: "POST" | "PATCH" | "DELETE",
+  path: string,
+  options?: {
+    body?: unknown;
+    query?: ActionQuery;
+  },
+) {
+  return executeWebMutationAction<T>({
+    path,
+    method,
+    body: options?.body,
+    query: options?.query,
+  });
 }
 
 function revivePayments(payments: Payment[]): Payment[] {
@@ -90,7 +116,7 @@ function reviveSubscription(
 
 export async function getPersonalProfile(): Promise<PersonalProfile | null> {
   try {
-    const payload = await serverApiGet<{
+    const payload = await readPersonalAction<{
       personal: (PersonalProfile & { subscription?: unknown }) | null;
     }>("/api/personals");
 
@@ -121,7 +147,7 @@ export async function getPersonalAffiliations(): Promise<
   PersonalAffiliation[]
 > {
   try {
-    const payload = await serverApiGet<{
+    const payload = await readPersonalAction<{
       affiliations: Array<{
         id: string;
         gym: {
@@ -152,8 +178,9 @@ export async function getPersonalStudents(
   gymId?: string,
 ): Promise<StudentData[]> {
   try {
-    const payload = await serverApiGet<{ students: StudentData[] }>(
-      buildApiPath("/api/personals/students/student-data", { gymId }),
+    const payload = await readPersonalAction<{ students: StudentData[] }>(
+      "/api/personals/students/student-data",
+      { query: { gymId } },
     );
     return payload.students;
   } catch (error) {
@@ -166,7 +193,7 @@ export async function getPersonalStudentAssignments(
   gymId?: string,
 ): Promise<PersonalStudentAssignment[]> {
   try {
-    const payload = await serverApiGet<{
+    const payload = await readPersonalAction<{
       students: Array<{
         id: string;
         student: {
@@ -180,7 +207,7 @@ export async function getPersonalStudentAssignments(
         };
         gym?: { id: string; name: string } | null;
       }>;
-    }>(buildApiPath("/api/personals/students", { gymId }));
+    }>("/api/personals/students", { query: { gymId } });
 
     return payload.students.map((assignment) => ({
       id: assignment.id,
@@ -207,7 +234,7 @@ export async function getPersonalStudentById(
   studentId: string,
 ): Promise<StudentData | null> {
   try {
-    const payload = await serverApiGet<{ student: StudentData }>(
+    const payload = await readPersonalAction<{ student: StudentData }>(
       `/api/personals/students/${studentId}/student-data`,
     );
     return payload.student;
@@ -225,7 +252,7 @@ export async function getPersonalStudentPayments(
 
 export async function getPersonalFinancialSummary(): Promise<FinancialSummary | null> {
   try {
-    const payload = await serverApiGet<{
+    const payload = await readPersonalAction<{
       financialSummary: FinancialSummary | null;
     }>("/api/personals/financial-summary");
     return payload.financialSummary;
@@ -237,7 +264,7 @@ export async function getPersonalFinancialSummary(): Promise<FinancialSummary | 
 
 export async function getPersonalExpenses(): Promise<Expense[]> {
   try {
-    const payload = await serverApiGet<{ expenses: Expense[] }>(
+    const payload = await readPersonalAction<{ expenses: Expense[] }>(
       "/api/personals/expenses",
     );
     return reviveExpenses(payload.expenses);
@@ -249,7 +276,7 @@ export async function getPersonalExpenses(): Promise<Expense[]> {
 
 export async function getPersonalCoupons(): Promise<Coupon[]> {
   try {
-    const payload = await serverApiGet<{ coupons: Coupon[] }>(
+    const payload = await readPersonalAction<{ coupons: Coupon[] }>(
       "/api/personals/coupons",
     );
     return reviveCoupons(payload.coupons);
@@ -268,9 +295,10 @@ export async function createPersonalCoupon(data: {
   expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiPost<{ success: true }>(
+    return await mutatePersonalAction<{ success: true }>(
+      "POST",
       "/api/personals/coupons",
-      data,
+      { body: data },
     );
   } catch (error) {
     log.error("[createPersonalCoupon] Erro", { error, data });
@@ -283,7 +311,7 @@ export async function createPersonalCoupon(data: {
 
 export async function getPersonalPayments(): Promise<Payment[]> {
   try {
-    const payload = await serverApiGet<{ payments: Payment[] }>(
+    const payload = await readPersonalAction<{ payments: Payment[] }>(
       "/api/personals/payments",
     );
     return revivePayments(payload.payments);
@@ -297,8 +325,10 @@ export async function deletePersonalCoupon(
   couponId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiDelete<{ success: true }>(
-      buildApiPath("/api/personals/coupons", { couponId }),
+    return await mutatePersonalAction<{ success: true }>(
+      "DELETE",
+      "/api/personals/coupons",
+      { query: { couponId } },
     );
   } catch (error) {
     log.error("[deletePersonalCoupon] Erro", { error, couponId });
@@ -311,7 +341,7 @@ export async function deletePersonalCoupon(
 
 export async function getPersonalBoostCampaigns(): Promise<BoostCampaign[]> {
   try {
-    const payload = await serverApiGet<{ campaigns: BoostCampaign[] }>(
+    const payload = await readPersonalAction<{ campaigns: BoostCampaign[] }>(
       "/api/personals/boost-campaigns",
     );
     return reviveCampaigns(payload.campaigns);
@@ -332,7 +362,7 @@ export async function createPersonalBoostCampaign(data: {
   radiusKm?: number;
 }) {
   try {
-    return await serverApiPost<
+    return await mutatePersonalAction<
       | {
           success: true;
           brCode: string;
@@ -343,7 +373,7 @@ export async function createPersonalBoostCampaign(data: {
           expiresAt?: string;
         }
       | { success: false; error: string }
-    >("/api/personals/boost-campaigns", data);
+    >("POST", "/api/personals/boost-campaigns", { body: data });
   } catch (error) {
     log.error("[createPersonalBoostCampaign] Erro", { error, data });
     return {
@@ -357,8 +387,10 @@ export async function deletePersonalBoostCampaign(
   campaignId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiDelete<{ success: true }>(
-      buildApiPath("/api/personals/boost-campaigns", { campaignId }),
+    return await mutatePersonalAction<{ success: true }>(
+      "DELETE",
+      "/api/personals/boost-campaigns",
+      { query: { campaignId } },
     );
   } catch (error) {
     log.error("[deletePersonalBoostCampaign] Erro", { error, campaignId });
@@ -381,7 +413,7 @@ export async function getPersonalBoostCampaignPix(campaignId: string): Promise<
   | { success: false; error: string }
 > {
   try {
-    return await serverApiGet<
+    return await readPersonalAction<
       | {
           success: true;
           brCode: string;
@@ -391,7 +423,7 @@ export async function getPersonalBoostCampaignPix(campaignId: string): Promise<
           expiresAt?: string;
         }
       | { success: false; error: string }
-    >(`/api/personals/boost-campaigns/${campaignId}/pix`);
+    >(`/api/personals/boost-campaigns/${campaignId}/pix`, { fresh: true });
   } catch (error) {
     log.error("[getPersonalBoostCampaignPix] Erro", { error, campaignId });
     return {
@@ -405,9 +437,9 @@ export async function getPersonalMembershipPlans(): Promise<
   PersonalMembershipPlan[]
 > {
   try {
-    const payload = await serverApiGet<{ plans: PersonalMembershipPlan[] }>(
-      "/api/personals/membership-plans",
-    );
+    const payload = await readPersonalAction<{
+      plans: PersonalMembershipPlan[];
+    }>("/api/personals/membership-plans");
     return payload.plans;
   } catch (error) {
     log.error("[getPersonalMembershipPlans] Erro", { error });
@@ -418,9 +450,10 @@ export async function getPersonalMembershipPlans(): Promise<
 export async function createPersonalMembershipPlan(
   data: Omit<PersonalMembershipPlan, "id" | "isActive" | "personalId">,
 ) {
-  const payload = await serverApiPost<{ plan: PersonalMembershipPlan }>(
+  const payload = await mutatePersonalAction<{ plan: PersonalMembershipPlan }>(
+    "POST",
     "/api/personals/membership-plans",
-    data,
+    { body: data },
   );
   return payload.plan;
 }
@@ -429,22 +462,24 @@ export async function updatePersonalMembershipPlan(
   planId: string,
   data: Partial<Omit<PersonalMembershipPlan, "id" | "personalId">>,
 ) {
-  const payload = await serverApiPatch<{ plan: PersonalMembershipPlan }>(
+  const payload = await mutatePersonalAction<{ plan: PersonalMembershipPlan }>(
+    "PATCH",
     `/api/personals/membership-plans/${planId}`,
-    data,
+    { body: data },
   );
   return payload.plan;
 }
 
 export async function deletePersonalMembershipPlan(planId: string) {
-  await serverApiDelete<{ success: true }>(
+  await mutatePersonalAction<{ success: true }>(
+    "DELETE",
     `/api/personals/membership-plans/${planId}`,
   );
 }
 
 export async function getPersonalSubscription(): Promise<PersonalSubscriptionData | null> {
   try {
-    const payload = await serverApiGet<{
+    const payload = await readPersonalAction<{
       subscription: PersonalSubscriptionData | null;
     }>("/api/personals/subscription");
     return reviveSubscription(payload.subscription);

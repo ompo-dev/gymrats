@@ -1,6 +1,9 @@
 "use server";
 
-import { serverApiGet, serverApiPost } from "@/lib/api/server";
+import {
+  executeWebMutationAction,
+  executeWebReadAction,
+} from "@/lib/actions/web-actions";
 import { getApiErrorMessage, reviveDate } from "@/lib/api/server-action-utils";
 import { log } from "@/lib/observability/logger";
 import type { BoostCampaign, GymLocation } from "@/lib/types";
@@ -20,6 +23,18 @@ type StudentSubscriptionPayload = {
   subscription: Record<string, unknown> | null;
   isFirstPayment?: boolean;
 };
+
+async function readStudentAction<T>(path: string) {
+  return executeWebReadAction<T>({ path });
+}
+
+async function postStudentAction<T>(path: string, body?: unknown) {
+  return executeWebMutationAction<T>({
+    path,
+    method: "POST",
+    body,
+  });
+}
 
 function getNeutralProgress() {
   return {
@@ -79,7 +94,8 @@ function reviveSubscription(
 
 export async function getCurrentUserInfo() {
   try {
-    const payload = await serverApiGet<SessionPayload>("/api/auth/session");
+    const payload =
+      await readStudentAction<SessionPayload>("/api/auth/session");
 
     return {
       isAdmin: payload.user?.role === "ADMIN",
@@ -93,7 +109,7 @@ export async function getCurrentUserInfo() {
 
 export async function getStudentProfile() {
   try {
-    const payload = await serverApiGet<StudentProfilePayload>(
+    const payload = await readStudentAction<StudentProfilePayload>(
       "/api/students/profile",
     );
 
@@ -109,7 +125,7 @@ export async function getStudentProfile() {
 
 export async function getStudentProgress() {
   try {
-    return await serverApiGet<ReturnType<typeof getNeutralProgress>>(
+    return await readStudentAction<ReturnType<typeof getNeutralProgress>>(
       "/api/students/progress",
     );
   } catch (error) {
@@ -120,7 +136,7 @@ export async function getStudentProgress() {
 
 export async function getStudentUnits() {
   try {
-    const payload = await serverApiGet<{ units: unknown[] }>(
+    const payload = await readStudentAction<{ units: unknown[] }>(
       "/api/workouts/units",
     );
     return payload.units;
@@ -132,7 +148,7 @@ export async function getStudentUnits() {
 
 export async function getGymLocations(): Promise<GymLocation[]> {
   try {
-    const payload = await serverApiGet<{ gyms: GymLocation[] }>(
+    const payload = await readStudentAction<{ gyms: GymLocation[] }>(
       "/api/gyms/locations",
     );
     return payload.gyms;
@@ -144,7 +160,7 @@ export async function getGymLocations(): Promise<GymLocation[]> {
 
 export async function getActiveBoostCampaigns() {
   try {
-    const payload = await serverApiGet<{ campaigns: BoostCampaign[] }>(
+    const payload = await readStudentAction<{ campaigns: BoostCampaign[] }>(
       "/api/boost-campaigns/nearby",
     );
     return reviveCampaigns(payload.campaigns);
@@ -156,7 +172,7 @@ export async function getActiveBoostCampaigns() {
 
 export async function getStudentSubscription() {
   try {
-    const payload = await serverApiGet<StudentSubscriptionPayload>(
+    const payload = await readStudentAction<StudentSubscriptionPayload>(
       "/api/students/subscription",
     );
     return reviveSubscription(payload.subscription, payload.isFirstPayment);
@@ -168,7 +184,7 @@ export async function getStudentSubscription() {
 
 export async function startStudentTrial() {
   try {
-    const payload = await serverApiPost<{ message?: string }>(
+    const payload = await postStudentAction<{ message?: string }>(
       "/api/subscriptions/start-trial",
     );
     return { success: true, ...payload };
