@@ -49,6 +49,7 @@ export const STUDENT_HOME_BOOTSTRAP_SECTIONS =
 
 export const STUDENT_LEARN_BOOTSTRAP_SECTIONS = [
   "weeklyPlan",
+  "libraryPlans",
   "progress",
   "workoutHistory",
   "units",

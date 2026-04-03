@@ -164,7 +164,7 @@ export interface StudentUnifiedState {
   ) => Promise<StudentReferralApplyResult>;
 
   // === ACTIONS - LIBRARY ===
-  loadLibraryPlans: () => Promise<void>;
+  loadLibraryPlans: (force?: boolean) => Promise<void>;
   createLibraryPlan: (data: LibraryPlanPayload) => Promise<string>;
   updateLibraryPlan: (
     planId: string,
@@ -467,7 +467,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           return;
         }
 
-        const section = await loadSection("units");
+        const section = await loadSection("units", force);
         set((state) => ({
           data: {
             ...state.data,
@@ -483,7 +483,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           return;
         }
 
-        // force=true: bypassa deduplicação para garantir dados frescos (ex: após week-reset)
+        // force=true: limpa o dedupe local antes de recarregar pelas tags do cache
         const section = await loadSection("weeklyPlan", force);
         set((state) => ({
           data: {
@@ -658,8 +658,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       // === ACTIONS - LIBRARY ===
-      loadLibraryPlans: async () => {
-        const section = await loadSection("libraryPlans", true);
+      loadLibraryPlans: async (force = false) => {
+        const section = await loadSection("libraryPlans", force);
         set((state) => ({
           data: {
             ...state.data,
@@ -672,19 +672,19 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         const response = await apiClient.post<{
           data?: { id?: string };
         }>("/api/workouts/library", data);
-        await get().loadLibraryPlans();
+        await get().loadLibraryPlans(true);
         const apiData = response.data.data;
         return apiData?.id || "";
       },
 
       updateLibraryPlan: async (planId: string, data: LibraryPlanPayload) => {
         await apiClient.put(`/api/workouts/library/${planId}`, data);
-        await get().loadLibraryPlans();
+        await get().loadLibraryPlans(true);
       },
 
       deleteLibraryPlan: async (planId: string) => {
         await apiClient.delete(`/api/workouts/library/${planId}`);
-        await get().loadLibraryPlans();
+        await get().loadLibraryPlans(true);
       },
 
       activateLibraryPlan: async (planId: string) => {

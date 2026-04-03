@@ -23,7 +23,7 @@ export function TrainingLibraryModal() {
     "weeklyPlan",
   ) as unknown as WeeklyPlanData | null;
   const actions = useStudent("actions");
-  const { loadLibraryPlans, loadWeeklyPlan } = useStudent("loaders");
+  const { loadLibraryPlans } = useStudent("loaders");
 
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export function TrainingLibraryModal() {
   const loadPlanDetail = async (planId: string) => {
     const response = await apiClient.get<{
       data?: WeeklyPlanData | null;
-    }>(`/api/workouts/library/${planId}?fresh=1`);
+    }>(`/api/workouts/library/${planId}`);
     return response.data.data ?? null;
   };
 
@@ -103,7 +103,6 @@ export function TrainingLibraryModal() {
         title: "Novo Plano Semanal",
         isLibraryTemplate: true,
       });
-      await loadLibraryPlans();
       const newPlan = planId ? await loadPlanDetail(planId) : null;
       if (!newPlan?.id) {
         toast.error("Plano criado, mas nao foi possivel abrir a edicao.");
@@ -338,11 +337,10 @@ export function TrainingLibraryModal() {
             const editedPlanId = editingPlan.id;
             setEditingPlan(null);
             void (async () => {
-              await loadLibraryPlans();
+              await loadLibraryPlans(true);
               if (activeSourcePlanId === editedPlanId) {
                 try {
                   await actions.activateLibraryPlan(editedPlanId);
-                  await loadWeeklyPlan(true);
                 } catch (error) {
                   console.error(
                     "[TrainingLibraryModal] erro ao sincronizar plano ativo:",

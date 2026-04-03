@@ -376,9 +376,14 @@ async function loadStudentBootstrap(
 
 export async function loadSection(
   section: StudentDataSection,
-  forceRefresh = false,
+  options: boolean | { force?: boolean; fresh?: boolean } = false,
 ): Promise<Partial<StudentData>> {
-  if (forceRefresh) {
+  const normalizedOptions =
+    typeof options === "boolean" ? { force: options } : options;
+  const forceReload = normalizedOptions.force ?? false;
+  const bypassCache = normalizedOptions.fresh ?? false;
+
+  if (forceReload) {
     loadingSections.delete(section);
     loadingPromises.delete(section);
   }
@@ -391,14 +396,12 @@ export async function loadSection(
   const loadPromise = (async () => {
     try {
       if (!route) return {};
-      const requestUrl = forceRefresh
-        ? `${route}${route.includes("?") ? "&" : "?"}fresh=1`
-        : route;
       const response = await apiClient
         .get<Record<string, string | number | boolean | object | null>>(
-          requestUrl,
+          route,
           {
             timeout: 30000,
+            ...(bypassCache ? { fresh: true } : {}),
           },
         )
         .catch(
