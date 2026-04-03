@@ -143,7 +143,13 @@ function GymSettingsTab() {
   );
 
   if (!profile) {
-    return null;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-pulse text-sm text-duo-gray-dark">
+          Carregando configurações...
+        </div>
+      </div>
+    );
   }
 
   return <GymSettingsPage profile={profile} plans={plans} />;

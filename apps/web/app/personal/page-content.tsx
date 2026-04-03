@@ -178,6 +178,16 @@ function PersonalSettingsTab({
     "membershipPlans",
   );
 
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-pulse text-sm text-duo-gray-dark">
+          Carregando configurações...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <PersonalSettingsPageContent
       profile={profile}

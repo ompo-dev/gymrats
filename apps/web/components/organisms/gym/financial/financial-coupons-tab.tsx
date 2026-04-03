@@ -16,14 +16,31 @@ interface FinancialCouponsTabProps {
   variant?: "gym" | "personal";
 }
 
-export function FinancialCouponsTab({
-  coupons = [],
-  variant = "gym",
-}: FinancialCouponsTabProps) {
+interface FinancialCouponsStoreSlice {
+  coupons: Coupon[];
+  actions: {
+    createCoupon: (payload: {
+      code: string;
+      notes: string;
+      discountKind: "PERCENTAGE" | "FIXED";
+      discount: number;
+      maxRedeems?: number;
+      expiresAt: Date | null;
+    }) => Promise<unknown>;
+    deleteCoupon: (couponId: string) => Promise<unknown>;
+  };
+}
+
+interface FinancialCouponsTabContentProps {
+  coupons: Coupon[];
+  selectedStore: FinancialCouponsStoreSlice;
+}
+
+function FinancialCouponsTabContent({
+  coupons,
+  selectedStore,
+}: FinancialCouponsTabContentProps) {
   const { toast } = useToast();
-  const gymData = useGym("coupons", "actions");
-  const personalData = usePersonal("coupons", "actions");
-  const selectedStore = variant === "personal" ? personalData : gymData;
   const [hasHydratedCoupons, setHasHydratedCoupons] = useState(
     coupons.length === 0,
   );
@@ -46,10 +63,13 @@ export function FinancialCouponsTab({
   >(null);
 
   useEffect(() => {
-    if (selectedStore.coupons.length > 0 || coupons.length === 0) {
+    if (
+      !hasHydratedCoupons &&
+      (selectedStore.coupons.length > 0 || coupons.length === 0)
+    ) {
       setHasHydratedCoupons(true);
     }
-  }, [coupons.length, selectedStore.coupons.length]);
+  }, [coupons.length, hasHydratedCoupons, selectedStore.coupons.length]);
 
   const handleDiscountChange = useCallback(
     (value: string) => {
@@ -363,5 +383,39 @@ export function FinancialCouponsTab({
         message="Deseja excluir este cupom? Esta ação não pode ser desfeita."
       />
     </>
+  );
+}
+
+function GymCouponsContent({ coupons }: { coupons: Coupon[] }) {
+  const selectedStore = useGym("coupons", "actions") as FinancialCouponsStoreSlice;
+  return (
+    <FinancialCouponsTabContent
+      coupons={coupons}
+      selectedStore={selectedStore}
+    />
+  );
+}
+
+function PersonalCouponsContent({ coupons }: { coupons: Coupon[] }) {
+  const selectedStore = usePersonal(
+    "coupons",
+    "actions",
+  ) as FinancialCouponsStoreSlice;
+  return (
+    <FinancialCouponsTabContent
+      coupons={coupons}
+      selectedStore={selectedStore}
+    />
+  );
+}
+
+export function FinancialCouponsTab({
+  coupons = [],
+  variant = "gym",
+}: FinancialCouponsTabProps) {
+  return variant === "personal" ? (
+    <PersonalCouponsContent coupons={coupons} />
+  ) : (
+    <GymCouponsContent coupons={coupons} />
   );
 }

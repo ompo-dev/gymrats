@@ -30,6 +30,49 @@ interface FinancialAdsTabProps {
   variant?: "gym" | "personal";
 }
 
+interface FinancialAdsStoreSlice {
+  campaigns: BoostCampaign[];
+  coupons: Coupon[];
+  membershipPlans: BoostCampaignPlanOption[];
+  actions: {
+    createBoostCampaign: (payload: {
+      title: string;
+      description: string;
+      primaryColor: string;
+      linkedCouponId: string | null;
+      linkedPlanId: string | null;
+      durationHours: number;
+      amountCents: number;
+      radiusKm: number;
+    }) => Promise<{
+      brCode: string;
+      brCodeBase64?: string;
+      amount?: number;
+      campaignId?: string;
+      expiresAt?: string;
+    }>;
+    getBoostCampaignPix: (campaignId: string) => Promise<{
+      brCode: string;
+      brCodeBase64: string;
+      amount: number;
+      expiresAt?: string;
+    }>;
+    deleteBoostCampaign: (campaignId: string) => Promise<void>;
+    checkBoostCampaignActive: (campaignId: string) => Promise<boolean>;
+  };
+  loaders: {
+    loadSection: (section: string, force?: boolean) => Promise<unknown>;
+  };
+}
+
+interface FinancialAdsTabContentProps {
+  campaigns: BoostCampaign[];
+  coupons: Coupon[];
+  plans: BoostCampaignPlanOption[];
+  selectedStore: FinancialAdsStoreSlice;
+  variant: "gym" | "personal";
+}
+
 interface PixModalState {
   brCode: string;
   brCodeBase64: string;
@@ -93,29 +136,14 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   },
 };
 
-export function FinancialAdsTab({
-  campaigns = [],
-  coupons = [],
-  plans = [],
-  variant = "gym",
-}: FinancialAdsTabProps) {
+function FinancialAdsTabContent({
+  campaigns,
+  coupons,
+  plans,
+  selectedStore,
+  variant,
+}: FinancialAdsTabContentProps) {
   const { toast } = useToast();
-  const gymData = useGym(
-    "campaigns",
-    "coupons",
-    "membershipPlans",
-    "actions",
-    "loaders",
-  );
-  const personalData = usePersonal(
-    "campaigns",
-    "coupons",
-    "membershipPlans",
-    "actions",
-    "loaders",
-  );
-  const selectedStore = variant === "personal" ? personalData : gymData;
-  const actions = selectedStore.actions;
   const [hasHydratedCampaigns, setHasHydratedCampaigns] = useState(
     campaigns.length === 0,
   );
@@ -128,24 +156,34 @@ export function FinancialAdsTab({
     : campaigns;
   const couponsList = hasHydratedCoupons ? selectedStore.coupons : coupons;
   const plansList = hasHydratedPlans ? selectedStore.membershipPlans : plans;
+  const actions = selectedStore.actions;
 
   useEffect(() => {
-    if (selectedStore.campaigns.length > 0 || campaigns.length === 0) {
+    if (
+      !hasHydratedCampaigns &&
+      (selectedStore.campaigns.length > 0 || campaigns.length === 0)
+    ) {
       setHasHydratedCampaigns(true);
     }
-  }, [campaigns.length, selectedStore.campaigns.length]);
+  }, [campaigns.length, hasHydratedCampaigns, selectedStore.campaigns.length]);
 
   useEffect(() => {
-    if (selectedStore.coupons.length > 0 || coupons.length === 0) {
+    if (
+      !hasHydratedCoupons &&
+      (selectedStore.coupons.length > 0 || coupons.length === 0)
+    ) {
       setHasHydratedCoupons(true);
     }
-  }, [coupons.length, selectedStore.coupons.length]);
+  }, [coupons.length, hasHydratedCoupons, selectedStore.coupons.length]);
 
   useEffect(() => {
-    if (selectedStore.membershipPlans.length > 0 || plans.length === 0) {
+    if (
+      !hasHydratedPlans &&
+      (selectedStore.membershipPlans.length > 0 || plans.length === 0)
+    ) {
       setHasHydratedPlans(true);
     }
-  }, [plans.length, selectedStore.membershipPlans.length]);
+  }, [hasHydratedPlans, plans.length, selectedStore.membershipPlans.length]);
 
   // creation modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -758,5 +796,66 @@ export function FinancialAdsTab({
         />
       )}
     </>
+  );
+}
+
+function GymAdsContent({
+  campaigns,
+  coupons,
+  plans,
+}: Omit<FinancialAdsTabProps, "variant">) {
+  const selectedStore = useGym(
+    "campaigns",
+    "coupons",
+    "membershipPlans",
+    "actions",
+    "loaders",
+  ) as FinancialAdsStoreSlice;
+
+  return (
+    <FinancialAdsTabContent
+      campaigns={campaigns ?? []}
+      coupons={coupons ?? []}
+      plans={plans ?? []}
+      selectedStore={selectedStore}
+      variant="gym"
+    />
+  );
+}
+
+function PersonalAdsContent({
+  campaigns,
+  coupons,
+  plans,
+}: Omit<FinancialAdsTabProps, "variant">) {
+  const selectedStore = usePersonal(
+    "campaigns",
+    "coupons",
+    "membershipPlans",
+    "actions",
+    "loaders",
+  ) as FinancialAdsStoreSlice;
+
+  return (
+    <FinancialAdsTabContent
+      campaigns={campaigns ?? []}
+      coupons={coupons ?? []}
+      plans={plans ?? []}
+      selectedStore={selectedStore}
+      variant="personal"
+    />
+  );
+}
+
+export function FinancialAdsTab({
+  campaigns = [],
+  coupons = [],
+  plans = [],
+  variant = "gym",
+}: FinancialAdsTabProps) {
+  return variant === "personal" ? (
+    <PersonalAdsContent campaigns={campaigns} coupons={coupons} plans={plans} />
+  ) : (
+    <GymAdsContent campaigns={campaigns} coupons={coupons} plans={plans} />
   );
 }

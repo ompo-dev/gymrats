@@ -190,9 +190,14 @@ function SubscriptionSectionSimple({
 
   // Inicializar estado baseado na subscription atual
   const prevSubscriptionId = useRef<string | null>(null);
+  const plansRef = useRef(plans);
 
   useEffect(() => {
-    if (plans.length > 0) {
+    plansRef.current = plans;
+  }, [plans]);
+
+  useEffect(() => {
+    if (plansRef.current.length > 0) {
       // Apenas re-inicializar se a assinatura mudou de verdade (ID ou plano base)
       const subId = subscription?.id || "no-subscription";
       const subPlan = subscription?.plan || "free";
@@ -202,7 +207,7 @@ function SubscriptionSectionSimple({
       if (prevSubscriptionId.current !== checkKey) {
         console.log("[Subscription] Re-inicializando UI Store:", checkKey);
         initializeFromSubscription(
-          plans,
+          plansRef.current,
           subscription?.plan,
           subscription?.billingPeriod,
           userType,
@@ -211,7 +216,6 @@ function SubscriptionSectionSimple({
       }
     }
   }, [
-    plans,
     subscription?.id,
     subscription?.plan,
     subscription?.billingPeriod,
