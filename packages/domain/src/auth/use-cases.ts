@@ -129,7 +129,7 @@ export async function signUpUseCase(
 
 export interface UpdateRoleInput {
   userId: string;
-  role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
+  role: "STUDENT" | "GYM" | "PERSONAL";
   userType?: "student" | "gym" | "personal";
 }
 
@@ -137,7 +137,7 @@ export interface UpdateRoleDeps {
   findUserById: (userId: string) => Promise<UserSummary | null>;
   updateUserRole: (
     userId: string,
-    role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN",
+    role: "STUDENT" | "GYM" | "PERSONAL",
   ) => Promise<UserSummary>;
   findStudentByUserId: (userId: string) => Promise<{ id: string } | null>;
   createStudent: (userId: string) => Promise<void>;
@@ -266,9 +266,7 @@ export async function forgotPasswordUseCase(
         name: user.name,
         code,
       });
-    } catch (emailError) {
-      console.error("Erro ao enviar email de recuperacao:", emailError);
-    }
+    } catch {}
   }
 
   return ok({
@@ -501,11 +499,7 @@ export async function getSessionUseCase(
         });
       }
     }
-  } catch (_betterAuthError) {
-    console.log(
-      "[session] Better Auth nao encontrou sessao, tentando metodo antigo",
-    );
-  }
+  } catch {}
 
   if (!legacyToken) {
     return fail("Token nao fornecido", 401);
@@ -538,9 +532,7 @@ export async function signOutUseCase(
   try {
     await deps.signOutBetterAuth(input.headers);
     return ok({ success: true, shouldClearCookies: true });
-  } catch (_betterAuthError) {
-    console.log("[sign-out] Better Auth logout falhou, tentando metodo antigo");
-  }
+  } catch {}
 
   const sessionToken =
     input.authHeaderToken ||

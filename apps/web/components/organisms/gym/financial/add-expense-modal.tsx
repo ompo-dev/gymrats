@@ -34,15 +34,31 @@ interface AddExpenseModalProps {
   variant?: "gym" | "personal";
 }
 
-export function AddExpenseModal({
+type ExpenseActions = {
+  createExpense: (data: {
+    type: string;
+    description?: string | null;
+    amount: number;
+    date?: string | null;
+    category?: string | null;
+  }) => Promise<void>;
+};
+
+interface AddExpenseModalContentProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void | Promise<void>;
+  variant: "gym" | "personal";
+  actions: ExpenseActions;
+}
+
+function AddExpenseModalContent({
   isOpen,
   onClose,
   onSuccess,
-  variant = "gym",
-}: AddExpenseModalProps) {
-  const gymActions = useGym("actions");
-  const personalActions = usePersonal("actions");
-  const actions = variant === "personal" ? personalActions : gymActions;
+  variant,
+  actions,
+}: AddExpenseModalContentProps) {
   const [form, setForm] = useState({
     type: "other" as (typeof EXPENSE_TYPES)[number]["value"],
     description: "",
@@ -179,5 +195,28 @@ export function AddExpenseModal({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function GymAddExpenseModal(props: Omit<AddExpenseModalProps, "variant">) {
+  const actions = useGym("actions");
+  return <AddExpenseModalContent {...props} variant="gym" actions={actions} />;
+}
+
+function PersonalAddExpenseModal(props: Omit<AddExpenseModalProps, "variant">) {
+  const actions = usePersonal("actions");
+  return (
+    <AddExpenseModalContent {...props} variant="personal" actions={actions} />
+  );
+}
+
+export function AddExpenseModal({
+  variant = "gym",
+  ...props
+}: AddExpenseModalProps) {
+  return variant === "personal" ? (
+    <PersonalAddExpenseModal {...props} />
+  ) : (
+    <GymAddExpenseModal {...props} />
   );
 }

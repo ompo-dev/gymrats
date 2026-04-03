@@ -1,0 +1,53 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - feat-performance
+
+jobs:
+  security-gates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate --schema packages/db/prisma/schema.prisma
+
+      - name: Route auth compliance
+        run: pnpm run audit:routes:auth
+
+      - name: Server console compliance
+        run: pnpm run audit:console:server
+
+      - name: API typecheck
+        run: pnpm run typecheck:api
+
+      - name: Web typecheck
+        run: pnpm run typecheck:web
+
+      - name: Unit tests
+        run: pnpm run test:unit
+
+      - name: Security audit
+        run: pnpm audit --audit-level=high

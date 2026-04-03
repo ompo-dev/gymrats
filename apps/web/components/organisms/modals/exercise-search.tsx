@@ -2,11 +2,19 @@
 
 import { ArrowLeft, Minus, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { muscleDatabase } from "@/lib/educational-data/muscles";
+import { log } from "@/lib/observability/logger";
 import type { MuscleInfo, UserProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useCatalogSearchStore } from "@/stores/catalog-search-store";
@@ -96,7 +104,6 @@ function ExerciseSearchSimple({
   const storeProfile = useStudent("profile");
   const profile = apiMode === "gym" ? profileOverride : storeProfile;
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedMuscle, setSelectedMuscle] = useState<string>("");
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
@@ -110,6 +117,7 @@ function ExerciseSearchSimple({
   const [viewMode, setViewMode] = useState<"main" | "subcategory">("main");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollLockRef = useRef(false);
 
   // Obter músculos de um grupo específico
   const musclesByGroup = useMemo(() => {
@@ -117,13 +125,12 @@ function ExerciseSearchSimple({
     return muscleDatabase.filter((muscle) => muscle.group === selectedGroup);
   }, [selectedGroup]);
 
-  // Debounce da busca
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [query]);
+  const deferredQuery = useDeferredValue(query);
+  const normalizedQuery = useMemo(() => deferredQuery.trim(), [deferredQuery]);
+  const selectedExerciseIdSet = useMemo(
+    () => new Set(selectedExerciseIds),
+    [selectedExerciseIds],
+  );
 
   const isFetchingRef = useRef(false);
   const fetchIdRef = useRef(0);
@@ -133,7 +140,8 @@ function ExerciseSearchSimple({
     setCurrentPage(0);
     setExercises([]);
     setHasMore(true);
-  }, []);
+    scrollLockRef.current = false;
+  }, [normalizedQuery, selectedCategory, selectedMuscle]);
 
   // Quando uma categoria principal é selecionada, mudar para view de subcategorias
   const handleCategorySelect = (categoryValue: string) => {
@@ -180,25 +188,11 @@ function ExerciseSearchSimple({
           setIsLoadingMore(true);
         }
 
-        const params = new URLSearchParams();
-        if (debouncedQuery.trim()) {
-          params.append("q", debouncedQuery.trim());
-        }
-        // Se um músculo específico foi selecionado, usar ele; senão usar a categoria
-        if (selectedMuscle) {
-          params.append("muscle", selectedMuscle);
-        } else if (selectedCategory) {
-          params.append("muscle", selectedCategory);
-        }
-        params.append("limit", ITEMS_PER_PAGE.toString());
-        params.append("offset", (page * ITEMS_PER_PAGE).toString());
-
         const response = await useCatalogSearchStore.getState().loadExercises({
-          query: debouncedQuery.trim() || undefined,
+          query: normalizedQuery || undefined,
           muscle: selectedMuscle || selectedCategory || undefined,
           limit: ITEMS_PER_PAGE,
           offset: page * ITEMS_PER_PAGE,
-          force: true,
         });
 
         const newExercises = response.items || [];
@@ -217,18 +211,25 @@ function ExerciseSearchSimple({
         setHasMore(newExercises.length === ITEMS_PER_PAGE);
       } catch (error) {
         if (id !== fetchIdRef.current) return;
-        console.error("[ExerciseSearch] Erro ao buscar exercícios:", error);
+        log.error("[ExerciseSearch] Erro ao buscar exercicios", {
+          error,
+          page,
+          query: normalizedQuery,
+          category: selectedCategory,
+          muscle: selectedMuscle,
+        });
         if (page === 0) {
           setExercises([]);
         }
         setHasMore(false);
       } finally {
         if (id === fetchIdRef.current) isFetchingRef.current = false;
+        scrollLockRef.current = false;
         setIsLoading(false);
         setIsLoadingMore(false);
       }
     },
-    [debouncedQuery, selectedCategory, selectedMuscle],
+    [normalizedQuery, selectedCategory, selectedMuscle],
   );
 
   // Carregar primeira página quando query, categoria ou músculo mudar
@@ -250,19 +251,17 @@ function ExerciseSearchSimple({
     const container = scrollContainerRef.current;
     if (!container || !hasMore || isLoadingMore || isLoading) return;
 
-    let isFetching = false;
-
     const handleScroll = () => {
-      if (isFetching) return;
+      if (scrollLockRef.current || isFetchingRef.current) return;
 
       const { scrollTop, scrollHeight, clientHeight } = container;
       // Carregar mais quando estiver a 200px do final
       if (scrollHeight - scrollTop - clientHeight < 200) {
-        isFetching = true;
+        scrollLockRef.current = true;
         setCurrentPage((prev) => prev + 1);
         // O useEffect acima vai chamar fetchExercises quando currentPage mudar
-        setTimeout(() => {
-          isFetching = false;
+        window.setTimeout(() => {
+          scrollLockRef.current = false;
         }, 1000); // Prevenir múltiplas chamadas rápidas
       }
     };
@@ -270,6 +269,13 @@ function ExerciseSearchSimple({
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
   }, [hasMore, isLoadingMore, isLoading]);
+
+  const resolveExercise = useCallback(
+    (exerciseId: string) =>
+      exercises.find((exercise) => exercise.id === exerciseId) ??
+      exercisesCacheRef.current.get(exerciseId),
+    [exercises],
+  );
 
   const _defaultSets = profile?.preferredSets || 3;
   const _defaultReps = (() => {
@@ -305,9 +311,7 @@ function ExerciseSearchSimple({
     const exercisesToAdd = selectedExerciseIds
       .map((exerciseId) => {
         // Primeiro tenta no array atual, depois no cache
-        const exercise =
-          exercises.find((e) => e.id === exerciseId) ||
-          exercisesCacheRef.current.get(exerciseId);
+        const exercise = resolveExercise(exerciseId);
         if (!exercise) return null;
         return exercise;
       })
@@ -339,7 +343,12 @@ function ExerciseSearchSimple({
 
       return addPromise.catch((e: Error) => {
         // Tratar erros em background (não bloqueia UI)
-        console.error("Erro ao adicionar exercício:", e);
+        log.error("Erro ao adicionar exercicio", {
+          error: e,
+          workoutId,
+          exerciseId: ex.id,
+          mode: apiMode,
+        });
         const err = e as {
           message?: string;
           response?: { data?: { message?: string } };
@@ -476,9 +485,9 @@ function ExerciseSearchSimple({
         ) : exercises.length === 0 ? (
           <EmptyState.Simple
             message={
-              debouncedQuery || selectedCategory || selectedMuscle
+              normalizedQuery || selectedCategory || selectedMuscle
                 ? `Nenhum exercício encontrado${
-                    debouncedQuery ? ` para "${debouncedQuery}"` : ""
+                    normalizedQuery ? ` para "${normalizedQuery}"` : ""
                   }${
                     selectedMuscle
                       ? ` no músculo "${selectedMuscle}"`
@@ -496,7 +505,7 @@ function ExerciseSearchSimple({
           <>
             <div className="space-y-3">
               {exercises.map((ex, idx) => {
-                const isSelected = selectedExerciseIds.includes(ex.id);
+                const isSelected = selectedExerciseIdSet.has(ex.id);
                 return (
                   <motion.div
                     key={`${ex.id}-${idx}`}
@@ -643,9 +652,7 @@ function ExerciseSearchSimple({
               >
                 <AnimatePresence>
                   {selectedExerciseIds.map((exerciseId, index) => {
-                    const exercise =
-                      exercises.find((e) => e.id === exerciseId) ||
-                      exercisesCacheRef.current.get(exerciseId);
+                    const exercise = resolveExercise(exerciseId);
                     if (!exercise) return null;
                     return (
                       <motion.div

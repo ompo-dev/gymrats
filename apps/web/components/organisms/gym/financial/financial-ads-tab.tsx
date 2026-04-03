@@ -10,13 +10,9 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import {
-  useInvalidateGymBootstrap,
-  useInvalidatePersonalBootstrap,
-} from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +28,49 @@ interface FinancialAdsTabProps {
   coupons?: Coupon[];
   plans?: BoostCampaignPlanOption[];
   variant?: "gym" | "personal";
+}
+
+interface FinancialAdsStoreSlice {
+  createBoostCampaign: (payload: {
+    title: string;
+    description: string;
+    primaryColor: string;
+    linkedCouponId: string | null;
+    linkedPlanId: string | null;
+    durationHours: number;
+    amountCents: number;
+    radiusKm: number;
+  }) => Promise<{
+    brCode: string;
+    brCodeBase64?: string;
+    amount?: number;
+    campaignId?: string;
+    expiresAt?: string;
+  }>;
+  getBoostCampaignPix: (campaignId: string) => Promise<{
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    expiresAt?: string;
+  }>;
+  deleteBoostCampaign: (campaignId: string) => Promise<void>;
+  checkBoostCampaignActive: (campaignId: string) => Promise<boolean>;
+}
+
+interface FinancialAdsLoaders {
+  loadSection: (section: string, force?: boolean) => Promise<unknown>;
+}
+
+interface FinancialAdsTabContentProps {
+  campaigns: BoostCampaign[];
+  coupons: Coupon[];
+  plans: BoostCampaignPlanOption[];
+  storeCampaigns: BoostCampaign[];
+  storeCoupons: Coupon[];
+  storePlans: BoostCampaignPlanOption[];
+  actions: FinancialAdsStoreSlice;
+  loaders: FinancialAdsLoaders;
+  variant: "gym" | "personal";
 }
 
 interface PixModalState {
@@ -97,32 +136,55 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   },
 };
 
-export function FinancialAdsTab({
-  campaigns = [],
-  coupons = [],
-  plans = [],
-  variant = "gym",
-}: FinancialAdsTabProps) {
+function FinancialAdsTabContent({
+  campaigns,
+  coupons,
+  plans,
+  storeCampaigns,
+  storeCoupons,
+  storePlans,
+  actions,
+  loaders,
+  variant,
+}: FinancialAdsTabContentProps) {
   const { toast } = useToast();
-  const gymData = useGym("campaigns", "coupons", "membershipPlans", "actions");
-  const personalData = usePersonal(
-    "campaigns",
-    "coupons",
-    "membershipPlans",
-    "actions",
+  const [hasHydratedCampaigns, setHasHydratedCampaigns] = useState(
+    campaigns.length === 0,
   );
-  const selectedStore = variant === "personal" ? personalData : gymData;
-  const actions = selectedStore.actions;
-  const invalidateGymBootstrap = useInvalidateGymBootstrap();
-  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
-  const refreshBootstrap =
-    variant === "personal"
-      ? invalidatePersonalBootstrap
-      : invalidateGymBootstrap;
-  const campaignsList =
-    campaigns.length > 0 ? campaigns : selectedStore.campaigns;
-  const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
-  const plansList = plans.length > 0 ? plans : selectedStore.membershipPlans;
+  const [hasHydratedCoupons, setHasHydratedCoupons] = useState(
+    coupons.length === 0,
+  );
+  const [hasHydratedPlans, setHasHydratedPlans] = useState(plans.length === 0);
+  const campaignsList = hasHydratedCampaigns ? storeCampaigns : campaigns;
+  const couponsList = hasHydratedCoupons ? storeCoupons : coupons;
+  const plansList = hasHydratedPlans ? storePlans : plans;
+
+  useEffect(() => {
+    if (
+      !hasHydratedCampaigns &&
+      (storeCampaigns.length > 0 || campaigns.length === 0)
+    ) {
+      setHasHydratedCampaigns(true);
+    }
+  }, [campaigns.length, hasHydratedCampaigns, storeCampaigns.length]);
+
+  useEffect(() => {
+    if (
+      !hasHydratedCoupons &&
+      (storeCoupons.length > 0 || coupons.length === 0)
+    ) {
+      setHasHydratedCoupons(true);
+    }
+  }, [coupons.length, hasHydratedCoupons, storeCoupons.length]);
+
+  useEffect(() => {
+    if (
+      !hasHydratedPlans &&
+      (storePlans.length > 0 || plans.length === 0)
+    ) {
+      setHasHydratedPlans(true);
+    }
+  }, [hasHydratedPlans, plans.length, storePlans.length]);
 
   // creation modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -167,6 +229,10 @@ export function FinancialAdsTab({
       ? campaignsList
       : campaignsList.filter((c) => c.status === statusFilter);
 
+  const refreshCampaigns = async () => {
+    await loaders.loadSection("campaigns", true);
+  };
+
   const handleCreate = async () => {
     if (!title.trim() || !description.trim()) {
       toast({ variant: "destructive", title: "Preencha todos os campos." });
@@ -184,7 +250,6 @@ export function FinancialAdsTab({
         amountCents: totalPrice * 100,
         radiusKm,
       });
-      await refreshBootstrap();
       setModalOpen(false);
       setPixModal({
         brCode: result.brCode,
@@ -237,7 +302,6 @@ export function FinancialAdsTab({
     setDeletingId(campaignId);
     try {
       await actions.deleteBoostCampaign(campaignId);
-      await refreshBootstrap();
       toast({ title: "Campanha excluída." });
       setConfirmDeleteId(null);
     } catch (error) {
@@ -712,19 +776,17 @@ export function FinancialAdsTab({
               : `/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`
           }
           onSimulateSuccess={async () => {
-            await refreshBootstrap();
+            await refreshCampaigns();
           }}
           pollConfig={{
             type: "check",
             check: async () => {
-              return selectedStore.actions.checkBoostCampaignActive(
-                pixModal.campaignId,
-              );
+              return actions.checkBoostCampaignActive(pixModal.campaignId);
             },
           }}
           onPaymentConfirmed={() => {
             setPixModal(null);
-            void refreshBootstrap();
+            void refreshCampaigns();
           }}
           paymentConfirmedToast={{
             title: "Campanha ativada!",
@@ -733,5 +795,72 @@ export function FinancialAdsTab({
         />
       )}
     </>
+  );
+}
+
+function GymAdsContent({
+  campaigns,
+  coupons,
+  plans,
+}: Omit<FinancialAdsTabProps, "variant">) {
+  const storeCampaigns = useGym("campaigns");
+  const storeCoupons = useGym("coupons");
+  const storePlans = useGym("membershipPlans") as BoostCampaignPlanOption[];
+  const actions = useGym("actions") as FinancialAdsStoreSlice;
+  const loaders = useGym("loaders") as FinancialAdsLoaders;
+
+  return (
+    <FinancialAdsTabContent
+      campaigns={campaigns ?? []}
+      coupons={coupons ?? []}
+      plans={plans ?? []}
+      storeCampaigns={storeCampaigns}
+      storeCoupons={storeCoupons}
+      storePlans={storePlans}
+      actions={actions}
+      loaders={loaders}
+      variant="gym"
+    />
+  );
+}
+
+function PersonalAdsContent({
+  campaigns,
+  coupons,
+  plans,
+}: Omit<FinancialAdsTabProps, "variant">) {
+  const storeCampaigns = usePersonal("campaigns");
+  const storeCoupons = usePersonal("coupons");
+  const storePlans = usePersonal(
+    "membershipPlans",
+  ) as BoostCampaignPlanOption[];
+  const actions = usePersonal("actions") as FinancialAdsStoreSlice;
+  const loaders = usePersonal("loaders") as FinancialAdsLoaders;
+
+  return (
+    <FinancialAdsTabContent
+      campaigns={campaigns ?? []}
+      coupons={coupons ?? []}
+      plans={plans ?? []}
+      storeCampaigns={storeCampaigns}
+      storeCoupons={storeCoupons}
+      storePlans={storePlans}
+      actions={actions}
+      loaders={loaders}
+      variant="personal"
+    />
+  );
+}
+
+export function FinancialAdsTab({
+  campaigns = [],
+  coupons = [],
+  plans = [],
+  variant = "gym",
+}: FinancialAdsTabProps) {
+  return variant === "personal" ? (
+    <PersonalAdsContent campaigns={campaigns} coupons={coupons} plans={plans} />
+  ) : (
+    <GymAdsContent campaigns={campaigns} coupons={coupons} plans={plans} />
   );
 }

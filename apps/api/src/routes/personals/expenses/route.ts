@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import { NextResponse } from "@/runtime/next-server";
@@ -21,7 +22,9 @@ export async function GET(request: Request) {
     );
     return NextResponse.json({ expenses });
   } catch (error) {
-    console.error("[GET /api/personals/expenses] Erro:", error);
+    log.error("[GET /api/personals/expenses] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
@@ -59,7 +62,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ expense }, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/personals/expenses] Erro:", error);
+    log.error("[POST /api/personals/expenses] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: "Erro ao criar despesa" },
       { status: 500 },

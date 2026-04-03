@@ -16,6 +16,7 @@ import { parseNutritionResponse } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 export async function POST(request: NextRequest) {
@@ -197,7 +198,9 @@ export async function POST(request: NextRequest) {
       remainingMessages: MAX_MESSAGES_PER_DAY - chatUsage.messageCount - 1,
     });
   } catch (error) {
-    console.error("[nutrition/chat] Erro:", error);
+    log.error("[nutrition/chat] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     const err = error instanceof Error ? error : new Error(String(error));
     return NextResponse.json(
       {

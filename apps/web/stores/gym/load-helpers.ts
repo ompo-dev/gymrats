@@ -3,7 +3,7 @@
  */
 
 import { getGymBootstrapRequest } from "@/lib/api/bootstrap";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import type {
   GymDataSection,
   GymPendingAction,

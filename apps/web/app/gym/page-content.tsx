@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect } from "react";
+import { GymAccessPage } from "@/components/organisms/gym/gym-access";
 import { GymDashboardPage } from "@/components/organisms/gym/gym-dashboard";
 import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
 import { GymFinancialPage } from "@/components/organisms/gym/gym-financial";
@@ -24,8 +25,6 @@ import { useUserSession } from "@/hooks/use-user-session";
 import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
 function GymDashboardTab() {
-  useGymDashboardBootstrapBridge();
-
   const {
     profile,
     stats,
@@ -41,6 +40,7 @@ function GymDashboardTab() {
     "recentCheckIns",
     "subscription",
   );
+  useGymDashboardBootstrapBridge();
   const equipment = normalizeEquipmentList(rawEquipment);
 
   if (!profile || !stats) {
@@ -143,7 +143,13 @@ function GymSettingsTab() {
   );
 
   if (!profile) {
-    return null;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-pulse text-sm text-duo-gray-dark">
+          Carregando configurações...
+        </div>
+      </div>
+    );
   }
 
   return <GymSettingsPage profile={profile} plans={plans} />;
@@ -182,6 +188,7 @@ function GymHomeContent() {
       {tab === "financial" && <GymFinancialTab />}
       {tab === "stats" && <GymStatsTab />}
       {tab === "settings" && <GymSettingsTab />}
+      {tab === "catracas" && <GymAccessPage />}
       {tab === "gamification" &&
         (userIsAdmin ? <GymGamificationTab /> : null)}
       {tab === "more" && <GymMoreMenu.Simple />}

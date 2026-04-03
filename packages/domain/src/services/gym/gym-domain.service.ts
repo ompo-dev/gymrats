@@ -1,5 +1,6 @@
 import { db } from "@gymrats/db";
 import type { Prisma } from "@prisma/client";
+import { GymAccessEligibilityService } from "./gym-access-eligibility.service";
 
 /**
  * Service to centralize gym domain operations and stat updates
@@ -220,6 +221,8 @@ export class BaseGymDomainService {
       }
     }
 
+    await GymAccessEligibilityService.refreshStudentEligibility(gymId, studentId);
+
     return membership;
   }
 
@@ -312,7 +315,7 @@ export class BaseGymDomainService {
       if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
-    return db.payment.findMany({
+    const payments = await db.payment.findMany({
       where: whereClause,
       orderBy: { date: "desc" },
       take: limit,
@@ -320,6 +323,14 @@ export class BaseGymDomainService {
         plan: { select: { name: true } },
       },
     });
+
+    return GymAccessEligibilityService.enrichPaymentsWithEligibility(
+      gymId,
+      payments.map((payment) => ({
+        ...payment,
+        planName: payment.plan?.name ?? "Pagamento",
+      })),
+    );
   }
 
   /**
@@ -331,26 +342,45 @@ export class BaseGymDomainService {
       studentId: string;
       studentName?: string;
       planId?: string | null;
+      membershipId?: string | null;
       amount: number;
       dueDate: string;
       paymentMethod?: string;
       reference?: string | null;
+      kind?:
+        | "membership_initial"
+        | "membership_renewal"
+        | "membership_change_plan"
+        | "manual_regularization";
+      periodStart?: string | null;
+      periodEnd?: string | null;
     },
   ) {
-    return db.payment.create({
+    const payment = await db.payment.create({
       data: {
         gymId,
         studentId: data.studentId,
         studentName: data.studentName ?? "Aluno",
         planId: data.planId ?? null,
+        membershipId: data.membershipId ?? null,
         amount: data.amount,
         date: new Date(),
         dueDate: new Date(data.dueDate),
         status: "pending",
         paymentMethod: data.paymentMethod ?? "pix",
         reference: data.reference ?? null,
+        kind: data.kind ?? null,
+        periodStart: data.periodStart ? new Date(data.periodStart) : null,
+        periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
       },
     });
+
+    await GymAccessEligibilityService.refreshStudentEligibility(
+      gymId,
+      data.studentId,
+    );
+
+    return payment;
   }
 
   /**
@@ -367,6 +397,7 @@ export class BaseGymDomainService {
 
     return plans.map((p) => ({
       ...p,
+      graceDays: p.graceDays,
       benefits: p.benefits
         ? (() => {
             try {
@@ -389,6 +420,7 @@ export class BaseGymDomainService {
       type: string;
       price: number;
       duration: number;
+      graceDays?: number;
       benefits: string[];
     },
   ) {
@@ -399,12 +431,14 @@ export class BaseGymDomainService {
         type: data.type,
         price: data.price,
         duration: data.duration,
+        graceDays: data.graceDays ?? 0,
         benefits: data.benefits ? JSON.stringify(data.benefits) : null,
       },
     });
 
     return {
       ...plan,
+      graceDays: plan.graceDays,
       benefits: data.benefits,
     };
   }
@@ -459,6 +493,11 @@ export class BaseGymDomainService {
       }
     }
 
+    await GymAccessEligibilityService.refreshStudentEligibility(
+      gymId,
+      membership.studentId,
+    );
+
     return membership;
   }
 
@@ -508,6 +547,10 @@ export class BaseGymDomainService {
       where: { id: paymentId },
       data: { status },
     });
+  }
+
+  static async settlePayment(gymId: string, paymentId: string) {
+    return GymAccessEligibilityService.settlePayment(gymId, paymentId);
   }
 
   static async updateEquipment(
@@ -609,6 +652,7 @@ export class BaseGymDomainService {
       type?: string;
       price?: number;
       duration?: number;
+      graceDays?: number;
       benefits?: string[];
       isActive?: boolean;
     },
@@ -620,7 +664,7 @@ export class BaseGymDomainService {
       throw new Error("Plano não encontrado");
     }
 
-    return db.membershipPlan.update({
+    const updated = await db.membershipPlan.update({
       where: { id: planId },
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
@@ -629,12 +673,18 @@ export class BaseGymDomainService {
         ...(data.duration !== undefined
           ? { duration: Number(data.duration) }
           : {}),
+        ...(data.graceDays !== undefined
+          ? { graceDays: Number(data.graceDays) }
+          : {}),
         ...(data.benefits !== undefined
           ? { benefits: JSON.stringify(data.benefits) }
           : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
       },
     });
+
+    await GymAccessEligibilityService.refreshEligibilityForGym(gymId);
+    return updated;
   }
 
   static async deactivatePlan(gymId: string, planId: string) {
@@ -649,6 +699,8 @@ export class BaseGymDomainService {
       where: { id: planId },
       data: { isActive: false },
     });
+
+    await GymAccessEligibilityService.refreshEligibilityForGym(gymId);
   }
 
   static async searchStudentByEmail(gymId: string, email: string) {

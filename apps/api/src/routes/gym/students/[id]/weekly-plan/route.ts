@@ -9,6 +9,7 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 import type { NextRequest } from "@/runtime/next-server";
@@ -69,7 +70,9 @@ export async function GET(
       weekStart: result.weekStart.toISOString(),
     });
   } catch (error) {
-    console.error("[gym/students/[id]/weekly-plan] Erro:", error);
+    log.error("[gym/students/[id]/weekly-plan] Erro GET", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao buscar plano semanal");
   }
 }
@@ -152,7 +155,9 @@ export async function POST(
       201,
     );
   } catch (error) {
-    console.error("[gym/students/[id]/weekly-plan] Erro POST:", error);
+    log.error("[gym/students/[id]/weekly-plan] Erro POST", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao criar plano semanal");
   }
 }
@@ -275,7 +280,9 @@ export async function PATCH(
       message: "Plano semanal atualizado com sucesso",
     });
   } catch (error) {
-    console.error("[gym/students/[id]/weekly-plan] Erro PATCH:", error);
+    log.error("[gym/students/[id]/weekly-plan] Erro PATCH", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse("Erro ao atualizar plano semanal");
   }
 }

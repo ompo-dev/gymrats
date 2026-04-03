@@ -1,4 +1,6 @@
 export {
+  accessEventDeadLetterQueue,
+  accessEventQueue,
   emailDeadLetterQueue,
   emailQueue,
   planOperationDeadLetterQueue,
@@ -7,4 +9,4 @@ export {
   webhookDeadLetterQueue,
   webhookQueue,
 } from "./queues";
-export { redisConnection } from "./redis";
+export { ensureRedisConnection, redisConnection } from "./redis";

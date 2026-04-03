@@ -7,7 +7,7 @@ import { DuoButton, DuoCard } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { MarkdownRenderer } from "./markdown-renderer";
+import { MarkdownRenderer } from "@/components/organisms/education/components/markdown-renderer";
 
 interface LessonDetailProps {
   lesson: EducationalLesson;

@@ -2,11 +2,19 @@
 
 import { Loader2, Minus, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo/molecules/duo-input";
 import { useAbility } from "@/hooks/use-ability";
 import { Features } from "@/lib/access-control/features";
+import { log } from "@/lib/observability/logger";
 import type { FoodItem, Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useCatalogSearchStore } from "@/stores/catalog-search-store";
@@ -92,7 +100,6 @@ function FoodSearchSimple({
 
   // Resto do código de busca padrão para usuários não-premium
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedFoodIds, setSelectedFoodIds] = useState<string[]>([]);
   const [foodServings, setFoodServings] = useState<Record<string, number>>({});
@@ -102,6 +109,8 @@ function FoodSearchSimple({
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollLockRef = useRef(false);
+  const foodsCacheRef = useRef<Map<string, FoodItem>>(new Map());
 
   // Se selectedMealId está definido, não permite seleção múltipla - adiciona direto naquela refeição
   const isSpecificMeal = !!selectedMealId;
@@ -110,13 +119,15 @@ function FoodSearchSimple({
   );
 
   // Debounce da busca (aguarda 500ms após parar de digitar)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  const deferredQuery = useDeferredValue(searchQuery);
+  const normalizedQuery = useMemo(
+    () => deferredQuery.trim(),
+    [deferredQuery],
+  );
+  const selectedFoodIdSet = useMemo(
+    () => new Set(selectedFoodIds),
+    [selectedFoodIds],
+  );
 
   const isFetchingRef = useRef(false);
   const fetchIdRef = useRef(0);
@@ -126,7 +137,8 @@ function FoodSearchSimple({
     setCurrentPage(0);
     setFoods([]);
     setHasMore(true);
-  }, []);
+    scrollLockRef.current = false;
+  }, [normalizedQuery, selectedCategory]);
 
   // Buscar alimentos da API (sem isLoading/isLoadingMore nas deps para evitar loop)
   const fetchFoods = useCallback(
@@ -144,15 +156,18 @@ function FoodSearchSimple({
         }
 
         const response = await useCatalogSearchStore.getState().loadFoods({
-          query: debouncedQuery.trim() || undefined,
+          query: normalizedQuery || undefined,
           category: selectedCategory || undefined,
           limit: ITEMS_PER_PAGE,
           offset: page * ITEMS_PER_PAGE,
-          force: true,
         });
 
         const newFoods = response.items || [];
         if (id !== fetchIdRef.current) return; // Resposta obsoleta, descartar
+
+        for (const food of newFoods) {
+          foodsCacheRef.current.set(food.id, food);
+        }
 
         if (reset || page === 0) {
           setFoods(newFoods);
@@ -163,18 +178,24 @@ function FoodSearchSimple({
         setHasMore(newFoods.length === ITEMS_PER_PAGE);
       } catch (error) {
         if (id !== fetchIdRef.current) return;
-        console.error("[FoodSearch] Erro ao buscar alimentos:", error);
+        log.error("[FoodSearch] Erro ao buscar alimentos", {
+          error,
+          page,
+          query: normalizedQuery,
+          category: selectedCategory,
+        });
         if (page === 0) {
           setFoods([]);
         }
         setHasMore(false);
       } finally {
         if (id === fetchIdRef.current) isFetchingRef.current = false;
+        scrollLockRef.current = false;
         setIsLoading(false);
         setIsLoadingMore(false);
       }
     },
-    [debouncedQuery, selectedCategory],
+    [normalizedQuery, selectedCategory],
   );
 
   // Carregar primeira página quando query ou categoria mudar
@@ -196,19 +217,16 @@ function FoodSearchSimple({
     const container = scrollContainerRef.current;
     if (!container || !hasMore || isLoadingMore || isLoading) return;
 
-    let isFetching = false;
-
     const handleScroll = () => {
-      if (isFetching) return;
+      if (scrollLockRef.current || isFetchingRef.current) return;
 
       const { scrollTop, scrollHeight, clientHeight } = container;
       // Carregar mais quando estiver a 200px do final
       if (scrollHeight - scrollTop - clientHeight < 200) {
-        isFetching = true;
+        scrollLockRef.current = true;
         setCurrentPage((prev) => prev + 1);
-        // O useEffect acima vai chamar fetchFoods quando currentPage mudar
-        setTimeout(() => {
-          isFetching = false;
+        window.setTimeout(() => {
+          scrollLockRef.current = false;
         }, 1000); // Prevenir múltiplas chamadas rápidas
       }
     };
@@ -216,6 +234,13 @@ function FoodSearchSimple({
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
   }, [hasMore, isLoadingMore, isLoading]);
+
+  const resolveFood = useCallback(
+    (foodId: string) =>
+      foods.find((food) => food.id === foodId) ??
+      foodsCacheRef.current.get(foodId),
+    [foods],
+  );
 
   const getMealIcon = (type: string, name?: string) => {
     // Se o tipo for snack, tenta determinar pelo nome
@@ -269,8 +294,7 @@ function FoodSearchSimple({
     if (selectedFoodIds.length > 0 && selectedMealIds.size > 0) {
       const foodsToAdd = selectedFoodIds
         .map((foodId) => {
-          // Buscar alimento no array foods (vindos da API)
-          const food = foods.find((f: FoodItem) => f.id === foodId);
+          const food = resolveFood(foodId);
           if (!food) return null;
           return {
             food,
@@ -518,9 +542,9 @@ function FoodSearchSimple({
                 animate={{ opacity: 1 }}
                 className="py-8 text-center text-duo-fg-muted"
               >
-                {debouncedQuery || selectedCategory
+                {normalizedQuery || selectedCategory
                   ? `Nenhum alimento encontrado${
-                      debouncedQuery ? ` para "${debouncedQuery}"` : ""
+                      normalizedQuery ? ` para "${normalizedQuery}"` : ""
                     }${selectedCategory ? ` na categoria selecionada` : ""}`
                   : "Digite algo para buscar ou selecione uma categoria"}
               </motion.div>
@@ -528,7 +552,7 @@ function FoodSearchSimple({
               <>
                 <div className="space-y-3">
                   {foods.map((food, idx) => {
-                    const isSelected = selectedFoodIds.includes(food.id);
+                    const isSelected = selectedFoodIdSet.has(food.id);
                     return (
                       <motion.div
                         key={food.id}
@@ -631,9 +655,7 @@ function FoodSearchSimple({
                   >
                     <AnimatePresence>
                       {selectedFoodIds.map((foodId, index) => {
-                        const food = foods.find(
-                          (f: FoodItem) => f.id === foodId,
-                        );
+                        const food = resolveFood(foodId);
                         if (!food) return null;
                         const servings = foodServings[foodId] || 1;
                         return (

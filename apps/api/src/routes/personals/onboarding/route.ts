@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { ensurePersonalRole } from "@/lib/utils/ensure-user-role";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[POST /api/personals/onboarding] Erro:", error);
+    log.error("[POST /api/personals/onboarding] Erro", { error });
     return NextResponse.json(
       {
         error:

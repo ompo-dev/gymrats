@@ -2,6 +2,7 @@
  * Utilitarios de tratamento de erros.
  */
 
+import { log } from "@/lib/observability";
 import { errorResponse, internalErrorResponse } from "./response.utils";
 
 export function handleApiError(
@@ -13,7 +14,11 @@ export function handleApiError(
   context: string,
   defaultMessage: string = "Erro ao processar requisicao",
 ): Response {
-  console.error(`[${context}] Erro:`, error);
+  log.error(`[${context}] Erro`, {
+    error: error.message,
+    code: error.code,
+    name: error.name,
+  });
 
   if (error.code === "P2002") {
     return errorResponse("Registro duplicado", 400);

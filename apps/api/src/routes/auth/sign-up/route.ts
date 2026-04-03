@@ -4,6 +4,7 @@ import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { signUpSchema } from "@/lib/api/schemas";
 import { createSessionPayload } from "@/lib/auth/session-payload";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { type SignUpInput, signUpUseCase } from "@/lib/use-cases/auth";
 import { createSession } from "@/lib/utils/session";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
@@ -63,9 +64,12 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Erro ao criar conta:", error);
-    const message =
-      error instanceof Error ? error.message : "Erro ao criar conta";
-    return NextResponse.json({ error: message }, { status: 500 });
+    log.error("Erro ao criar conta", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 },
+    );
   }
 }

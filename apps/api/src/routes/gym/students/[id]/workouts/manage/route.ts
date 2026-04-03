@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 import type { NextRequest } from "@/runtime/next-server";
 
@@ -102,7 +103,7 @@ export async function POST(
       201,
     );
   } catch (error) {
-    console.error("[gym/workouts/manage] Erro:", error);
+    log.error("[gym/workouts/manage] Erro", { error });
     return internalErrorResponse("Erro ao criar treino");
   }
 }

@@ -4,6 +4,7 @@ import {
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
+import { log } from "@/lib/observability";
 import { assertPersonalStudentAccess } from "@/lib/services/nutrition/nutrition-access.service";
 import { listNutritionLibraryPlans } from "@/lib/services/nutrition/nutrition-library-read.service";
 import { createNutritionLibraryPlan } from "@/lib/services/nutrition/nutrition-plan.service";
@@ -30,10 +31,9 @@ export async function GET(
     });
     return successResponse({ data });
   } catch (error) {
-    console.error(
-      "[personals/students/[id]/nutrition/library] Erro GET:",
-      error,
-    );
+    log.error("[personals/students/[id]/nutrition/library] Erro GET", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(
       error,
       "Erro ao buscar biblioteca de alimentacao do aluno",
@@ -78,10 +78,9 @@ export async function POST(
       201,
     );
   } catch (error) {
-    console.error(
-      "[personals/students/[id]/nutrition/library] Erro POST:",
-      error,
-    );
+    log.error("[personals/students/[id]/nutrition/library] Erro POST", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao criar plano alimentar");
   }
 }

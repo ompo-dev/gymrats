@@ -2,7 +2,7 @@
  * Slice de amigos e academias para student-unified-store.
  */
 
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import { loadSection } from "../load-helpers";
 import type { StudentGetState, StudentSetState } from "./types";
 

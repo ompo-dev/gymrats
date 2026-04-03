@@ -6,8 +6,16 @@ import {
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
+import { log } from "@/lib/observability";
 import { uploadFoodsFromCSVContent } from "@/lib/services/upload-foods-from-csv";
 import type { NextRequest } from "@/runtime/next-server";
+
+const MAX_CSV_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_CSV_TYPES = new Set(["text/csv", "application/csv", ""]);
+
+function looksLikeTextCsv(content: string) {
+  return content.includes(",") || content.includes(";");
+}
 
 /**
  * POST /api/foods/upload
@@ -29,6 +37,18 @@ export async function POST(request: NextRequest) {
     let csvContent: string;
 
     if (file) {
+      if (!(file instanceof File)) {
+        return badRequestResponse("Arquivo inválido");
+      }
+
+      if (file.size > MAX_CSV_FILE_SIZE) {
+        return badRequestResponse("Arquivo muito grande. Máximo de 5MB.");
+      }
+
+      if (!ALLOWED_CSV_TYPES.has(file.type)) {
+        return badRequestResponse("Tipo de arquivo não permitido. Use CSV.");
+      }
+
       // Upload via arquivo
       csvContent = await file.text();
     } else {
@@ -49,6 +69,10 @@ export async function POST(request: NextRequest) {
       return badRequestResponse("Conteúdo CSV vazio ou inválido");
     }
 
+    if (!looksLikeTextCsv(csvContent)) {
+      return badRequestResponse("Conteúdo do arquivo não parece ser um CSV válido");
+    }
+
     // Verificar opções
     const skipDuplicates = formData.get("skipDuplicates") === "true";
     const batchSize = parseInt(
@@ -67,7 +91,7 @@ export async function POST(request: NextRequest) {
       ...result,
     });
   } catch (error) {
-    console.error("[uploadFoods] Erro:", error);
+    log.error("[uploadFoods] Erro", { error });
     return internalErrorResponse("Erro ao fazer upload de alimentos", error);
   }
 }

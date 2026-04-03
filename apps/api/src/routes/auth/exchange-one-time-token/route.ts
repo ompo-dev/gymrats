@@ -3,10 +3,11 @@ import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { createSessionPayload } from "@/lib/auth/session-payload";
 import { auth } from "@/lib/auth-config";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const exchangeOneTimeTokenSchema = z.object({
-  token: z.string().min(1, "Token eh obrigatorio"),
+  token: z.string().min(1, "Token eh obrigatorio").max(2048),
 });
 
 export async function POST(request: NextRequest) {
@@ -94,10 +95,13 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Erro ao trocar one-time token:", error);
-    const message =
-      error instanceof Error ? error.message : "Erro ao trocar token";
+    log.error("Erro ao trocar one-time token", {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 },
+    );
   }
 }

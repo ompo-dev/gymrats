@@ -3,7 +3,7 @@
 import { Dumbbell, Flame, Trophy, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { CardioFunctionalPage } from "@/app/student/_cardio/cardio-functional-page";
 import { DietPage } from "@/app/student/_diet/diet-page";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
@@ -59,6 +59,7 @@ import type {
 } from "@/lib/types/student-unified";
 
 function HomeTabBootstrapBridge() {
+  useStudent("progress", "user", "profile");
   useStudentHomeBootstrapBridge();
   return null;
 }
@@ -85,7 +86,6 @@ function asArray<T>(value: unknown): T[] {
 function StudentHomeContent() {
   // Carregamento prioritizado: progress, workoutHistory, profile aparecem primeiro
   // Se dados já existem no store, só carrega o que falta
-  const [isMounted, setIsMounted] = useState(false);
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
   const [personalId, setPersonalId] = useQueryState(
@@ -105,23 +105,10 @@ function StudentHomeContent() {
   const [lessonId, setLessonId] = useQueryState("lesson", parseAsString);
 
   // Garantir que quando há exerciseId, o view seja "muscles" para renderizar o MuscleExplorer
-  useEffect(() => {
-    if (exerciseId && educationView !== "muscles") {
-      setEducationView("muscles");
-    }
-  }, [exerciseId, educationView, setEducationView]);
+  const effectiveEducationView =
+    exerciseId && educationView !== "muscles" ? "muscles" : educationView;
 
   // Debug: verificar se tab e exerciseId estão sendo lidos corretamente (apenas em dev)
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development" && tab === "education") {
-      console.log("[DEBUG] Education tab ativo:", {
-        tab,
-        educationView,
-        exerciseId,
-        muscleId,
-      });
-    }
-  }, [tab, educationView, exerciseId, muscleId]);
 
   // ============================================
   // DADOS DO STORE UNIFICADO (Offline-First)
@@ -181,10 +168,6 @@ function StudentHomeContent() {
   const paymentFlow = usePaymentFlow();
   const { toast } = useToast();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   // ============================================
   // DADOS DISPLAY (Apenas do Store)
   // ============================================
@@ -193,15 +176,18 @@ function StudentHomeContent() {
   // Se não houver dados ainda, o useStudentInitializer está carregando.
 
   const progress = storeProgress as unknown as UserProgress | null;
-  const displayProgress = {
-    currentStreak: progress?.currentStreak ?? 0,
-    longestStreak: progress?.longestStreak ?? 0,
-    totalXP: progress?.totalXP ?? 0,
-    todayXP: progress?.todayXP ?? 0,
-    currentLevel: progress?.currentLevel ?? 1,
-    xpToNextLevel: progress?.xpToNextLevel ?? 100,
-    workoutsCompleted: progress?.workoutsCompleted ?? 0,
-  };
+  const displayProgress = useMemo(
+    () => ({
+      currentStreak: progress?.currentStreak ?? 0,
+      longestStreak: progress?.longestStreak ?? 0,
+      totalXP: progress?.totalXP ?? 0,
+      todayXP: progress?.todayXP ?? 0,
+      currentLevel: progress?.currentLevel ?? 1,
+      xpToNextLevel: progress?.xpToNextLevel ?? 100,
+      workoutsCompleted: progress?.workoutsCompleted ?? 0,
+    }),
+    [progress],
+  );
 
   // Dados do store (sem fallback SSR) — cast do persist (JsonValue) para tipos do domínio
   const currentGymLocations = asArray<GymLocation>(storeGymLocations);
@@ -520,8 +506,8 @@ function StudentHomeContent() {
 
   return (
     <motion.div
-      initial={isMounted ? { opacity: 0 } : false}
-      animate={isMounted ? { opacity: 1 } : false}
+      initial={false}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
       className="px-4 py-6"
       suppressHydrationWarning
@@ -874,7 +860,7 @@ function StudentHomeContent() {
 
       {(tab === "education" || exerciseId) && (
         <>
-          {educationView === "menu" &&
+            {effectiveEducationView === "menu" &&
             !exerciseId &&
             !muscleId &&
             !lessonId && (
@@ -885,7 +871,7 @@ function StudentHomeContent() {
               />
             )}
 
-          {(educationView === "muscles" || exerciseId || muscleId) && (
+            {(effectiveEducationView === "muscles" || exerciseId || muscleId) && (
             <MuscleExplorer.Simple
               muscleId={muscleId || null}
               exerciseId={exerciseId || null}
@@ -899,7 +885,7 @@ function StudentHomeContent() {
             />
           )}
 
-          {educationView === "lessons" && !exerciseId && !muscleId && (
+            {effectiveEducationView === "lessons" && !exerciseId && !muscleId && (
             <EducationalLessons.Simple
               lessonId={lessonId || null}
               onLessonSelect={(id) => setLessonId(id)}

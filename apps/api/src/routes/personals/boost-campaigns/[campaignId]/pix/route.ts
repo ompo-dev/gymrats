@@ -6,7 +6,7 @@ import { PIX_EXPIRES_IN_SECONDS } from "@/lib/utils/subscription";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  campaignId: z.string().min(1),
+  campaignId: z.string().cuid("campaignId deve ser um CUID valido"),
 });
 
 export const GET = createSafeHandler(

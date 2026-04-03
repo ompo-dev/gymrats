@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { gymStudentPaymentsFixture } from "./gym-student-detail-story-fixtures";
 import { PaymentsTab } from "./payments-tab";
 
@@ -9,7 +9,7 @@ const meta = {
   tags: ["autodocs"],
   args: {
     payments: gymStudentPaymentsFixture,
-    onTogglePaymentStatus: fn(),
+    onSettlePayment: fn(),
   },
 } satisfies Meta<typeof PaymentsTab>;
 
@@ -21,17 +21,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText(/Plano Premium/i)).toBeVisible();
-    await expect(canvas.getByText(/Historico de Pagamentos/i)).toBeVisible();
-  },
-};
-
-export const Expanded: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(
-      canvas.getByRole("button", { name: /Plano Premium/i }),
-    );
-    await expect(canvas.getByText(/149\\.90/i)).toBeVisible();
+    await expect(canvas.getByText(/Pagamentos e acesso/i)).toBeVisible();
   },
 };
 

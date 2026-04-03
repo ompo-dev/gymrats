@@ -1,6 +1,6 @@
 import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import type { GymDataSection } from "@gymrats/types/gym-unified";
-import { apiClient } from "@/lib/api/client";
+import { actionClient, webActions } from "@/lib/actions/client";
 import type { GymUnifiedData } from "@/lib/types/gym-unified";
 import type {
   PersonalDataSection,
@@ -11,48 +11,38 @@ import type {
   StudentDataSection,
 } from "@/lib/types/student-unified";
 
-function buildSectionsQuery(sections?: readonly string[]) {
-  if (!sections || sections.length === 0) {
-    return "";
-  }
-
-  const params = new URLSearchParams({
-    sections: sections.join(","),
-  });
-
-  return `?${params.toString()}`;
-}
-
 export async function getStudentBootstrapRequest(
   sections?: readonly StudentDataSection[],
 ) {
-  const response = await apiClient.get<BootstrapResponse<Partial<StudentData>>>(
-    `/api/students/bootstrap${buildSectionsQuery(sections)}`,
-  );
-  return response.data;
+  return webActions.getStudentBootstrapAction(sections);
 }
 
 export async function getGymBootstrapRequest(
   sections?: readonly GymDataSection[],
 ) {
-  const response = await apiClient.get<
-    BootstrapResponse<Partial<GymUnifiedData>>
-  >(`/api/gyms/bootstrap${buildSectionsQuery(sections)}`);
-  return response.data;
+  return webActions.getGymBootstrapAction(sections);
 }
 
 export async function getPersonalBootstrapRequest(
   sections?: readonly PersonalDataSection[],
 ) {
-  const response = await apiClient.get<
-    BootstrapResponse<Partial<PersonalUnifiedData>>
-  >(`/api/personals/bootstrap${buildSectionsQuery(sections)}`);
-  return response.data;
+  return webActions.getPersonalBootstrapAction(sections);
 }
 
 export async function getPaymentStatusRequest(paymentId: string) {
-  const response = await apiClient.get<{ id: string; status: string }>(
+  const response = await actionClient.get<{ id: string; status: string }>(
     `/api/payments/${paymentId}`,
+    {
+      profile: "seconds",
+      scope: "private",
+      tags: [
+        "payments:status",
+        `payments:status:${paymentId}`,
+        "student:payments",
+        "student:subscription",
+        "student:bootstrap:self",
+      ],
+    },
   );
   return response.data;
 }

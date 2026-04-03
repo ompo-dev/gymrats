@@ -6,12 +6,12 @@ import { PIX_EXPIRES_IN_SECONDS } from "@/lib/utils/subscription";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  personalId: z.string().min(1),
+  personalId: z.string().cuid("personalId deve ser um CUID valido"),
 });
 
 const bodySchema = z.object({
-  planId: z.string().min(1),
-  couponId: z.string().optional().nullable(),
+  planId: z.string().cuid("planId deve ser um CUID valido"),
+  couponId: z.string().cuid("couponId deve ser um CUID valido").optional().nullable(),
 });
 
 /**

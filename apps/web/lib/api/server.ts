@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
-import { resolveApiBaseUrl } from "./client-factory";
+import { extractSessionTokenFromHeaders } from "@gymrats/domain/auth-tokens";
+import { resolveApiBaseUrl } from "./resolve-api-base-url";
 
 type JsonObject = Record<string, unknown>;
 
@@ -14,30 +15,12 @@ export class ServerApiError extends Error {
   }
 }
 
-function buildUrl(path: string): string {
+export function buildServerApiUrl(path: string): string {
   const baseUrl = resolveApiBaseUrl();
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function extractSessionTokenFromCookie(
-  cookieHeader: string | null,
-): string | null {
-  if (!cookieHeader) {
-    return null;
-  }
-
-  for (const cookieChunk of cookieHeader.split(";")) {
-    const [rawName, ...rawValueParts] = cookieChunk.trim().split("=");
-    if (rawName === "auth_token" || rawName === "better-auth.session_token") {
-      const rawValue = rawValueParts.join("=");
-      return rawValue ? decodeURIComponent(rawValue) : null;
-    }
-  }
-
-  return null;
-}
-
-async function buildForwardHeaders(
+export async function buildForwardHeaders(
   initHeaders?: HeadersInit,
 ): Promise<Headers> {
   const incomingHeaders = await headers();
@@ -48,7 +31,9 @@ async function buildForwardHeaders(
     outgoingHeaders.set("cookie", cookie);
   }
 
-  const sessionToken = extractSessionTokenFromCookie(cookie);
+  const sessionToken = extractSessionTokenFromHeaders(
+    new Headers(cookie ? { cookie } : undefined),
+  );
   if (sessionToken && !outgoingHeaders.has("authorization")) {
     outgoingHeaders.set("authorization", `Bearer ${sessionToken}`);
   }
@@ -66,7 +51,16 @@ async function buildForwardHeaders(
   return outgoingHeaders;
 }
 
-async function parseJsonResponse(response: Response): Promise<unknown> {
+export async function buildForwardHeadersSnapshot(
+  initHeaders?: HeadersInit,
+): Promise<Record<string, string>> {
+  const outgoingHeaders = await buildForwardHeaders(initHeaders);
+  return Object.fromEntries(outgoingHeaders.entries());
+}
+
+export async function parseServerApiJsonResponse(
+  response: Response,
+): Promise<unknown> {
   const text = await response.text();
   if (!text) {
     return null;
@@ -82,14 +76,19 @@ async function parseJsonResponse(response: Response): Promise<unknown> {
 export async function serverApiRequest<T>(
   path: string,
   init: RequestInit = {},
+  options?: {
+    skipForwardHeaders?: boolean;
+  },
 ): Promise<T> {
-  const response = await fetch(buildUrl(path), {
+  const response = await fetch(buildServerApiUrl(path), {
     ...init,
-    cache: "no-store",
-    headers: await buildForwardHeaders(init.headers),
+    cache: init.cache,
+    headers: options?.skipForwardHeaders
+      ? init.headers
+      : await buildForwardHeaders(init.headers),
   });
 
-  const payload = await parseJsonResponse(response);
+  const payload = await parseServerApiJsonResponse(response);
 
   if (!response.ok) {
     const message =

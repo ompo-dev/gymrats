@@ -169,10 +169,7 @@ function SubscriptionSectionSimple({
             return;
           }
         } catch (error) {
-          console.error(
-            "[SubscriptionSection] Erro ao confirmar pagamento:",
-            error,
-          );
+          void error;
         }
 
         await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -190,9 +187,14 @@ function SubscriptionSectionSimple({
 
   // Inicializar estado baseado na subscription atual
   const prevSubscriptionId = useRef<string | null>(null);
+  const plansRef = useRef(plans);
 
   useEffect(() => {
-    if (plans.length > 0) {
+    plansRef.current = plans;
+  }, [plans]);
+
+  useEffect(() => {
+    if (plansRef.current.length > 0) {
       // Apenas re-inicializar se a assinatura mudou de verdade (ID ou plano base)
       const subId = subscription?.id || "no-subscription";
       const subPlan = subscription?.plan || "free";
@@ -200,9 +202,8 @@ function SubscriptionSectionSimple({
       const checkKey = `${subId}-${subPlan}-${subPeriod}`;
 
       if (prevSubscriptionId.current !== checkKey) {
-        console.log("[Subscription] Re-inicializando UI Store:", checkKey);
         initializeFromSubscription(
-          plans,
+          plansRef.current,
           subscription?.plan,
           subscription?.billingPeriod,
           userType,
@@ -211,7 +212,6 @@ function SubscriptionSectionSimple({
       }
     }
   }, [
-    plans,
     subscription?.id,
     subscription?.plan,
     subscription?.billingPeriod,
@@ -368,7 +368,6 @@ function SubscriptionSectionSimple({
     try {
       await onSubscribe(selectedPlanData.id, selectedBillingPeriod, null);
     } catch (error) {
-      console.error("[Subscription] Erro no checkout:", error);
       const message =
         error instanceof Error ? error.message : "Erro ao processar checkout.";
       toast({

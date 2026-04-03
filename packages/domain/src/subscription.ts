@@ -7,6 +7,7 @@ import {
 import type { CreateBillingRequest } from "@gymrats/api/abacatepay";
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { db } from "@gymrats/db";
+import { log } from "./log";
 
 /** Tempo de expiracao do PIX em segundos (4 minutos) */
 export const PIX_EXPIRES_IN_SECONDS = 4 * 60;
@@ -299,24 +300,18 @@ export async function createStudentSubscriptionBilling(
     };
   }
 
-  console.log(
-    "[createStudentSubscriptionBilling] Criando billing na AbacatePay:",
-    {
-      studentId,
-      planType,
-      billingPeriod,
-      billingData: {
-        ...billingData,
-        customer: billingData.customer
-          ? { ...billingData.customer, taxId: "***" }
-          : undefined,
-      },
-    },
-  );
+  log.info("Creating student subscription billing", {
+    studentId,
+    planType,
+    billingPeriod,
+    productsCount: billingData.products.length,
+    hasCustomer: !!billingData.customer,
+    hasCustomerId: !!billingData.customerId,
+  });
 
   const billingResponse = await abacatePay.createBilling(billingData);
 
-  console.log("[createStudentSubscriptionBilling] Resposta da AbacatePay:", {
+  log.info("Student subscription billing response received", {
     hasError: !!billingResponse.error,
     error: billingResponse.error,
     hasData: !!billingResponse.data,
@@ -327,7 +322,10 @@ export async function createStudentSubscriptionBilling(
   if (billingResponse.error || !billingResponse.data) {
     const errorMessage =
       billingResponse.error || "Erro ao criar cobranca na AbacatePay";
-    console.error("[createStudentSubscriptionBilling] Erro ao criar billing:", {
+    log.error("Failed to create student subscription billing", {
+      studentId,
+      planType,
+      billingPeriod,
       error: billingResponse.error,
       response: billingResponse,
     });
@@ -467,7 +465,12 @@ export async function createStudentSubscriptionPix(
   });
 
   if (pixResponse.error || !pixResponse.data) {
-    console.error("[createStudentSubscriptionPix] Erro:", pixResponse.error);
+    log.error("Failed to create student subscription PIX", {
+      studentId,
+      planType,
+      billingPeriod,
+      error: pixResponse.error,
+    });
     throw new Error(pixResponse.error || "Erro ao criar PIX na AbacatePay");
   }
 
@@ -546,7 +549,12 @@ export async function createPersonalSubscriptionPix(
   });
 
   if (pixResponse.error || !pixResponse.data) {
-    console.error("[createPersonalSubscriptionPix] Erro:", pixResponse.error);
+    log.error("Failed to create personal subscription PIX", {
+      personalId,
+      plan,
+      billingPeriod,
+      error: pixResponse.error,
+    });
     throw new Error(pixResponse.error || "Erro ao criar PIX na AbacatePay");
   }
 
@@ -633,22 +641,19 @@ export async function createGymSubscriptionBilling(
     };
   }
 
-  console.log("[createGymSubscriptionBilling] Criando billing na AbacatePay:", {
+  log.info("Creating gym subscription billing", {
     gymId,
     plan,
     billingPeriod,
     studentCount,
-    billingData: {
-      ...billingData,
-      customer: billingData.customer
-        ? { ...billingData.customer, taxId: "***" }
-        : undefined,
-    },
+    productsCount: billingData.products.length,
+    hasCustomer: !!billingData.customer,
+    hasCustomerId: !!billingData.customerId,
   });
 
   const billingResponse = await abacatePay.createBilling(billingData);
 
-  console.log("[createGymSubscriptionBilling] Resposta da AbacatePay:", {
+  log.info("Gym subscription billing response received", {
     hasError: !!billingResponse.error,
     error: billingResponse.error,
     hasData: !!billingResponse.data,
@@ -659,7 +664,11 @@ export async function createGymSubscriptionBilling(
   if (billingResponse.error || !billingResponse.data) {
     const errorMessage =
       billingResponse.error || "Erro ao criar cobranca na AbacatePay";
-    console.error("[createGymSubscriptionBilling] Erro ao criar billing:", {
+    log.error("Failed to create gym subscription billing", {
+      gymId,
+      plan,
+      billingPeriod,
+      studentCount,
       error: billingResponse.error,
       response: billingResponse,
     });
@@ -733,7 +742,13 @@ export async function createGymSubscriptionPix(
   });
 
   if (pixResponse.error || !pixResponse.data) {
-    console.error("[createGymSubscriptionPix] Erro:", pixResponse.error);
+    log.error("Failed to create gym subscription PIX", {
+      gymId,
+      plan,
+      billingPeriod,
+      studentCount,
+      error: pixResponse.error,
+    });
     throw new Error(pixResponse.error || "Erro ao criar PIX na AbacatePay");
   }
 

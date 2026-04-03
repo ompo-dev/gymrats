@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { apiClient } from "@/lib/api/client";
+import type { AuthSessionPayload } from "@/lib/actions/auth-readers";
+import { webActions } from "@/lib/actions/client";
 import { clearAuthToken, hasBrowserSessionHint } from "@/lib/auth/token-client";
 import type { UserProfile } from "@/lib/types";
 
@@ -44,13 +44,7 @@ export interface AuthSessionUser {
   [key: string]: unknown;
 }
 
-interface SessionResponse {
-  user: AuthSessionUser | null;
-  session?: {
-    id: string;
-    token?: string | null;
-  } | null;
-}
+type SessionResponse = AuthSessionPayload;
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -107,21 +101,6 @@ function isSessionFresh(lastSessionSyncAt: Date | null) {
   return Date.now() - new Date(lastSessionSyncAt).getTime() < SESSION_TTL_MS;
 }
 
-function persistClientAuthState(user: AuthSessionUser | null) {
-  if (typeof window === "undefined") return;
-
-  if (!user) {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userId");
-    return;
-  }
-
-  localStorage.setItem("isAuthenticated", "true");
-  localStorage.setItem("userEmail", user.email);
-  localStorage.setItem("userId", user.id);
-}
-
 function applySessionToState(
   set: (
     partial: Partial<AuthState> | ((state: AuthState) => Partial<AuthState>),
@@ -145,7 +124,6 @@ function applySessionToState(
     return;
   }
 
-  persistClientAuthState(user);
   const normalizedRole = normalizeRole(user.role);
 
   set({
@@ -161,15 +139,93 @@ function applySessionToState(
 }
 
 async function requestSession() {
-  const response = await apiClient.get<SessionResponse>("/api/auth/session", {
-    timeout: 30_000,
-  });
-  return response.data ?? null;
+  return (await webActions.getAuthSessionAction()) ?? null;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  isAuthenticated: hasBrowserSessionHint(),
+  userProfile: null,
+  userId: null,
+  userRole: null,
+  isAdmin: false,
+  sessionUser: null,
+  isSessionLoading: false,
+  sessionError: null,
+  lastSessionSyncAt: null,
+  setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
+  setUserProfile: (profile) => set({ userProfile: profile }),
+  setUserId: (id) =>
+    set((state) => ({
+      userId: id,
+      sessionUser: state.sessionUser
+        ? {
+            ...state.sessionUser,
+            id: id ?? state.sessionUser.id,
+          }
+        : state.sessionUser,
+    })),
+  setUserRole: (role) =>
+    set((state) => ({
+      userRole: role,
+      isAdmin: role === "ADMIN",
+      sessionUser:
+        role && state.sessionUser
+          ? {
+              ...state.sessionUser,
+              role,
+            }
+          : state.sessionUser,
+    })),
+  setIsAdmin: (isAdmin) => set({ isAdmin }),
+  syncSession: (payload) => {
+    applySessionToState(set, payload);
+  },
+  ensureSession: async (force = false) => {
+    const state = get();
+    if (!force && state.sessionUser && isSessionFresh(state.lastSessionSyncAt)) {
+      return state.sessionUser;
+    }
+
+    if (!force && sessionPromise) {
+      return sessionPromise;
+    }
+
+    sessionPromise = (async () => {
+      set({ isSessionLoading: true, sessionError: null });
+
+      try {
+        if (!force && !state.isAuthenticated && !hasBrowserSessionHint()) {
+          applySessionToState(set, null);
+          return null;
+        }
+
+        const payload = await requestSession().catch(() => null);
+
+        applySessionToState(set, payload);
+        return payload?.user ?? null;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Erro ao validar sessao";
+
+        set({
+          isSessionLoading: false,
+          sessionError: message,
+        });
+
+        return null;
+      } finally {
+        sessionPromise = null;
+      }
+    })();
+
+    return sessionPromise;
+  },
+  invalidateSession: () => {
+    set({ lastSessionSyncAt: null, sessionError: null });
+  },
+  logout: () => {
+    clearLocalAuthStorage();
+    set({
       isAuthenticated: false,
       userProfile: null,
       userId: null,
@@ -179,138 +235,15 @@ export const useAuthStore = create<AuthState>()(
       isSessionLoading: false,
       sessionError: null,
       lastSessionSyncAt: null,
-      setAuthenticated: (authenticated) =>
-        set({ isAuthenticated: authenticated }),
-      setUserProfile: (profile) => set({ userProfile: profile }),
-      setUserId: (id) =>
-        set((state) => ({
-          userId: id,
-          sessionUser: state.sessionUser
-            ? {
-                ...state.sessionUser,
-                id: id ?? state.sessionUser.id,
-              }
-            : state.sessionUser,
-        })),
-      setUserRole: (role) =>
-        set((state) => ({
-          userRole: role,
-          isAdmin: role === "ADMIN",
-          sessionUser:
-            role && state.sessionUser
-              ? {
-                  ...state.sessionUser,
-                  role,
-                }
-              : state.sessionUser,
-        })),
-      setIsAdmin: (isAdmin) => set({ isAdmin }),
-      syncSession: (payload) => {
-        applySessionToState(set, payload);
-      },
-      ensureSession: async (force = false) => {
-        const state = get();
-        if (
-          !force &&
-          state.sessionUser &&
-          isSessionFresh(state.lastSessionSyncAt)
-        ) {
-          return state.sessionUser;
-        }
-
-        if (!force && sessionPromise) {
-          return sessionPromise;
-        }
-
-        sessionPromise = (async () => {
-          set({ isSessionLoading: true, sessionError: null });
-
-          try {
-            if (!force && !state.isAuthenticated && !hasBrowserSessionHint()) {
-              applySessionToState(set, null);
-              return null;
-            }
-
-            const payload = await requestSession().catch(() => null);
-
-            applySessionToState(set, payload);
-            return payload?.user ?? null;
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Erro ao validar sessao";
-
-            set({
-              isSessionLoading: false,
-              sessionError: message,
-            });
-
-            return null;
-          } finally {
-            sessionPromise = null;
-          }
-        })();
-
-        return sessionPromise;
-      },
-      invalidateSession: () => {
-        set({ lastSessionSyncAt: null, sessionError: null });
-      },
-      logout: () => {
-        clearLocalAuthStorage();
-        set({
-          isAuthenticated: false,
-          userProfile: null,
-          userId: null,
-          userRole: null,
-          isAdmin: false,
-          sessionUser: null,
-          isSessionLoading: false,
-          sessionError: null,
-          lastSessionSyncAt: null,
-        });
-      },
-      signOut: async () => {
-        try {
-          await apiClient.post("/api/auth/sign-out");
-        } catch {
-          // Continua mesmo se o backend falhar para nao prender a sessao local.
-        } finally {
-          get().logout();
-        }
-      },
-    }),
-    {
-      name: "auth-storage",
-      partialize: (state) => ({
-        isAuthenticated: state.isAuthenticated,
-        userProfile: state.userProfile,
-        userId: state.userId,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (typeof window === "undefined" || !state) return;
-
-        localStorage.removeItem("userRole");
-        localStorage.removeItem("isAdmin");
-
-        const hasSessionHint = hasBrowserSessionHint();
-        const storedUserId = localStorage.getItem("userId");
-
-        if (hasSessionHint || state.isAuthenticated) {
-          state.isAuthenticated = true;
-          state.userId = storedUserId || state.userId;
-        } else {
-          state.isAuthenticated = false;
-          state.userProfile = null;
-          state.userId = null;
-        }
-
-        state.userRole = null;
-        state.isAdmin = false;
-        state.sessionUser = null;
-        state.isSessionLoading = false;
-        state.sessionError = null;
-        state.lastSessionSyncAt = null;
-      },
-    },
-  ),
-);
+    });
+  },
+  signOut: async () => {
+    try {
+      await webActions.signOutAction();
+    } catch {
+      // Continua mesmo se o backend falhar para nao prender a sessao local.
+    } finally {
+      get().logout();
+    }
+  },
+}));

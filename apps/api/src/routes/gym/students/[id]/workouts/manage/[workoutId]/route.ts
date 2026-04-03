@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 import type { NextRequest } from "@/runtime/next-server";
 
@@ -67,7 +68,7 @@ export async function PUT(
       message: "Treino atualizado com sucesso",
     });
   } catch (error) {
-    console.error("[gym/workouts/manage] Erro PUT:", error);
+    log.error("[gym/workouts/manage] Erro PUT", { error });
     return internalErrorResponse("Erro ao atualizar treino");
   }
 }
@@ -124,7 +125,7 @@ export async function DELETE(
 
     return successResponse({ message: "Treino excluído com sucesso" });
   } catch (error) {
-    console.error("[gym/workouts/manage] Erro DELETE:", error);
+    log.error("[gym/workouts/manage] Erro DELETE", { error });
     if ((error as { code?: string })?.code === "P2025") {
       return notFoundResponse("Treino não encontrado para exclusão");
     }

@@ -191,6 +191,9 @@ model Student {
   // Academias
   memberships GymMembership[]
   dayPasses   DayPass[]
+  accessCredentialBindings AccessCredentialBinding[]
+  accessEvents             AccessEvent[]
+  presenceSessions         PresenceSession[]
 
   // Social
   friends  Friendship[] @relation("UserFriends")
@@ -361,8 +364,13 @@ model Gym {
   coupons GymCoupon[]
 
   // Personais filiados à academia (equipe)
-  personalAffiliations GymPersonalAffiliation[]
+  personalAffiliations     GymPersonalAffiliation[]
   studentPersonalAssignments StudentPersonalAssignment[]
+  accessDevices            AccessDevice[]
+  accessCredentialBindings AccessCredentialBinding[]
+  accessRawEvents          AccessRawEvent[]
+  accessEvents             AccessEvent[]
+  presenceSessions         PresenceSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -450,6 +458,9 @@ model Personal {
   membershipPlans    PersonalMembershipPlan[]
   boostCampaigns     BoostCampaign[]
   studentPayments    PersonalStudentPayment[]
+  accessCredentialBindings AccessCredentialBinding[]
+  accessEvents             AccessEvent[]
+  presenceSessions         PresenceSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1072,6 +1083,7 @@ model MembershipPlan {
   type     String // monthly, quarterly, semi-annual, annual, trial
   price    Float
   duration Int // dias
+  graceDays Int   @default(0) // dias pendentes apos o vencimento
   benefits String? // JSON array
   isActive Boolean @default(true)
 
@@ -1110,6 +1122,210 @@ model CheckIn {
   duration    Int? // minutos
 
   @@map("check_ins")
+}
+
+enum AccessSubjectType {
+  STUDENT
+  PERSONAL
+}
+
+enum AccessTransport {
+  webhook
+  bridge
+  manual
+}
+
+enum AccessDeviceStatus {
+  active
+  paused
+  offline
+  error
+}
+
+enum AccessDirection {
+  entry
+  exit
+  unknown
+}
+
+enum AccessEventSource {
+  device
+  manual_gym
+  manual_personal
+  legacy_import
+  app_mobile
+}
+
+enum AccessEventStatus {
+  pending_match
+  applied
+  duplicate
+  ignored
+  anomalous
+}
+
+enum PresenceSessionStatus {
+  open
+  closed
+  manually_closed
+  anomalous
+}
+
+model AccessDevice {
+  id                  String             @id @default(cuid())
+  gymId               String
+  gym                 Gym                @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  name                String
+  vendorKey           String
+  adapterKey          String             @default("generic-webhook")
+  hardwareType        String
+  authModes           Json?
+  transport           AccessTransport    @default(webhook)
+  status              AccessDeviceStatus @default(active)
+  externalDeviceId    String?
+  externalSerial      String?
+  ingestionKey        String             @unique
+  secretHash          String?
+  directionMode       String             @default("auto")
+  dedupeWindowSeconds Int                @default(120)
+  payloadTemplate     Json?
+  settings            Json?
+  lastHeartbeatAt     DateTime?
+  lastEventAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  credentialBindings AccessCredentialBinding[]
+  rawEvents          AccessRawEvent[]
+  accessEvents       AccessEvent[]
+
+  @@index([gymId, status])
+  @@index([gymId, vendorKey])
+  @@map("access_devices")
+}
+
+model AccessCredentialBinding {
+  id              String            @id @default(cuid())
+  gymId           String
+  gym             Gym               @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  subjectType     AccessSubjectType
+  subjectId       String
+  studentId       String?
+  student         Student?          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  personalId      String?
+  personal        Personal?         @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  providerKey     String?
+  deviceId        String?
+  device          AccessDevice?     @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  identifierType  String
+  identifierValue String
+  isActive        Boolean           @default(true)
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([gymId, identifierType, identifierValue])
+  @@index([gymId, subjectType, subjectId])
+  @@index([studentId])
+  @@index([personalId])
+  @@map("access_credential_bindings")
+}
+
+model AccessRawEvent {
+  id              String        @id @default(cuid())
+  gymId           String
+  gym             Gym           @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  deviceId        String?
+  device          AccessDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  providerKey     String?
+  providerEventId String?
+  sourceIp        String?
+  signatureValid  Boolean?
+  payload         Json
+  headers         Json?
+  status          String        @default("pending")
+  processingError String?
+  receivedAt      DateTime      @default(now())
+  processedAt     DateTime?
+  createdAt       DateTime      @default(now())
+
+  accessEvents AccessEvent[]
+
+  @@index([gymId, receivedAt])
+  @@index([deviceId, receivedAt])
+  @@index([providerEventId])
+  @@map("access_raw_events")
+}
+
+model AccessEvent {
+  id                String            @id @default(cuid())
+  gymId             String
+  gym               Gym               @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  deviceId          String?
+  device            AccessDevice?     @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  rawEventId        String?
+  rawEvent          AccessRawEvent?   @relation(fields: [rawEventId], references: [id], onDelete: SetNull)
+  subjectType       AccessSubjectType?
+  subjectId         String?
+  studentId         String?
+  student           Student?          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  personalId        String?
+  personal          Personal?         @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  subjectName       String?
+  source            AccessEventSource
+  status            AccessEventStatus @default(applied)
+  confidence        String            @default("exact")
+  providerKey       String?
+  providerEventId   String?
+  dedupeKey         String            @unique
+  identifierType    String?
+  identifierValue   String?
+  directionReceived AccessDirection   @default(unknown)
+  directionResolved AccessDirection   @default(unknown)
+  occurredAt        DateTime
+  metadata          Json?
+  actorUserId       String?
+  actorRole         String?
+  manualReason      String?
+  legacyCheckInId   String?           @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([gymId, occurredAt])
+  @@index([gymId, status, occurredAt])
+  @@index([studentId, occurredAt])
+  @@index([personalId, occurredAt])
+  @@map("access_events")
+}
+
+model PresenceSession {
+  id              String                @id @default(cuid())
+  gymId           String
+  gym             Gym                   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  subjectType     AccessSubjectType
+  subjectId       String
+  studentId       String?
+  student         Student?              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  personalId      String?
+  personal        Personal?             @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  subjectName     String?
+  status          PresenceSessionStatus @default(open)
+  entryAt         DateTime
+  exitAt          DateTime?
+  openedBySource  AccessEventSource
+  closedBySource  AccessEventSource?
+  entryDeviceId   String?
+  exitDeviceId    String?
+  inferenceFlags  Json?
+  legacyCheckInId String?               @unique
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([gymId, status])
+  @@index([gymId, subjectType, subjectId])
+  @@index([studentId, status])
+  @@index([personalId, status])
+  @@map("presence_sessions")
 }
 
 // ============================================
@@ -1168,12 +1384,16 @@ model Payment {
   studentName   String
   planId        String?
   plan          MembershipPlan? @relation(fields: [planId], references: [id])
+  membershipId  String?
   amount        Float
   date          DateTime        @default(now())
   dueDate       DateTime
   status        String          @default("pending") // paid, pending, overdue, canceled
   paymentMethod String?
   reference     String?
+  kind          String?
+  periodStart   DateTime?
+  periodEnd     DateTime?
 
   // AbacatePay: PIX para pagamento de plano (membership)
   abacatePayBillingId String?   @unique // ID do pixQrCode na AbacatePay
@@ -1188,6 +1408,64 @@ model Payment {
   updatedAt DateTime @updatedAt
 
   @@map("payments")
+}
+
+model AccessEligibilitySnapshot {
+  id                  String            @id @default(cuid())
+  gymId               String
+  subjectType         AccessSubjectType
+  subjectId           String
+  studentId           String?
+  personalId          String?
+  membershipId        String?
+  personalAffiliationId String?
+  authorizationStatus String            @default("unknown") // eligible, grace, blocked, inactive, unknown
+  financialStatus     String            @default("not_applicable") // paid, pending, overdue, not_applicable
+  reasonCode          String            @default("not_evaluated")
+  graceUntil          DateTime?
+  openPaymentId       String?
+  lastEvaluatedAt     DateTime          @default(now())
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([gymId, subjectType, subjectId])
+  @@index([gymId, authorizationStatus])
+  @@index([studentId])
+  @@index([personalId])
+  @@map("access_eligibility_snapshots")
+}
+
+model AccessAuthorizationAttempt {
+  id                  String            @id @default(cuid())
+  gymId               String
+  deviceId            String?
+  requestId           String?
+  providerKey         String?
+  source              String            @default("device")
+  outcome             String            @default("error") // allowed, denied, error
+  allowed             Boolean           @default(false)
+  subjectType         AccessSubjectType?
+  subjectId           String?
+  studentId           String?
+  personalId          String?
+  authorizationStatus String            @default("unknown") // eligible, grace, blocked, inactive, unknown
+  financialStatus     String            @default("not_applicable") // paid, pending, overdue, not_applicable
+  reasonCode          String            @default("not_evaluated")
+  identifierType      String?
+  identifierValue     String?
+  occurredAt          DateTime
+  decidedAt           DateTime          @default(now())
+  graceUntil          DateTime?
+  metadata            Json?
+  errorMessage        String?
+  createdAt           DateTime          @default(now())
+
+  @@index([gymId, decidedAt])
+  @@index([gymId, outcome, decidedAt])
+  @@index([deviceId, decidedAt])
+  @@index([gymId, subjectType, subjectId, decidedAt])
+  @@index([gymId, requestId])
+  @@map("access_authorization_attempts")
 }
 
 model GymWithdraw {
@@ -1631,4 +1909,27 @@ model BusinessEvent {
   @@index([eventType, occurredAt])
   @@index([domain, occurredAt])
   @@map("business_events")
+}
+
+enum AuditLogResult {
+  SUCCESS
+  FAILURE
+}
+
+model AuditLog {
+  id         String         @id @default(cuid())
+  action     String
+  actorId    String?
+  targetId   String?
+  ip         String
+  userAgent  String?
+  requestId  String?
+  payload    Json?
+  result     AuditLogResult
+  occurredAt DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+
+  @@index([action, occurredAt])
+  @@index([actorId, occurredAt])
+  @@map("audit_logs")
 }

@@ -4,7 +4,7 @@ import { GymMemberService } from "@/lib/services/gym/gym-member.service";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().cuid(),
 });
 
 export const GET = createSafeHandler(

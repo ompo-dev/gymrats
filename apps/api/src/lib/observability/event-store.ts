@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { publishObservabilityLiveEvent } from "./live-events";
 import { log } from "./logger";
 import type { TelemetryEventInput } from "./telemetry-types";
 
@@ -77,6 +78,21 @@ export async function persistTelemetryEvents(inputs: TelemetryEventInput[]) {
     await db.telemetryEvent.createMany({
       data: inputs.map(toTelemetryEventCreateManyInput),
     });
+    void Promise.allSettled(
+      inputs.map((input) =>
+        publishObservabilityLiveEvent({
+          kind: "telemetry",
+          eventType: input.eventType,
+          domain: input.domain,
+          status: input.status ?? null,
+          requestId: input.requestId ?? null,
+          occurredAt: (input.occurredAt ?? new Date()).toISOString(),
+          payload:
+            (sanitizePayload(input.payload ?? {}) as Record<string, unknown>) ??
+            null,
+        }),
+      ),
+    );
   } catch (error) {
     log.debug("Telemetry persistence skipped", {
       error: error instanceof Error ? error.message : "unknown",
@@ -114,6 +130,15 @@ export async function persistBusinessEvent(input: {
         payload: payload === null ? {} : payload,
         occurredAt: input.occurredAt ?? new Date(),
       },
+    });
+    void publishObservabilityLiveEvent({
+      kind: "business",
+      eventType: input.eventType,
+      domain: input.domain,
+      status: input.status ?? null,
+      requestId: input.requestId ?? null,
+      occurredAt: (input.occurredAt ?? new Date()).toISOString(),
+      payload: (payload as Record<string, unknown>) ?? null,
     });
   } catch (error) {
     log.debug("Business event persistence skipped", {

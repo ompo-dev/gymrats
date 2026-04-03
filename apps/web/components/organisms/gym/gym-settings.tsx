@@ -1,8 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { GymSettingsScreen, GYM_SETTINGS_WEEKDAYS, type GymSettingsDaySchedule, type GymSettingsInfoState } from "@/components/screens/gym";
+import { useState } from "react";
+import {
+  GymSettingsScreen,
+  GYM_SETTINGS_WEEKDAYS,
+  type GymSettingsDaySchedule,
+  type GymSettingsInfoState,
+} from "@/components/screens/gym";
+import { useFormBaseline } from "@/hooks/shared/use-form-baseline";
 import { useGym } from "@/hooks/use-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
@@ -42,66 +48,88 @@ function areGymSettingsInfoStatesEqual(
   );
 }
 
+function createGymSettingsDaySchedules(
+  profile: GymProfile,
+): Record<string, GymSettingsDaySchedule> {
+  const openingHours = profile.openingHours;
+  const enabledDays = openingHours?.days ?? [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const defaultOpen = openingHours?.open ?? DEFAULT_OPEN;
+  const defaultClose = openingHours?.close ?? DEFAULT_CLOSE;
+  const byDay = openingHours?.byDay ?? {};
+  const schedules: Record<string, GymSettingsDaySchedule> = {};
+
+  for (const day of GYM_SETTINGS_WEEKDAYS) {
+    const override = byDay[day.id];
+    schedules[day.id] = {
+      open: override?.open ?? defaultOpen,
+      close: override?.close ?? defaultClose,
+      enabled: enabledDays.includes(day.id),
+    };
+  }
+
+  return schedules;
+}
+
+function areGymSettingsDaySchedulesEqual(
+  current: Record<string, GymSettingsDaySchedule>,
+  next: Record<string, GymSettingsDaySchedule>,
+) {
+  for (const day of GYM_SETTINGS_WEEKDAYS) {
+    const currentDay = current[day.id];
+    const nextDay = next[day.id];
+
+    if (
+      currentDay?.enabled !== nextDay?.enabled ||
+      currentDay?.open !== nextDay?.open ||
+      currentDay?.close !== nextDay?.close
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export function GymSettingsPage({
   profile: initialProfile,
   plans = [],
 }: GymSettingsPageProps) {
   const router = useRouter();
+  const storeProfile = useGym("profile");
   const actions = useGym("actions");
-  const [profile, setProfile] = useState(initialProfile);
-  const [info, setInfo] = useState<GymSettingsInfoState>(() =>
-    createGymSettingsInfoState(initialProfile),
-  );
-
-  const parseInitialSchedules = useCallback((): Record<string, GymSettingsDaySchedule> => {
-    const openingHours = initialProfile.openingHours;
-    const enabledDays = openingHours?.days ?? [
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    const defaultOpen = openingHours?.open ?? DEFAULT_OPEN;
-    const defaultClose = openingHours?.close ?? DEFAULT_CLOSE;
-    const byDay = openingHours?.byDay ?? {};
-    const schedules: Record<string, GymSettingsDaySchedule> = {};
-
-    for (const day of GYM_SETTINGS_WEEKDAYS) {
-      const override = byDay[day.id];
-      schedules[day.id] = {
-        open: override?.open ?? defaultOpen,
-        close: override?.close ?? defaultClose,
-        enabled: enabledDays.includes(day.id),
-      };
-    }
-
-    return schedules;
-  }, [initialProfile.openingHours]);
-
-  const [daySchedules, setDaySchedules] = useState<Record<string, GymSettingsDaySchedule>>(
-    parseInitialSchedules,
-  );
+  const profile = storeProfile ?? initialProfile;
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  useEffect(() => {
-    const nextInfo = createGymSettingsInfoState(initialProfile);
-    const nextSchedules = parseInitialSchedules();
+  const {
+    draft: info,
+    baseline: baselineInfo,
+    isDirty: hasInfoChanges,
+    setDraft: setInfo,
+    rebaseOnSuccess: rebaseInfo,
+  } = useFormBaseline({
+    snapshot: profile,
+    toDraft: createGymSettingsInfoState,
+    isEqual: areGymSettingsInfoStatesEqual,
+  });
 
-    setProfile((current) =>
-      current.id === initialProfile.id ? current : initialProfile,
-    );
-    setInfo((current) =>
-      areGymSettingsInfoStatesEqual(current, nextInfo) ? current : nextInfo,
-    );
-    setDaySchedules((current) => {
-      const currentKey = JSON.stringify(current);
-      const nextKey = JSON.stringify(nextSchedules);
-      return currentKey === nextKey ? current : nextSchedules;
-    });
-  }, [initialProfile, parseInitialSchedules]);
+  const {
+    draft: daySchedules,
+    isDirty: hasScheduleChanges,
+    setDraft: setDaySchedules,
+    rebaseOnSuccess: rebaseSchedules,
+  } = useFormBaseline({
+    snapshot: profile,
+    toDraft: createGymSettingsDaySchedules,
+    isEqual: areGymSettingsDaySchedulesEqual,
+  });
 
   const {
     isAdmin: serverIsAdmin,
@@ -122,66 +150,103 @@ export function GymSettingsPage({
     }));
   };
 
-  const buildPayload = (
-    section: "info" | "schedules",
-  ): Record<string, import("@/lib/types/api-error").JsonValue> => {
+  const buildInfoPayload = (): Record<
+    string,
+    import("@/lib/types/api-error").JsonValue
+  > => {
     const payload: Record<string, import("@/lib/types/api-error").JsonValue> =
       {};
 
-    if (section === "info") {
-      if (info.address !== (profile.address ?? "")) {
-        payload.address = info.address.trim() || null;
-      }
-
-      if (info.phone !== (profile.phone ?? "")) {
-        payload.phone = info.phone.trim() || null;
-      }
-
-      if (info.cnpj !== (profile.cnpj ?? "")) {
-        payload.cnpj = info.cnpj.trim() || null;
-      }
-
-      const validPixTypes = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
-      const hasValidPixType = validPixTypes.includes(info.pixKeyType);
-      const pixKeyTrimmed = info.pixKey.trim();
-      const previousPixKey = profile.pixKey ?? "";
-      const previousPixType = profile.pixKeyType ?? "";
-
-      if (
-        pixKeyTrimmed !== previousPixKey ||
-        info.pixKeyType !== previousPixType
-      ) {
-        payload.pixKey =
-          hasValidPixType && pixKeyTrimmed ? pixKeyTrimmed : null;
-        payload.pixKeyType =
-          hasValidPixType && pixKeyTrimmed ? info.pixKeyType : null;
-      }
+    if (info.address !== baselineInfo.address) {
+      payload.address = info.address.trim() || null;
     }
 
-    if (section === "schedules") {
-      const openDays = Object.entries(daySchedules)
-        .filter(([, schedule]) => schedule.enabled)
-        .map(([id]) => id);
-      const byDay: Record<string, { open: string; close: string }> = {};
+    if (info.phone !== baselineInfo.phone) {
+      payload.phone = info.phone.trim() || null;
+    }
 
-      for (const [id, schedule] of Object.entries(daySchedules)) {
-        if (schedule.enabled) {
-          byDay[id] = {
-            open: schedule.open,
-            close: schedule.close,
-          };
-        }
+    if (info.cnpj !== baselineInfo.cnpj) {
+      payload.cnpj = info.cnpj.trim() || null;
+    }
+
+    const validPixTypes = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
+    const hasValidPixType = validPixTypes.includes(info.pixKeyType);
+    const pixKeyTrimmed = info.pixKey.trim();
+
+    if (
+      pixKeyTrimmed !== baselineInfo.pixKey ||
+      info.pixKeyType !== baselineInfo.pixKeyType
+    ) {
+      payload.pixKey =
+        hasValidPixType && pixKeyTrimmed ? pixKeyTrimmed : null;
+      payload.pixKeyType =
+        hasValidPixType && pixKeyTrimmed ? info.pixKeyType : null;
+    }
+
+    return payload;
+  };
+
+  const buildSchedulesPayload = (): Record<
+    string,
+    import("@/lib/types/api-error").JsonValue
+  > => {
+    const openDays = Object.entries(daySchedules)
+      .filter(([, schedule]) => schedule.enabled)
+      .map(([id]) => id);
+    const byDay: Record<string, { open: string; close: string }> = {};
+
+    for (const [id, schedule] of Object.entries(daySchedules)) {
+      if (!schedule.enabled) {
+        continue;
       }
 
-      payload.openingHours = {
+      byDay[id] = {
+        open: schedule.open,
+        close: schedule.close,
+      };
+    }
+
+    return {
+      openingHours: {
         days: openDays,
         byDay: Object.keys(byDay).length > 0 ? byDay : null,
         open: DEFAULT_OPEN,
         close: DEFAULT_CLOSE,
-      };
+      },
+    };
+  };
+
+  const getApiErrorMessage = (error: unknown) => {
+    const responseData =
+      error && typeof error === "object" && "response" in error
+        ? (
+            error as {
+              response?: {
+                data?: {
+                  details?: Record<string, string | number | boolean | object | null>;
+                };
+              };
+            }
+          ).response?.data
+        : null;
+    const details =
+      responseData && typeof responseData === "object" && "details" in responseData
+        ? (
+            responseData as {
+              details?: Record<string, string | number | boolean | object | null>;
+            }
+          ).details
+        : null;
+
+    if (Array.isArray(details) && details.length > 0) {
+      return (
+        (details[0] as { message?: string }).message ?? "Erro de validacao"
+      );
     }
 
-    return payload;
+    return error instanceof Error
+      ? error.message
+      : "Erro ao salvar. Tente novamente.";
   };
 
   const handleSaveInfo = async () => {
@@ -192,16 +257,16 @@ export function GymSettingsPage({
     const pixKeyTrimmed = info.pixKey.trim();
 
     if (pixKeyTrimmed && !hasValidPixType) {
-      setSaveError("Selecione um tipo de chave PIX válido (CPF, CNPJ, etc.)");
+      setSaveError("Selecione um tipo de chave PIX valido.");
       return;
     }
 
     if (hasValidPixType && !pixKeyTrimmed) {
-      setSaveError("Informe o valor da chave PIX");
+      setSaveError("Informe o valor da chave PIX.");
       return;
     }
 
-    const payload = buildPayload("info");
+    const payload = buildInfoPayload();
 
     if (Object.keys(payload).length === 0) {
       return;
@@ -210,43 +275,11 @@ export function GymSettingsPage({
     setSaving(true);
 
     try {
-      await actions.updateProfile(payload);
+      const updatedProfile = await actions.updateProfile(payload);
+      rebaseInfo(createGymSettingsInfoState(updatedProfile ?? profile));
       setSaveError("");
     } catch (error) {
-      const responseData =
-        error && typeof error === "object" && "response" in error
-          ? (
-              error as {
-                response?: {
-                  data?: {
-                    details?: Record<
-                      string,
-                      string | number | boolean | object | null
-                    >;
-                  };
-                };
-              }
-            ).response?.data
-          : null;
-      const details =
-        responseData && typeof responseData === "object" && "details" in responseData
-          ? (
-              responseData as {
-                details?: Record<
-                  string,
-                  string | number | boolean | object | null
-                >;
-              }
-            ).details
-          : null;
-      const errorMessage =
-        Array.isArray(details) && details.length > 0
-          ? ((details[0] as { message?: string }).message ??
-            "Erro de validação")
-          : error instanceof Error
-            ? error.message
-            : "Erro ao salvar. Tente novamente.";
-      setSaveError(errorMessage);
+      setSaveError(getApiErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -254,99 +287,31 @@ export function GymSettingsPage({
 
   const handleSaveSchedules = async () => {
     setSaveError("");
-    const payload = buildPayload("schedules");
 
-    if (Object.keys(payload).length === 0) {
+    if (!hasScheduleChanges) {
       return;
     }
 
     setSaving(true);
 
     try {
-      await actions.updateProfile(payload);
+      const updatedProfile = await actions.updateProfile(buildSchedulesPayload());
+      rebaseSchedules(createGymSettingsDaySchedules(updatedProfile ?? profile));
       setSaveError("");
     } catch (error) {
-      const responseData =
-        error && typeof error === "object" && "response" in error
-          ? (
-              error as {
-                response?: {
-                  data?: {
-                    details?: Record<
-                      string,
-                      string | number | boolean | object | null
-                    >;
-                  };
-                };
-              }
-            ).response?.data
-          : null;
-      const details =
-        responseData && typeof responseData === "object" && "details" in responseData
-          ? (
-              responseData as {
-                details?: Record<
-                  string,
-                  string | number | boolean | object | null
-                >;
-              }
-            ).details
-          : null;
-      const errorMessage =
-        Array.isArray(details) && details.length > 0
-          ? ((details[0] as { message?: string }).message ??
-            "Erro de validação")
-          : error instanceof Error
-            ? error.message
-            : "Erro ao salvar. Tente novamente.";
-      setSaveError(errorMessage);
+      setSaveError(getApiErrorMessage(error));
     } finally {
       setSaving(false);
     }
   };
-
-  const baselineInfo = createGymSettingsInfoState(profile);
-  const hasInfoChanges = !areGymSettingsInfoStatesEqual(info, baselineInfo);
-
-  const hasScheduleChanges = (() => {
-    const openingHours = profile.openingHours;
-    const previousDays = (openingHours?.days ?? []).sort();
-    const currentDays = Object.entries(daySchedules)
-      .filter(([, schedule]) => schedule.enabled)
-      .map(([id]) => id)
-      .sort();
-
-    if (JSON.stringify(previousDays) !== JSON.stringify(currentDays)) {
-      return true;
-    }
-
-    const previousByDay = openingHours?.byDay ?? {};
-
-    for (const [id, schedule] of Object.entries(daySchedules)) {
-      if (!schedule.enabled) {
-        continue;
-      }
-
-      const previous = previousByDay[id] ?? {
-        open: openingHours?.open ?? DEFAULT_OPEN,
-        close: openingHours?.close ?? DEFAULT_CLOSE,
-      };
-
-      if (previous.open !== schedule.open || previous.close !== schedule.close) {
-        return true;
-      }
-    }
-
-    return false;
-  })();
 
   const handleLogout = async () => {
     try {
       await useAuthStore.getState().signOut();
       router.push("/welcome");
       router.refresh();
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+    } catch {
+      setSaveError("Nao foi possivel sair da conta.");
     }
   };
 

@@ -1,21 +1,12 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { LoginRedirectScreen } from "@/components/screens/public";
+import { redirect } from "next/navigation";
+import { redirectAuthenticatedUser } from "@/lib/auth/server-route-guard";
 
 /**
- * Página de redirecionamento para /auth/login
- * Esta página foi mantida apenas para evitar erros 404
- * quando o Next.js Router tenta pré-carregar esta rota.
- * Redireciona automaticamente para /welcome
+ * A rota /auth/login existe como ponto canonico de entrada.
+ * Usuario autenticado vai para a area da role.
+ * Usuario anonimo cai na experiencia publica em /welcome.
  */
-export default function LoginRedirectPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/welcome");
-  }, [router]);
-
-  return <LoginRedirectScreen />;
+export default async function LoginRedirectPage() {
+  await redirectAuthenticatedUser();
+  redirect("/welcome");
 }

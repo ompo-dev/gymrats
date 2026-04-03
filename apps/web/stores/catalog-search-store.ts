@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import type { FoodItem } from "@/lib/types";
 import type { ResourceState } from "@/stores/shared/resource-metadata";
 

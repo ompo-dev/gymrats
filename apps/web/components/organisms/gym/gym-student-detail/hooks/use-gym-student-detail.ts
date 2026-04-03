@@ -52,6 +52,9 @@ export function useGymStudentDetail({
   const [membershipStatus, setMembershipStatus] = useState<
     "active" | "inactive" | "suspended" | "canceled"
   >(student?.membershipStatus ?? "inactive");
+  const [settlingPaymentId, setSettlingPaymentId] = useState<string | null>(
+    null,
+  );
   const [nutritionDate, setNutritionDate] = useState(() =>
     getBrazilNutritionDateKey(),
   );
@@ -389,30 +392,24 @@ export function useGymStudentDetail({
     }
   };
 
-  const togglePaymentStatus = async (paymentId: string) => {
+  const settlePayment = async (paymentId: string) => {
     const payment = studentPayments.find((entry) => entry.id === paymentId);
     if (!payment) return;
 
-    const newStatus = payment.status === "paid" ? "pending" : "paid";
-
-    setStudentPayments((prev) =>
-      prev.map((entry) =>
-        entry.id === paymentId
-          ? {
-              ...entry,
-              status: newStatus,
-              date: newStatus === "paid" ? new Date() : entry.date,
-            }
-          : entry,
-      ),
-    );
-
     try {
-      await actions.updatePaymentStatus(paymentId, newStatus);
+      setSettlingPaymentId(paymentId);
+      const settledPayment = await actions.settlePayment(paymentId);
+      setStudentPayments((prev) =>
+        prev.map((entry) =>
+          entry.id === paymentId ? { ...entry, ...settledPayment } : entry,
+        ),
+      );
     } catch {
       setStudentPayments((prev) =>
         prev.map((entry) => (entry.id === paymentId ? payment : entry)),
       );
+    } finally {
+      setSettlingPaymentId(null);
     }
   };
 
@@ -488,7 +485,8 @@ export function useGymStudentDetail({
     handleMembershipAction,
     handleAssignPersonal,
     isAssigningPersonal,
-    togglePaymentStatus,
+    settlePayment,
+    settlingPaymentId,
     tabOptions,
     DAY_NAMES,
     openWorkoutsEditor,

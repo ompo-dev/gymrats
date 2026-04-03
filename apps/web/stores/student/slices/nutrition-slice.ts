@@ -2,7 +2,7 @@
  * Slice de nutricao para student-unified-store.
  */
 
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import { waitForJobCompletion } from "@/lib/api/job-client";
 import type { DailyNutrition, Meal, NutritionPlanData } from "@/lib/types";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";

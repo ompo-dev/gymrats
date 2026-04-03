@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { log } from "@/lib/observability/logger";
 import { validateQuery } from "@/lib/api/middleware/validation.middleware";
+import { resolveSafeRedirectTarget } from "@/lib/security/trusted-redirect";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const startQuerySchema = z.object({
@@ -37,9 +39,20 @@ export async function GET(request: NextRequest) {
   }
 
   const appUrl = getAppUrl(request);
-  const redirectTo = validation.data.redirectTo || `${appUrl}/auth/callback`;
-  const errorRedirectTo =
-    validation.data.errorRedirectTo || `${appUrl}/auth/callback?error=true`;
+  const redirectTo = resolveSafeRedirectTarget({
+    candidate: validation.data.redirectTo,
+    fallback: "/auth/callback",
+    appUrl,
+    requestOrigin: getRequestOrigin(request),
+    trustedOrigins: process.env.TRUSTED_ORIGINS,
+  });
+  const errorRedirectTo = resolveSafeRedirectTarget({
+    candidate: validation.data.errorRedirectTo,
+    fallback: "/auth/callback?error=true",
+    appUrl,
+    requestOrigin: getRequestOrigin(request),
+    trustedOrigins: process.env.TRUSTED_ORIGINS,
+  });
 
   const bridgeUrl = new URL("/api/auth/google/bridge", appUrl);
   bridgeUrl.searchParams.set("redirectTo", redirectTo);
@@ -52,7 +65,7 @@ export async function GET(request: NextRequest) {
     errorCallbackURL: errorRedirectTo,
   };
 
-  console.info("[google.start] Starting Google OAuth bridge", {
+  log.info("Starting Google OAuth bridge", {
     requestOrigin: getRequestOrigin(request),
     appUrl,
     callbackURL: bridgeUrl.toString(),

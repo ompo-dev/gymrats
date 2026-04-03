@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 
 export interface GetStudentProfileInput {
   userId: string;
@@ -42,26 +43,6 @@ export interface GetStudentProfileOutput {
     dailyAvailableHours: number | null;
     injuries: string[];
   } | null;
-}
-
-function parseJsonArray<T = string>(value: unknown): T[] {
-  if (!value || typeof value !== "string") return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function parseJsonSafe<T = Record<string, unknown>>(value: unknown): T | null {
-  if (!value || typeof value !== "string") return null;
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return (parsed ?? null) as T | null;
-  } catch {
-    return null;
-  }
 }
 
 export async function getStudentProfileUseCase(

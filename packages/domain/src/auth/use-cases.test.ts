@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { UserSummary } from "./types";
-import { getSessionUseCase, signInUseCase } from "./use-cases";
+import {
+  getSessionUseCase,
+  signInUseCase,
+  updateRoleUseCase,
+} from "./use-cases";
 
 describe("auth use cases", () => {
   it("returns unauthorized when password is invalid", async () => {
@@ -96,5 +100,46 @@ describe("auth use cases", () => {
       expect(result.data.shouldSyncAuthToken).toBe(true);
     }
     expect(getSessionTokenById).toHaveBeenCalledWith("session-1");
+  });
+
+  it("creates a personal record when updating a user to PERSONAL", async () => {
+    const createPersonal = vi.fn().mockResolvedValue(undefined);
+
+    const result = await updateRoleUseCase(
+      {
+        findUserById: vi.fn().mockResolvedValue({
+          id: "user-1",
+          email: "personal@gymrats.app",
+          name: "Coach",
+          role: "PENDING",
+          gyms: [],
+          student: null,
+          personal: null,
+        }),
+        updateUserRole: vi.fn().mockResolvedValue({
+          id: "user-1",
+          email: "personal@gymrats.app",
+          name: "Coach",
+          role: "PERSONAL",
+        }),
+        findStudentByUserId: vi.fn().mockResolvedValue(null),
+        createStudent: vi.fn().mockResolvedValue(undefined),
+        findGymByUserId: vi.fn().mockResolvedValue(null),
+        findPersonalByUserId: vi.fn().mockResolvedValue(null),
+        createGym: vi.fn().mockResolvedValue(undefined),
+        createPersonal,
+      },
+      {
+        userId: "user-1",
+        role: "PERSONAL",
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(createPersonal).toHaveBeenCalledWith({
+      userId: "user-1",
+      name: "Coach",
+      email: "personal@gymrats.app",
+    });
   });
 });

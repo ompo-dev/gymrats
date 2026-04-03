@@ -1,6 +1,7 @@
 import type { StudentProfileData } from "@gymrats/types";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { sendWelcomeEmail } from "@/lib/services/email.service";
 import { StudentProfileService } from "@/lib/services/student/student-profile.service";
 import { ensureStudentRole } from "@/lib/utils/ensure-user-role";
@@ -166,12 +167,17 @@ export async function POST(request: NextRequest) {
       sendWelcomeEmail({
         to: user.email,
         name: user.name || "Aluno",
-      }).catch(console.error);
+      }).catch((error) => {
+        log.error("[POST /api/students/onboarding] Falha ao enviar email", {
+          error,
+          userId: auth.userId,
+        });
+      });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[POST /api/students/onboarding] Erro:", error);
+    log.error("[POST /api/students/onboarding] Erro", { error });
     return NextResponse.json(
       {
         error:

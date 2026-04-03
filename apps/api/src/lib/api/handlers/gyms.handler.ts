@@ -5,6 +5,8 @@
  */
 
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireAuth } from "../middleware/auth.middleware";
 import {
@@ -102,7 +104,7 @@ export async function listGymsHandler(
       totalGyms: gyms.length,
     });
   } catch (error) {
-    console.error("[listGymsHandler] Erro:", error);
+    log.error("[listGymsHandler] Erro ao listar academias", { error });
     return internalErrorResponse("Erro ao listar academias", error);
   }
 }
@@ -232,7 +234,7 @@ export async function createGymHandler(
       },
     });
   } catch (error) {
-    console.error("[createGymHandler] Erro:", error);
+    log.error("[createGymHandler] Erro ao criar academia", { error });
     return internalErrorResponse("Erro ao criar academia", error);
   }
 }
@@ -293,7 +295,7 @@ export async function getGymProfileHandler(
         : null,
     });
   } catch (error) {
-    console.error("[getGymProfileHandler] Erro:", error);
+    log.error("[getGymProfileHandler] Erro ao buscar perfil", { error });
     return internalErrorResponse("Erro ao buscar perfil", error);
   }
 }
@@ -354,7 +356,9 @@ export async function setActiveGymHandler(
 
     return successResponse({ activeGymId: gymId });
   } catch (error) {
-    console.error("[setActiveGymHandler] Erro:", error);
+    log.error("[setActiveGymHandler] Erro ao alterar academia ativa", {
+      error,
+    });
     return internalErrorResponse("Erro ao alterar academia ativa", error);
   }
 }
@@ -467,39 +471,19 @@ export async function getGymLocationsHandler(
 
     // Transformar para formato esperado
     const formattedGyms = gyms.map((gym) => {
-      // Parse amenities
-      let amenities: string[] = [];
-      if (gym.amenities) {
-        try {
-          amenities = JSON.parse(gym.amenities);
-        } catch (_e) {
-          // Ignorar erro de parse
-        }
-      }
+      const amenities = parseJsonArray<string>(gym.amenities);
 
-      // Parse openingHours
       let openingHours: {
         open: string;
         close: string;
         days?: string[];
-      } | null = null;
-      if (gym.openingHours) {
-        try {
-          openingHours = JSON.parse(gym.openingHours);
-        } catch (_e) {
-          // Ignorar erro de parse
-        }
-      }
+      } | null = parseJsonSafe<{
+        open: string;
+        close: string;
+        days?: string[];
+      }>(gym.openingHours);
 
-      // Parse photos
-      let photos: string[] = [];
-      if (gym.photos) {
-        try {
-          photos = JSON.parse(gym.photos);
-        } catch (_e) {
-          // Ignorar erro de parse
-        }
-      }
+      const photos = parseJsonArray<string>(gym.photos);
 
       // Calcular distância se lat/lng fornecidos
       let distance: number | undefined;
@@ -564,7 +548,7 @@ export async function getGymLocationsHandler(
 
     return successResponse({ gyms: formattedGyms });
   } catch (error) {
-    console.error("[getGymLocationsHandler] Erro:", error);
+    log.error("[getGymLocationsHandler] Erro ao buscar academias", { error });
     return internalErrorResponse("Erro ao buscar academias", error);
   }
 }

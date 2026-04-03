@@ -2,6 +2,7 @@
 
 import { serverApiGet, serverApiPost } from "@/lib/api/server";
 import { getApiErrorMessage, reviveDate } from "@/lib/api/server-action-utils";
+import { log } from "@/lib/observability/logger";
 import type { BoostCampaign, GymLocation } from "@/lib/types";
 
 type SessionPayload = {
@@ -85,7 +86,7 @@ export async function getCurrentUserInfo() {
       role: payload.user?.role ?? null,
     };
   } catch (error) {
-    console.error("[getCurrentUserInfo] Erro:", error);
+    log.error("[getCurrentUserInfo] Erro", { error });
     return { isAdmin: false, role: null };
   }
 }
@@ -101,7 +102,7 @@ export async function getStudentProfile() {
       profile: payload.profile,
     };
   } catch (error) {
-    console.error("[getStudentProfile] Erro:", error);
+    log.error("[getStudentProfile] Erro", { error });
     return { hasProfile: false, profile: null };
   }
 }
@@ -112,7 +113,7 @@ export async function getStudentProgress() {
       "/api/students/progress",
     );
   } catch (error) {
-    console.error("[getStudentProgress] Erro:", error);
+    log.error("[getStudentProgress] Erro", { error });
     return getNeutralProgress();
   }
 }
@@ -124,7 +125,7 @@ export async function getStudentUnits() {
     );
     return payload.units;
   } catch (error) {
-    console.error("[getStudentUnits] Erro:", error);
+    log.error("[getStudentUnits] Erro", { error });
     return [];
   }
 }
@@ -136,7 +137,7 @@ export async function getGymLocations(): Promise<GymLocation[]> {
     );
     return payload.gyms;
   } catch (error) {
-    console.error("[getGymLocations] Erro:", error);
+    log.error("[getGymLocations] Erro", { error });
     return [];
   }
 }
@@ -148,7 +149,7 @@ export async function getActiveBoostCampaigns() {
     );
     return reviveCampaigns(payload.campaigns);
   } catch (error) {
-    console.error("[getActiveBoostCampaigns] Erro:", error);
+    log.error("[getActiveBoostCampaigns] Erro", { error });
     return [];
   }
 }
@@ -160,7 +161,7 @@ export async function getStudentSubscription() {
     );
     return reviveSubscription(payload.subscription, payload.isFirstPayment);
   } catch (error) {
-    console.error("[getStudentSubscription] Erro:", error);
+    log.error("[getStudentSubscription] Erro", { error });
     return null;
   }
 }
@@ -172,7 +173,7 @@ export async function startStudentTrial() {
     );
     return { success: true, ...payload };
   } catch (error) {
-    console.error("[startStudentTrial] Erro:", error);
+    log.error("[startStudentTrial] Erro", { error });
     return {
       error: getApiErrorMessage(error, "Erro ao iniciar trial"),
     };

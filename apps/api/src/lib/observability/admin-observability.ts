@@ -1,22 +1,27 @@
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
 
+type JsonRecord = Record<string, unknown>;
+
 type TelemetryEventRow = {
   id: string;
   eventType: string;
   domain: string | null;
   status: string | null;
+  requestId: string | null;
   occurredAt: Date;
   metricName: string | null;
   metricValue: number | null;
-  payload: Record<string, unknown> | null;
+  payload: JsonRecord | null;
 };
 
 type BusinessEventRow = {
   id: string;
   eventType: string;
   domain: string;
+  requestId: string | null;
   status: string | null;
+  payload: JsonRecord | null;
   occurredAt: Date;
 };
 
@@ -56,10 +61,90 @@ type RecentEvent = {
   occurredAt: string;
   metricName?: string | null;
   metricValue?: number | null;
-  payload?: Record<string, unknown> | null;
+  requestId?: string | null;
+  payload?: JsonRecord | null;
 };
 
-type ObservabilityDataset = {
+type RequestSummary = {
+  requestId: string;
+  route: string;
+  method: string;
+  domain: string;
+  status: number;
+  totalMs: number;
+  dbMs: number;
+  dbQueryCount: number;
+  cacheMs: number;
+  cacheHits: number;
+  cacheMisses: number;
+  externalMs: number;
+  occurredAt: string;
+  nPlusOneDetected: boolean;
+};
+
+type CacheSummary = {
+  totalOps: number;
+  hits: number;
+  misses: number;
+  hitRate: number;
+  avgMs: number;
+};
+
+type WebVitalMetricSummary = {
+  metric: string;
+  count: number;
+  p75: number;
+  p95: number;
+  lastSeenAt: string;
+};
+
+type RequestTraceEvent = {
+  id: string;
+  eventType: string;
+  domain: string;
+  status?: string | null;
+  occurredAt: string;
+  payload?: JsonRecord | null;
+};
+
+export type RequestTrace = {
+  requestId: string;
+  route: string;
+  method: string;
+  domain: string;
+  status: number;
+  totalMs: number;
+  occurredAt: string;
+  breakdown: {
+    middlewareMs: number;
+    authMs: number;
+    handlerMs: number;
+    dbMs: number;
+    cacheMs: number;
+    externalMs: number;
+    responseMs: number;
+  };
+  dbQueries: Array<{
+    sql: string;
+    ms: number;
+    target?: string;
+  }>;
+  cacheOps: Array<{
+    key: string;
+    hit: boolean | null;
+    ms: number;
+    operation: string;
+  }>;
+  events: RequestTraceEvent[];
+  nPlusOnePatterns: Array<{
+    signature: string;
+    count: number;
+    totalMs: number;
+    maxMs: number;
+  }>;
+};
+
+export type ObservabilityDataset = {
   windowHours: number;
   counts: {
     telemetryEvents: number;
@@ -73,14 +158,21 @@ type ObservabilityDataset = {
     p50LatencyMs: number;
     p95LatencyMs: number;
   };
+  cache: CacheSummary;
+  webVitals: {
+    total: number;
+    metrics: WebVitalMetricSummary[];
+  };
   domains: DomainSummary[];
   routes: RouteSummary[];
   errors: ErrorSummary[];
+  requests: RequestSummary[];
   recentEvents: RecentEvent[];
   recentBusinessEvents: Array<{
     id: string;
     eventType: string;
     domain: string;
+    requestId?: string | null;
     status?: string | null;
     occurredAt: string;
   }>;
@@ -88,9 +180,14 @@ type ObservabilityDataset = {
 };
 
 const OBSERVABILITY_CACHE_TTL_SECONDS = 30;
+const REQUEST_TRACE_CACHE_TTL_SECONDS = 15;
 
 function buildObservabilityCacheKey(sinceHours: number) {
-  return `admin-observability:${sinceHours}:v1`;
+  return `admin-observability:${sinceHours}:v2`;
+}
+
+function buildTraceCacheKey(requestId: string) {
+  return `admin-observability:trace:${requestId}:v1`;
 }
 
 function percentile(values: number[], ratio: number) {
@@ -106,10 +203,21 @@ function percentile(values: number[], ratio: number) {
   return sorted[index] ?? 0;
 }
 
+function toNumber(value: unknown) {
+  const numeric = typeof value === "number" ? value : Number(value ?? NaN);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function toRecord(value: unknown): JsonRecord | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : null;
+}
+
 function toLatency(event: TelemetryEventRow) {
   return typeof event.metricValue === "number"
     ? event.metricValue
-    : Number(event.payload?.latencyMs ?? 0);
+    : toNumber(event.payload?.latencyMs);
 }
 
 function toRouteKey(event: TelemetryEventRow) {
@@ -150,6 +258,146 @@ function toFingerprint(event: TelemetryEventRow) {
   );
 }
 
+function toRecentEvent(event: TelemetryEventRow): RecentEvent {
+  return {
+    id: event.id,
+    eventType: event.eventType,
+    domain: toDomain(event),
+    status: event.status,
+    occurredAt: event.occurredAt.toISOString(),
+    metricName: event.metricName,
+    metricValue: event.metricValue,
+    requestId: event.requestId,
+    payload: event.payload,
+  };
+}
+
+function getPayloadArray(
+  payload: JsonRecord | null | undefined,
+  key: string,
+): JsonRecord[] {
+  const value = payload?.[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(toRecord)
+    .filter((entry): entry is JsonRecord => entry !== null);
+}
+
+function buildCacheSummary(apiEvents: TelemetryEventRow[]): CacheSummary {
+  const totalHits = apiEvents.reduce(
+    (sum, event) => sum + toNumber(event.payload?.cacheHits),
+    0,
+  );
+  const totalMisses = apiEvents.reduce(
+    (sum, event) => sum + toNumber(event.payload?.cacheMisses),
+    0,
+  );
+  const totalMs = apiEvents.reduce(
+    (sum, event) => sum + toNumber(event.payload?.cacheMs),
+    0,
+  );
+  const totalOps = totalHits + totalMisses;
+
+  return {
+    totalOps,
+    hits: totalHits,
+    misses: totalMisses,
+    hitRate:
+      totalOps > 0 ? Math.round((totalHits / totalOps) * 1000) / 1000 : 0,
+    avgMs: totalOps > 0 ? Math.round(totalMs / totalOps) : 0,
+  };
+}
+
+function buildWebVitalsSummary(
+  telemetryEvents: TelemetryEventRow[],
+): ObservabilityDataset["webVitals"] {
+  const webVitalEvents = telemetryEvents.filter(
+    (event) =>
+      event.eventType === "frontend.web_vital" ||
+      event.eventType.startsWith("web_vital."),
+  );
+
+  const metrics = Object.values(
+    webVitalEvents.reduce<Record<string, WebVitalMetricSummary & { values: number[] }>>(
+      (accumulator, event) => {
+        const metric = String(
+          event.metricName ?? event.eventType.replace(/^.*\./, ""),
+        ).toLowerCase();
+
+        if (!accumulator[metric]) {
+          accumulator[metric] = {
+            metric,
+            count: 0,
+            p75: 0,
+            p95: 0,
+            lastSeenAt: event.occurredAt.toISOString(),
+            values: [],
+          };
+        }
+
+        accumulator[metric].count += 1;
+        accumulator[metric].lastSeenAt =
+          accumulator[metric].lastSeenAt > event.occurredAt.toISOString()
+            ? accumulator[metric].lastSeenAt
+            : event.occurredAt.toISOString();
+
+        const metricValue =
+          typeof event.metricValue === "number"
+            ? event.metricValue
+            : toNumber(event.payload?.value);
+        if (metricValue > 0) {
+          accumulator[metric].values.push(metricValue);
+        }
+
+        return accumulator;
+      },
+      {},
+    ),
+  )
+    .map((metric) => ({
+      metric: metric.metric,
+      count: metric.count,
+      p75: percentile(metric.values, 0.75),
+      p95: percentile(metric.values, 0.95),
+      lastSeenAt: metric.lastSeenAt,
+    }))
+    .sort((left, right) => right.count - left.count);
+
+  return {
+    total: webVitalEvents.length,
+    metrics,
+  };
+}
+
+function buildRequestSummaries(apiEvents: TelemetryEventRow[]): RequestSummary[] {
+  return apiEvents
+    .filter((event) => Boolean(event.requestId))
+    .map((event) => ({
+      requestId: String(event.requestId),
+      route: toRouteKey(event),
+      method: toMethod(event),
+      domain: toDomain(event),
+      status: toStatus(event),
+      totalMs: toLatency(event),
+      dbMs: toNumber(event.payload?.dbMs),
+      dbQueryCount: toNumber(event.payload?.dbQueryCount),
+      cacheMs: toNumber(event.payload?.cacheMs),
+      cacheHits: toNumber(event.payload?.cacheHits),
+      cacheMisses: toNumber(event.payload?.cacheMisses),
+      externalMs: toNumber(event.payload?.externalMs),
+      occurredAt: event.occurredAt.toISOString(),
+      nPlusOneDetected: getPayloadArray(event.payload, "nPlusOnePatterns").length > 0,
+    }))
+    .sort(
+      (left, right) =>
+        new Date(right.occurredAt).getTime() -
+        new Date(left.occurredAt).getTime(),
+    );
+}
+
 export async function getObservabilityDataset(
   sinceHours: number,
 ): Promise<ObservabilityDataset> {
@@ -178,6 +426,7 @@ export async function getObservabilityDataset(
           eventType: true,
           domain: true,
           status: true,
+          requestId: true,
           occurredAt: true,
           metricName: true,
           metricValue: true,
@@ -198,7 +447,9 @@ export async function getObservabilityDataset(
           id: true,
           eventType: true,
           domain: true,
+          requestId: true,
           status: true,
+          payload: true,
           occurredAt: true,
         },
       }) as Promise<BusinessEventRow[]>,
@@ -282,7 +533,7 @@ export async function getObservabilityDataset(
         if (latency > 0) {
           accumulator[key].latencies.push(latency);
         }
-        if (event.payload?.cacheHit === true) {
+        if (toNumber(event.payload?.cacheHits) > 0) {
           accumulator[key].cacheHits += 1;
         }
 
@@ -370,23 +621,18 @@ export async function getObservabilityDataset(
         p50LatencyMs: percentile(latencies, 0.5),
         p95LatencyMs: percentile(latencies, 0.95),
       },
+      cache: buildCacheSummary(apiEvents),
+      webVitals: buildWebVitalsSummary(telemetryEvents),
       domains,
       routes,
       errors,
-      recentEvents: telemetryEvents.slice(0, 50).map((event) => ({
-        id: event.id,
-        eventType: event.eventType,
-        domain: toDomain(event),
-        status: event.status,
-        occurredAt: event.occurredAt.toISOString(),
-        metricName: event.metricName,
-        metricValue: event.metricValue,
-        payload: event.payload,
-      })),
+      requests: buildRequestSummaries(apiEvents).slice(0, 100),
+      recentEvents: telemetryEvents.slice(0, 50).map(toRecentEvent),
       recentBusinessEvents: businessEvents.slice(0, 25).map((event) => ({
         id: event.id,
         eventType: event.eventType,
         domain: event.domain,
+        requestId: event.requestId,
         status: event.status,
         occurredAt: event.occurredAt.toISOString(),
       })),
@@ -409,9 +655,21 @@ export async function getObservabilityDataset(
         p50LatencyMs: 0,
         p95LatencyMs: 0,
       },
+      cache: {
+        totalOps: 0,
+        hits: 0,
+        misses: 0,
+        hitRate: 0,
+        avgMs: 0,
+      },
+      webVitals: {
+        total: 0,
+        metrics: [],
+      },
       domains: [],
       routes: [],
       errors: [],
+      requests: [],
       recentEvents: [],
       recentBusinessEvents: [],
       note:
@@ -420,4 +678,163 @@ export async function getObservabilityDataset(
           : "Telemetry tables are not available yet.",
     };
   }
+}
+
+export async function getRequestTrace(
+  requestId: string,
+): Promise<RequestTrace | null> {
+  if (!requestId) {
+    return null;
+  }
+
+  const cacheKey = buildTraceCacheKey(requestId);
+  const cached = await getCachedJson<RequestTrace>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const [requestEvent, relatedTelemetry, relatedBusinessEvents] =
+    await Promise.all([
+      db.telemetryEvent.findFirst({
+        where: {
+          eventType: "api.request",
+          requestId,
+        },
+        orderBy: {
+          occurredAt: "desc",
+        },
+        select: {
+          id: true,
+          eventType: true,
+          domain: true,
+          status: true,
+          requestId: true,
+          occurredAt: true,
+          metricName: true,
+          metricValue: true,
+          payload: true,
+        },
+      }) as Promise<TelemetryEventRow | null>,
+      db.telemetryEvent.findMany({
+        where: {
+          requestId,
+        },
+        orderBy: {
+          occurredAt: "asc",
+        },
+        take: 200,
+        select: {
+          id: true,
+          eventType: true,
+          domain: true,
+          status: true,
+          requestId: true,
+          occurredAt: true,
+          metricName: true,
+          metricValue: true,
+          payload: true,
+        },
+      }) as Promise<TelemetryEventRow[]>,
+      db.businessEvent.findMany({
+        where: {
+          requestId,
+        },
+        orderBy: {
+          occurredAt: "asc",
+        },
+        take: 200,
+        select: {
+          id: true,
+          eventType: true,
+          domain: true,
+          requestId: true,
+          status: true,
+          payload: true,
+          occurredAt: true,
+        },
+      }) as Promise<BusinessEventRow[]>,
+    ]);
+
+  if (!requestEvent) {
+    return null;
+  }
+
+  const queryLog = getPayloadArray(requestEvent.payload, "queryLog").map(
+    (query) => ({
+      sql: String(query.query ?? "unknown"),
+      ms: toNumber(query.durationMs),
+      target:
+        typeof query.target === "string" ? query.target : undefined,
+    }),
+  );
+  const cacheOps = getPayloadArray(requestEvent.payload, "cacheOps").map(
+    (operation) => ({
+      key: String(operation.key ?? "unknown"),
+      hit:
+        typeof operation.hit === "boolean"
+          ? operation.hit
+          : operation.hit == null
+            ? null
+            : Boolean(operation.hit),
+      ms: toNumber(operation.durationMs),
+      operation: String(operation.operation ?? "unknown"),
+    }),
+  );
+  const nPlusOnePatterns = getPayloadArray(
+    requestEvent.payload,
+    "nPlusOnePatterns",
+  ).map((pattern) => ({
+    signature: String(pattern.signature ?? "unknown"),
+    count: toNumber(pattern.count),
+    totalMs: toNumber(pattern.totalMs),
+    maxMs: toNumber(pattern.maxMs),
+  }));
+
+  const trace: RequestTrace = {
+    requestId,
+    route: toRouteKey(requestEvent),
+    method: toMethod(requestEvent),
+    domain: toDomain(requestEvent),
+    status: toStatus(requestEvent),
+    totalMs: toLatency(requestEvent),
+    occurredAt: requestEvent.occurredAt.toISOString(),
+    breakdown: {
+      middlewareMs: Math.max(
+        0,
+        toLatency(requestEvent) -
+          toNumber(requestEvent.payload?.authMs) -
+          toNumber(requestEvent.payload?.handlerMs) -
+          toNumber(requestEvent.payload?.responseMs),
+      ),
+      authMs: toNumber(requestEvent.payload?.authMs),
+      handlerMs: toNumber(requestEvent.payload?.handlerMs),
+      dbMs: toNumber(requestEvent.payload?.dbMs),
+      cacheMs: toNumber(requestEvent.payload?.cacheMs),
+      externalMs: toNumber(requestEvent.payload?.externalMs),
+      responseMs: toNumber(requestEvent.payload?.responseMs),
+    },
+    dbQueries: queryLog,
+    cacheOps,
+    events: [
+      ...relatedTelemetry
+        .filter((event) => event.id !== requestEvent.id)
+        .map(toRecentEvent),
+      ...relatedBusinessEvents.map((event) => ({
+        id: event.id,
+        eventType: event.eventType,
+        domain: event.domain,
+        status: event.status,
+        occurredAt: event.occurredAt.toISOString(),
+        payload: event.payload,
+      })),
+    ].sort(
+      (left, right) =>
+        new Date(left.occurredAt).getTime() -
+        new Date(right.occurredAt).getTime(),
+    ),
+    nPlusOnePatterns,
+  };
+
+  await setCachedJson(cacheKey, trace, REQUEST_TRACE_CACHE_TTL_SECONDS);
+  return trace;
 }

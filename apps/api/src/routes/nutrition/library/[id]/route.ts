@@ -5,6 +5,7 @@ import {
   notFoundResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
+import { log } from "@/lib/observability";
 import { assertStudentCanManageNutritionLibraryPlan } from "@/lib/services/nutrition/nutrition-access.service";
 import { getNutritionLibraryPlanDetail } from "@/lib/services/nutrition/nutrition-library-read.service";
 import {
@@ -40,7 +41,9 @@ export async function GET(
 
     return successResponse({ data });
   } catch (error) {
-    console.error("[nutrition/library/[id]] Erro GET:", error);
+    log.error("[nutrition/library/[id]] Erro GET", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao buscar plano alimentar");
   }
 }
@@ -75,7 +78,9 @@ export async function PATCH(
       message: "Plano alimentar atualizado com sucesso",
     });
   } catch (error) {
-    console.error("[nutrition/library/[id]] Erro PATCH:", error);
+    log.error("[nutrition/library/[id]] Erro PATCH", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao atualizar plano alimentar");
   }
 }
@@ -99,7 +104,9 @@ export async function DELETE(
     await deleteNutritionLibraryPlan(id);
     return successResponse({ message: "Plano alimentar removido com sucesso" });
   } catch (error) {
-    console.error("[nutrition/library/[id]] Erro DELETE:", error);
+    log.error("[nutrition/library/[id]] Erro DELETE", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return mapNutritionRouteError(error, "Erro ao remover plano alimentar");
   }
 }

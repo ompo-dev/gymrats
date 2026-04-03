@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { resolveApiBaseUrl } from "@/lib/api/client-factory";
+import { resolveApiBaseUrl } from "@/lib/api/resolve-api-base-url";
 
 interface SwaggerUIConfig {
   url: string;

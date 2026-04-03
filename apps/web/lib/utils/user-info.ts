@@ -1,91 +1,52 @@
 "use client";
 
-/**
- * ⚠️ SEGURANÇA: Estas funções são INSECURAS e devem ser usadas APENAS para UX (mostrar/esconder elementos).
- * NUNCA use para autorização real - sempre valide no servidor!
- *
- * localStorage pode ser facilmente modificado pelo usuário.
- * Use estas funções apenas para melhorar a experiência do usuário (ex: mostrar/esconder botões).
- * Toda autorização real DEVE ser validada no servidor via cookies/sessão.
- */
+import { webActions } from "@/lib/actions/client";
+import { useAuthStore } from "@/stores/auth-store";
 
-/**
- * ⚠️ INSECURO: Busca informações do usuário do localStorage
- *
- * ATENÇÃO: Esta função é INSECURA e deve ser usada APENAS para UX.
- * NUNCA use para autorização - sempre valide no servidor!
- *
- * @deprecated Use useUserSession() ou valide no servidor
- */
-export function getUserInfoFromStorage(): {
+type UserInfo = {
   isAdmin: boolean;
   role: string | null;
-} {
-  if (typeof window === "undefined") {
-    return { isAdmin: false, role: null };
-  }
+};
 
-  const role = localStorage.getItem("userRole");
-  const isAdminStorage = localStorage.getItem("isAdmin");
-
-  // ⚠️ INSECURO: localStorage pode ser modificado pelo usuário
-  const isAdmin = role === "ADMIN" || isAdminStorage === "true";
+function readUserInfoFromStore(): UserInfo {
+  const state = useAuthStore.getState();
 
   return {
-    isAdmin,
-    role: role || null,
+    isAdmin: state.isAdmin,
+    role: state.userRole,
   };
 }
 
 /**
- * ⚠️ INSECURO: Verifica se o usuário é admin baseado no localStorage
- *
- * ATENÇÃO: Esta função é INSECURA e deve ser usada APENAS para UX.
- * NUNCA use para autorização - sempre valide no servidor!
- *
- * @deprecated Use useUserSession() ou valide no servidor
+ * Compatibilidade para chamadas legadas.
+ * A informação agora vem apenas do estado em memória, sincronizado com a sessão server-side.
  */
-export function isAdminFromStorage(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const role = localStorage.getItem("userRole");
-  const isAdminStorage = localStorage.getItem("isAdmin");
-
-  // ⚠️ INSECURO: localStorage pode ser modificado pelo usuário
-  return role === "ADMIN" || isAdminStorage === "true";
+export function getUserInfoFromStorage(): UserInfo {
+  return readUserInfoFromStore();
 }
 
 /**
- * ✅ SEGURO: Busca informações do usuário validando no servidor
- *
- * Esta função sempre valida no servidor via API, garantindo segurança.
- * Use esta função para autorização real.
+ * Compatibilidade para chamadas legadas.
+ * Nunca lê localStorage; depende apenas da sessão atual já validada.
  */
-export async function getUserInfoFromServer(): Promise<{
-  isAdmin: boolean;
-  role: string | null;
-}> {
-  try {
-    const { apiClient } = await import("@/lib/api/client");
-    const response = await apiClient.get<{
-      user: { role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN" } | null;
-    }>("/api/auth/session");
+export function isAdminFromStorage(): boolean {
+  return readUserInfoFromStore().isAdmin;
+}
 
-    if (!response.data.user) {
+export async function getUserInfoFromServer(): Promise<UserInfo> {
+  try {
+    const response = await webActions.getAuthSessionAction();
+
+    if (!response.user) {
       return { isAdmin: false, role: null };
     }
 
-    const role = response.data.user.role;
-    const isAdmin = role === "ADMIN";
-
-    return { isAdmin, role };
-  } catch (error) {
-    console.error(
-      "[getUserInfoFromServer] Erro ao buscar informações do servidor:",
-      error,
-    );
+    const role = response.user.role;
+    return {
+      isAdmin: role === "ADMIN",
+      role,
+    };
+  } catch {
     return { isAdmin: false, role: null };
   }
 }

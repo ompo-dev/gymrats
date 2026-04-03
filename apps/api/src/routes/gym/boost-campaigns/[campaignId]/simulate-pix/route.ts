@@ -2,17 +2,28 @@ import { abacatePay } from "@gymrats/api/abacatepay";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { blockProductionDevelopmentRoute } from "@/lib/security/development-route";
 import { NextResponse } from "@/runtime/next-server";
 
-const paramsSchema = z.object({ campaignId: z.string().min(1) });
+const paramsSchema = z.object({
+  campaignId: z.string().cuid("campaignId deve ser um CUID valido"),
+});
 
 /**
  * POST /api/gym/boost-campaigns/[campaignId]/simulate-pix
  * Simula pagamento PIX em dev e ativa a campanha localmente.
  */
 export const POST = createSafeHandler(
-  async ({ gymContext, params }) => {
+  async ({ gymContext, params, req }) => {
     const { campaignId } = paramsSchema.parse(params);
+    const blockedResponse = await blockProductionDevelopmentRoute({
+      request: req,
+      actorId: gymContext?.user.id ?? null,
+      targetId: campaignId,
+    });
+    if (blockedResponse) {
+      return blockedResponse;
+    }
 
     const campaign = await db.boostCampaign.findFirst({
       where: { id: campaignId, gymId: gymContext!.gymId },

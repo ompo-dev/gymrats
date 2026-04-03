@@ -22,6 +22,7 @@ import {
 } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 
 const MAX_HISTORY = 4;
@@ -310,7 +311,9 @@ export async function POST(
           return;
         }
 
-        console.error("[gym/nutrition/chat-stream] Erro:", error);
+        log.error("[gym/nutrition/chat-stream] Erro", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         sendSSE(controller, "error", { error: "Erro inesperado" });
         controller.close();
       }

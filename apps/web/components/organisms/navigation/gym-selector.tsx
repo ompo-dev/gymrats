@@ -1,18 +1,16 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoSelect, type DuoSelectOption } from "@/components/duo";
-import { invalidateQueryDomains } from "@/hooks/use-bootstrap-refresh";
+import { invalidateBootstrapDomains } from "@/hooks/use-bootstrap-refresh";
 import { useGymsList } from "@/hooks/use-gyms-list";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 function GymSelectorSimple() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const {
     gyms,
     activeGymId,
@@ -75,7 +73,7 @@ function GymSelectorSimple() {
       // 2. Atualizar academia ativa (aguarda backend)
       await setActiveGymId(gymId);
       // 3. Invalidar apenas domínios afetados pela troca de unidade
-      await invalidateQueryDomains(queryClient, ["gym", "payments"]);
+      invalidateBootstrapDomains(["gym"]);
       router.refresh();
     } finally {
       setIsSwitching(false);

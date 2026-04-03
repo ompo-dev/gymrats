@@ -8,6 +8,7 @@ import {
   setCachedJson,
 } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
+import { parseJsonArray as parseJsonArraySafe } from "@/lib/utils/json";
 import { addDays, getWeekStart } from "@/lib/utils/week";
 
 export interface GetWeeklyPlanInput {
@@ -40,12 +41,8 @@ function parseJsonArray(
     return undefined;
   }
 
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
+  const parsed = parseJsonArraySafe<string>(value);
+  return parsed.length > 0 ? parsed : undefined;
 }
 
 export async function invalidateWeeklyPlanCache(studentId: string) {

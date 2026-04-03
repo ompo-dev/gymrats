@@ -1,12 +1,10 @@
 "use client";
 
 import { Plus, Receipt } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import {
-  useInvalidateGymBootstrap,
-  useInvalidatePersonalBootstrap,
-} from "@/hooks/use-bootstrap-refresh";
+import { useGym } from "@/hooks/use-gym";
+import { usePersonal } from "@/hooks/use-personal";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { AddExpenseModal } from "./add-expense-modal";
@@ -16,19 +14,32 @@ interface FinancialExpensesTabProps {
   variant?: "gym" | "personal";
 }
 
-export function FinancialExpensesTab({
-  expenses = [],
-  variant = "gym",
-}: FinancialExpensesTabProps) {
-  const invalidateGymBootstrap = useInvalidateGymBootstrap();
-  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
-  const refreshBootstrap =
-    variant === "personal"
-      ? invalidatePersonalBootstrap
-      : invalidateGymBootstrap;
+interface FinancialExpensesTabContentProps {
+  expenses: Expense[];
+  storeExpenses: Expense[];
+  variant: "gym" | "personal";
+}
+
+function FinancialExpensesTabContent({
+  expenses,
+  storeExpenses,
+  variant,
+}: FinancialExpensesTabContentProps) {
+  const [hasHydratedExpenses, setHasHydratedExpenses] = useState(
+    expenses.length === 0,
+  );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const list = Array.isArray(expenses) ? expenses : [];
-  const totalExpenses = list.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
+  const list = hasHydratedExpenses ? storeExpenses : expenses;
+  const totalExpenses = list.reduce(
+    (sum: number, exp: Expense) => sum + (exp.amount ?? 0),
+    0,
+  );
+
+  useEffect(() => {
+    if (storeExpenses.length > 0 || expenses.length === 0) {
+      setHasHydratedExpenses(true);
+    }
+  }, [expenses.length, storeExpenses.length]);
 
   return (
     <>
@@ -102,12 +113,41 @@ export function FinancialExpensesTab({
       <AddExpenseModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={async () => {
-          await refreshBootstrap();
-          setIsAddModalOpen(false);
-        }}
         variant={variant}
       />
     </>
+  );
+}
+
+function GymExpensesContent({ expenses }: { expenses: Expense[] }) {
+  const storeExpenses = useGym("expenses");
+  return (
+    <FinancialExpensesTabContent
+      expenses={expenses}
+      storeExpenses={storeExpenses}
+      variant="gym"
+    />
+  );
+}
+
+function PersonalExpensesContent({ expenses }: { expenses: Expense[] }) {
+  const storeExpenses = usePersonal("expenses");
+  return (
+    <FinancialExpensesTabContent
+      expenses={expenses}
+      storeExpenses={storeExpenses}
+      variant="personal"
+    />
+  );
+}
+
+export function FinancialExpensesTab({
+  expenses = [],
+  variant = "gym",
+}: FinancialExpensesTabProps) {
+  return variant === "personal" ? (
+    <PersonalExpensesContent expenses={expenses} />
+  ) : (
+    <GymExpensesContent expenses={expenses} />
   );
 }

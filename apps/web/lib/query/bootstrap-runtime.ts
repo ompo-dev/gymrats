@@ -1,9 +1,16 @@
 export type BootstrapDomain = "student" | "gym" | "personal";
 
+interface BootstrapCacheMeta {
+  hit?: boolean;
+  strategy?: string;
+  ttlMs?: number;
+}
+
 export interface BootstrapResponseMeta {
   requestId?: string | null;
   generatedAt?: string | null;
   sectionTimings?: unknown;
+  cache?: BootstrapCacheMeta | null;
 }
 
 const hydratedBootstrapRequests = new Map<string, string>();

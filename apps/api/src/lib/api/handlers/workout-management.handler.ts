@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
+import { log } from "@/lib/observability";
 import {
   calculateReps,
   calculateRest,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/services/personalized-workout-generator";
 import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
 import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireStudent } from "../middleware/auth.middleware";
@@ -28,6 +30,27 @@ import {
   successResponse,
   unauthorizedResponse,
 } from "../utils/response.utils";
+
+function normalizeStringArrayInput(
+  value: string | string[] | null | undefined,
+): string[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return parseJsonArray<string>(value);
+}
+
+function parseNullableStringArray(
+  value: string | null | undefined,
+): string[] | null {
+  const parsed = parseJsonSafe<unknown>(value);
+  if (!Array.isArray(parsed)) {
+    return null;
+  }
+
+  return parsed.filter((item): item is string => typeof item === "string");
+}
 
 // ==========================================
 // UNITS
@@ -71,7 +94,7 @@ export async function createUnitHandler(
       201,
     );
   } catch (error) {
-    console.error("Error creating unit:", error);
+    log.error("Error creating unit", { error });
     return internalErrorResponse("Erro ao criar plano de treino");
   }
 }
@@ -114,7 +137,7 @@ export async function updateUnitHandler(
       message: "Plano atualizado com sucesso",
     });
   } catch (error) {
-    console.error("Error updating unit:", error);
+    log.error("Error updating unit", { error });
     return internalErrorResponse("Erro ao atualizar plano");
   }
 }
@@ -147,7 +170,7 @@ export async function deleteUnitHandler(
 
     return successResponse({ message: "Plano excluído com sucesso" });
   } catch (error) {
-    console.error("Error deleting unit:", error);
+    log.error("Error deleting unit", { error });
     return internalErrorResponse("Erro ao excluir plano");
   }
 }
@@ -205,7 +228,7 @@ export async function createWeeklyPlanHandler(
       201,
     );
   } catch (error) {
-    console.error("Error creating weekly plan:", error);
+    log.error("Error creating weekly plan", { error });
     return internalErrorResponse("Erro ao criar plano semanal");
   }
 }
@@ -309,7 +332,7 @@ export async function updateWeeklyPlanHandler(
       message: "Plano semanal atualizado com sucesso",
     });
   } catch (error) {
-    console.error("Error updating weekly plan:", error);
+    log.error("Error updating weekly plan", { error });
     return internalErrorResponse("Erro ao atualizar plano semanal");
   }
 }
@@ -404,7 +427,7 @@ export async function createWorkoutHandler(
       201,
     );
   } catch (error) {
-    console.error("Error creating workout:", error);
+    log.error("Error creating workout", { error });
     return internalErrorResponse("Erro ao criar treino");
   }
 }
@@ -461,7 +484,7 @@ export async function updateWorkoutHandler(
       message: "Treino atualizado com sucesso",
     });
   } catch (error) {
-    console.error("Error updating workout:", error);
+    log.error("Error updating workout", { error });
     return internalErrorResponse("Erro ao atualizar treino");
   }
 }
@@ -515,7 +538,7 @@ export async function deleteWorkoutHandler(
 
     return successResponse({ message: "Treino excluído com sucesso" });
   } catch (error) {
-    console.error("Error deleting workout:", error);
+    log.error("Error deleting workout", { error });
     if ((error as { code?: string })?.code === "P2025") {
       return notFoundResponse("Treino não encontrado para exclusão");
     }
@@ -535,16 +558,12 @@ export async function createExerciseHandler(
     if ("error" in auth) return auth.response;
 
     const body = await request.json();
-    console.log(
-      "[createExerciseHandler] Body recebido:",
-      JSON.stringify(body, null, 2),
-    );
-
     const validation = createWorkoutExerciseSchema.safeParse(body);
 
     if (!validation.success) {
-      console.error("[createExerciseHandler] Erro de validação:", {
-        body,
+      log.warn("[createExerciseHandler] Erro de validacao", {
+        bodyKeys:
+          body && typeof body === "object" ? Object.keys(body as object) : [],
         errors: validation.error.errors,
         formattedErrors: validation.error.errors.map((e) => ({
           path: e.path.join("."),
@@ -636,8 +655,8 @@ export async function createExerciseHandler(
     // Se ainda não encontrou, criar um novo exercício virtual usando os dados fornecidos
     // Isso permite adicionar exercícios que não estão no database educacional
     if (!exerciseInfo) {
-      console.log(
-        "[createExerciseHandler] Exercício não encontrado no database, criando virtual:",
+      log.info(
+        "[createExerciseHandler] Exercicio nao encontrado no database, criando virtual",
         {
           name: exerciseData.name,
           educationalId: exerciseData.educationalId,
@@ -655,19 +674,6 @@ export async function createExerciseHandler(
           .replace(/^-+|-+$/g, "");
 
       // Helper para normalizar arrays (aceita string JSON, array ou null)
-      const normalizeArray = (
-        value: string | string[] | null | undefined,
-      ): string[] => {
-        if (value == null) return [];
-        if (Array.isArray(value)) return value;
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      };
-
       // Helper para inferir grupo muscular baseado no nome
       const inferMuscleGroup = (name: string): MuscleGroup[] => {
         const normalized = name
@@ -804,13 +810,15 @@ export async function createExerciseHandler(
       };
 
       // Normalizar arrays (se vierem vazios, usar inferência)
-      const primaryMuscles = normalizeArray(
+      const primaryMuscles = normalizeStringArrayInput(
         exerciseData.primaryMuscles ?? undefined,
       );
-      const secondaryMuscles = normalizeArray(
+      const secondaryMuscles = normalizeStringArrayInput(
         exerciseData.secondaryMuscles ?? undefined,
       );
-      const equipment = normalizeArray(exerciseData.equipment ?? undefined);
+      const equipment = normalizeStringArrayInput(
+        exerciseData.equipment ?? undefined,
+      );
 
       // Criar exercício virtual com dados fornecidos ou inferidos
       exerciseInfo = {
@@ -829,32 +837,35 @@ export async function createExerciseHandler(
           equipment.length > 0 ? equipment : inferEquipment(exerciseData.name),
         // Se não vierem instruções, criar básicas baseadas no nome
         instructions:
-          normalizeArray(exerciseData.instructions ?? undefined).length > 0
-            ? normalizeArray(exerciseData.instructions ?? undefined)
+          normalizeStringArrayInput(exerciseData.instructions ?? undefined)
+            .length > 0
+            ? normalizeStringArrayInput(exerciseData.instructions ?? undefined)
             : [
                 `Execute ${exerciseData.name} com forma correta`,
                 "Mantenha o movimento controlado",
                 "Use peso adequado",
               ],
         tips:
-          normalizeArray(exerciseData.tips ?? undefined).length > 0
-            ? normalizeArray(exerciseData.tips ?? undefined)
+          normalizeStringArrayInput(exerciseData.tips ?? undefined).length > 0
+            ? normalizeStringArrayInput(exerciseData.tips ?? undefined)
             : [
                 "Mantenha a forma correta",
                 "Controle o movimento",
                 "Use amplitude completa",
               ],
         commonMistakes:
-          normalizeArray(exerciseData.commonMistakes ?? undefined).length > 0
-            ? normalizeArray(exerciseData.commonMistakes ?? undefined)
+          normalizeStringArrayInput(exerciseData.commonMistakes ?? undefined)
+            .length > 0
+            ? normalizeStringArrayInput(exerciseData.commonMistakes ?? undefined)
             : [
                 "Não usar amplitude completa",
                 "Peso excessivo",
                 "Forma incorreta",
               ],
         benefits:
-          normalizeArray(exerciseData.benefits ?? undefined).length > 0
-            ? normalizeArray(exerciseData.benefits ?? undefined)
+          normalizeStringArrayInput(exerciseData.benefits ?? undefined)
+            .length > 0
+            ? normalizeStringArrayInput(exerciseData.benefits ?? undefined)
             : [
                 "Desenvolvimento muscular",
                 "Aumento de força",
@@ -863,12 +874,12 @@ export async function createExerciseHandler(
         scientificEvidence: exerciseData.scientificEvidence ?? undefined,
       };
 
-      console.log("[createExerciseHandler] Exercício virtual criado:", {
+      log.info("[createExerciseHandler] Exercicio virtual criado", {
         id: exerciseInfo.id,
         name: exerciseInfo.name,
       });
     } else {
-      console.log("[createExerciseHandler] Exercício encontrado no database:", {
+      log.debug("[createExerciseHandler] Exercicio encontrado no database", {
         id: exerciseInfo.id,
         name: exerciseInfo.name,
       });
@@ -893,9 +904,7 @@ export async function createExerciseHandler(
         | "intermediario"
         | "avancado"
         | undefined,
-      goals: student.profile.goals
-        ? (JSON.parse(student.profile.goals) as string[])
-        : undefined,
+      goals: parseJsonArray<string>(student.profile.goals),
     };
 
     // Calcular valores baseado nas preferências do aluno
@@ -913,23 +922,6 @@ export async function createExerciseHandler(
       exerciseData.rest !== undefined
         ? exerciseData.rest
         : calculateRest(profile.restTime, profile.preferredRepRange);
-
-    // Helper para normalizar arrays (aceita string JSON, array ou já está normalizado)
-    const _normalizeArray = (
-      value: string | string[] | undefined | null,
-    ): string[] => {
-      if (!value) return [];
-      if (Array.isArray(value)) return value;
-      if (typeof value === "string") {
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    };
 
     // Guard: exerciseInfo deve estar definido neste ponto
     if (!exerciseInfo) {
@@ -1003,15 +995,15 @@ export async function createExerciseHandler(
       // Se já temos exerciseInfo (buscado acima) e perfil do aluno, gerar alternativas
       if (student?.profile && exerciseInfo) {
         // Preparar limitações (mesma lógica do gerador de workouts)
-        const physicalLimitations = student.profile.physicalLimitations
-          ? JSON.parse(student.profile.physicalLimitations)
-          : [];
-        const motorLimitations = student.profile.motorLimitations
-          ? JSON.parse(student.profile.motorLimitations)
-          : [];
-        const medicalConditions = student.profile.medicalConditions
-          ? JSON.parse(student.profile.medicalConditions)
-          : [];
+        const physicalLimitations = parseJsonArray<string>(
+          student.profile.physicalLimitations,
+        );
+        const motorLimitations = parseJsonArray<string>(
+          student.profile.motorLimitations,
+        );
+        const medicalConditions = parseJsonArray<string>(
+          student.profile.medicalConditions,
+        );
         const limitations = [
           ...physicalLimitations,
           ...motorLimitations,
@@ -1046,10 +1038,9 @@ export async function createExerciseHandler(
     } catch (altError) {
       // Log erro mas não falhar a criação do exercício
       // As alternativas podem ser adicionadas depois através do endpoint PATCH /api/workouts/generate
-      console.error(
-        "[createExerciseHandler] Erro ao adicionar alternativas:",
-        altError,
-      );
+      log.error("[createExerciseHandler] Erro ao adicionar alternativas", {
+        error: altError,
+      });
     }
 
     // Buscar exercício com alternativas para retornar completo
@@ -1058,29 +1049,24 @@ export async function createExerciseHandler(
       include: { alternatives: true },
     });
 
-    // Transformar dados educacionais de JSON strings para arrays (igual ao generate)
-    // Helper para parsear JSON com segurança
-    const safeParse = (value: string | null | undefined): string[] | null => {
-      if (!value) return null;
-      try {
-        return JSON.parse(value);
-      } catch {
-        return null;
-      }
-    };
-
     const transformedExercise = exerciseWithAlternatives
       ? {
           ...exerciseWithAlternatives,
-          primaryMuscles: safeParse(exerciseWithAlternatives.primaryMuscles),
-          secondaryMuscles: safeParse(
+          primaryMuscles: parseNullableStringArray(
+            exerciseWithAlternatives.primaryMuscles,
+          ),
+          secondaryMuscles: parseNullableStringArray(
             exerciseWithAlternatives.secondaryMuscles,
           ),
-          equipment: safeParse(exerciseWithAlternatives.equipment),
-          instructions: safeParse(exerciseWithAlternatives.instructions),
-          tips: safeParse(exerciseWithAlternatives.tips),
-          commonMistakes: safeParse(exerciseWithAlternatives.commonMistakes),
-          benefits: safeParse(exerciseWithAlternatives.benefits),
+          equipment: parseNullableStringArray(exerciseWithAlternatives.equipment),
+          instructions: parseNullableStringArray(
+            exerciseWithAlternatives.instructions,
+          ),
+          tips: parseNullableStringArray(exerciseWithAlternatives.tips),
+          commonMistakes: parseNullableStringArray(
+            exerciseWithAlternatives.commonMistakes,
+          ),
+          benefits: parseNullableStringArray(exerciseWithAlternatives.benefits),
           alternatives: exerciseWithAlternatives.alternatives || [],
         }
       : null;
@@ -1103,7 +1089,7 @@ export async function createExerciseHandler(
       201,
     );
   } catch (error) {
-    console.error("Error creating exercise:", error);
+    log.error("Error creating exercise", { error });
     return internalErrorResponse("Erro ao adicionar exercício");
   }
 }
@@ -1175,7 +1161,7 @@ export async function updateExerciseHandler(
       message: "Exercício atualizado com sucesso",
     });
   } catch (error) {
-    console.error("Error updating exercise:", error);
+    log.error("Error updating exercise", { error });
     return internalErrorResponse("Erro ao atualizar exercício");
   }
 }
@@ -1205,7 +1191,7 @@ export async function deleteExerciseHandler(
     if (!exercise) return notFoundResponse("Exercício não encontrado");
 
     if (!exercise.workout) {
-      console.error("Exercício sem treino vinculado", { exerciseId: id });
+      log.error("Exercicio sem treino vinculado", { exerciseId: id });
       return internalErrorResponse(
         "Erro de inconsistência de dados. Contate o suporte.",
       );
@@ -1239,7 +1225,7 @@ export async function deleteExerciseHandler(
 
     return successResponse({ message: "Exercício excluído com sucesso" });
   } catch (error) {
-    console.error("Error deleting exercise:", error);
+    log.error("Error deleting exercise", { error });
     // Verificar se é erro de Prisma (ex: registro não existe ou constraint)
     if ((error as { code?: string }).code === "P2025") {
       return notFoundResponse("Exercício não encontrado para exclusão");

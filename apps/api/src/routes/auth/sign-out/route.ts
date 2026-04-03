@@ -1,4 +1,7 @@
 import { auth } from "@/lib/auth-config";
+import { invalidateAuthSessionCache } from "@/lib/auth/session-cache";
+import { log } from "@/lib/observability";
+import { auditLog } from "@/lib/security/audit-log";
 import { signOutUseCase } from "@/lib/use-cases/auth";
 import { deleteSession } from "@/lib/utils/session";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
@@ -28,20 +31,44 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.ok) {
+      await auditLog({
+        action: "AUTH:LOGOUT",
+        request,
+        payload: {
+          error: result.error.message,
+        },
+        result: "FAILURE",
+      });
+
       return NextResponse.json(
         { error: result.error.message },
         { status: result.error.status },
       );
     }
 
+    await auditLog({
+      action: "AUTH:LOGOUT",
+      request,
+      result: "SUCCESS",
+    });
+
+    await invalidateAuthSessionCache([
+      authHeaderToken,
+      cookieAuthToken,
+      cookieBetterAuthToken,
+    ]);
+
     const response = NextResponse.json({ success: true });
     response.cookies.delete("auth_token");
     response.cookies.delete("better-auth.session_token");
     return response;
   } catch (error) {
-    console.error("Erro ao fazer logout:", error);
-    const message =
-      error instanceof Error ? error.message : "Erro ao fazer logout";
-    return NextResponse.json({ error: message }, { status: 500 });
+    log.error("Erro ao fazer logout", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 },
+    );
   }
 }

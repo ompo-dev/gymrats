@@ -667,7 +667,7 @@ export function GymLandingPage() {
             {activeTab === "payments" && (
               <PaymentsTab
                 payments={MOCK_PAYMENTS}
-                onTogglePaymentStatus={() => {}}
+                onSettlePayment={async () => {}}
               />
             )}
           </div>

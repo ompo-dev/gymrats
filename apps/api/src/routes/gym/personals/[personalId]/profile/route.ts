@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  personalId: z.string().min(1),
+  personalId: z.string().cuid(),
 });
 
 /**

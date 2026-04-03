@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
@@ -134,8 +134,42 @@ export default function FinancialPage({
     [initialSubscription],
   );
   const resolvedSubscription = storeSubscription ?? hydratedSubscription;
+  const [settlingPaymentId, setSettlingPaymentId] = useState<string | null>(null);
+  const lastHydrationKeyRef = useRef<string | null>(null);
+  const hydrationKey = useMemo(
+    () =>
+      JSON.stringify({
+        financialSummary,
+        payments,
+        coupons,
+        campaigns,
+        plans,
+        expenses,
+        balanceReais,
+        balanceCents,
+        withdraws,
+        subscription: hydratedSubscription,
+      }),
+    [
+      balanceCents,
+      balanceReais,
+      campaigns,
+      coupons,
+      expenses,
+      financialSummary,
+      hydratedSubscription,
+      payments,
+      plans,
+      withdraws,
+    ],
+  );
 
   useEffect(() => {
+    if (lastHydrationKeyRef.current === hydrationKey) {
+      return;
+    }
+
+    lastHydrationKeyRef.current = hydrationKey;
     actions.hydrateInitial({
       financialSummary,
       payments,
@@ -152,17 +186,27 @@ export default function FinancialPage({
     });
   }, [
     actions,
-    balanceCents,
-    balanceReais,
-    campaigns,
-    coupons,
-    expenses,
     financialSummary,
-    hydratedSubscription,
     payments,
+    coupons,
+    campaigns,
     plans,
+    expenses,
+    balanceReais,
+    balanceCents,
+    hydratedSubscription,
+    hydrationKey,
     withdraws,
   ]);
+
+  const handleSettlePayment = async (paymentId: string) => {
+    try {
+      setSettlingPaymentId(paymentId);
+      await actions.settlePayment(paymentId);
+    } finally {
+      setSettlingPaymentId(null);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
@@ -211,7 +255,11 @@ export default function FinancialPage({
       )}
 
       {viewMode === "payments" && (
-        <FinancialPaymentsTab payments={storePayments} />
+        <FinancialPaymentsTab
+          payments={storePayments}
+          onSettlePayment={handleSettlePayment}
+          settlingPaymentId={settlingPaymentId}
+        />
       )}
 
       {viewMode === "coupons" && <FinancialCouponsTab coupons={storeCoupons} />}

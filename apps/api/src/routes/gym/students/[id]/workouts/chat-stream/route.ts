@@ -17,6 +17,7 @@ import {
 } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 
 function sendSSE(
@@ -342,7 +343,9 @@ export async function POST(
           return;
         }
 
-        console.error("[gym/workouts/chat-stream] Erro:", error);
+        log.error("[gym/workouts/chat-stream] Erro", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         sendSSE(controller, "error", { error: "Erro inesperado" });
         controller.close();
       }

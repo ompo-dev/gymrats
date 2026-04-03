@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import {
   AlertDialog,
@@ -13,7 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useInvalidateGymBootstrap } from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 
@@ -22,7 +21,8 @@ interface PlanFormData {
   type: string;
   price: string;
   duration: string;
-  benefits: string; // CSV
+  graceDays: string;
+  benefits: string;
 }
 
 const PLAN_TYPES = [
@@ -46,9 +46,11 @@ export function MembershipPlansPage({
 }: {
   plans: MembershipPlan[];
 }) {
+  const membershipPlans = useGym("membershipPlans");
   const actions = useGym("actions");
-  const refreshGymBootstrap = useInvalidateGymBootstrap();
-  const [plans, setPlans] = useState(initialPlans);
+  const [hasHydratedPlans, setHasHydratedPlans] = useState(
+    initialPlans.length === 0,
+  );
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PlanFormData>({
@@ -56,84 +58,79 @@ export function MembershipPlansPage({
     type: "monthly",
     price: "",
     duration: "30",
+    graceDays: "0",
     benefits: "",
   });
+  const [saving, setSaving] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (membershipPlans.length > 0 || initialPlans.length === 0) {
+      setHasHydratedPlans(true);
+    }
+  }, [initialPlans.length, membershipPlans.length]);
+
+  const plans = hasHydratedPlans ? membershipPlans : initialPlans;
 
   const updateFormType = (type: string) => {
-    setForm((f) => ({
-      ...f,
+    setForm((current) => ({
+      ...current,
       type,
       duration: String(DURATION_BY_TYPE[type] ?? 30),
     }));
   };
-  const [saving, setSaving] = useState(false);
+
+  const resetForm = () => {
+    setIsCreating(false);
+    setEditingId(null);
+    setForm({
+      name: "",
+      type: "monthly",
+      price: "",
+      duration: "30",
+      graceDays: "0",
+      benefits: "",
+    });
+  };
 
   const handleCreate = async () => {
     try {
       setSaving(true);
+
       const payload = {
-        ...form,
+        name: form.name,
+        type: form.type as MembershipPlan["type"],
         price: Number(form.price),
         duration: Number(form.duration),
+        graceDays: Number(form.graceDays || 0),
         benefits: form.benefits
           .split(",")
-          .map((b) => b.trim())
+          .map((benefit) => benefit.trim())
           .filter(Boolean),
       };
+
       if (editingId) {
         await actions.updateMembershipPlan(editingId, payload);
-        await refreshGymBootstrap();
-        setPlans((prev) =>
-          prev.map((p) =>
-            p.id === editingId
-              ? ({
-                  ...p,
-                  ...payload,
-                  type: payload.type as MembershipPlan["type"],
-                } as MembershipPlan)
-              : p,
-          ),
-        );
       } else {
         await actions.createMembershipPlan(payload);
-        await refreshGymBootstrap();
-        setPlans((prev) => [
-          ...prev,
-          {
-            id: `${Date.now()}`,
-            name: payload.name,
-            type: payload.type as MembershipPlan["type"],
-            price: payload.price,
-            duration: payload.duration,
-            benefits: payload.benefits,
-            isActive: true,
-          } as MembershipPlan,
-        ]);
       }
+
       resetForm();
-    } catch (error) {
-      console.error("Erro ao salvar plano:", error);
+    } catch {
       alert("Erro ao salvar plano");
     } finally {
       setSaving(false);
     }
   };
 
-  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
-
-  const handleDelete = (planId: string) => {
-    setPlanToDelete(planId);
-  };
-
   const confirmDelete = async () => {
-    if (!planToDelete) return;
+    if (!planToDelete) {
+      return;
+    }
 
     try {
       await actions.deleteMembershipPlan(planToDelete);
-      await refreshGymBootstrap();
-      setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
-    } catch (error) {
-      console.error("Erro ao deletar plano:", error);
+    } catch {
       alert("Erro ao deletar plano");
     } finally {
       setPlanToDelete(null);
@@ -147,28 +144,17 @@ export function MembershipPlansPage({
       type: plan.type,
       price: String(plan.price),
       duration: String(plan.duration),
+      graceDays: String(plan.graceDays ?? 0),
       benefits: plan.benefits?.join(", ") ?? "",
     });
     setIsCreating(true);
-  };
-
-  const resetForm = () => {
-    setIsCreating(false);
-    setEditingId(null);
-    setForm({
-      name: "",
-      type: "monthly",
-      price: "",
-      duration: "30",
-      benefits: "",
-    });
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-[var(--duo-fg)]">
-          Planos de Matrícula
+          Planos de Matricula
         </h2>
         {!isCreating && (
           <DuoButton variant="primary" onClick={() => setIsCreating(true)}>
@@ -178,7 +164,6 @@ export function MembershipPlansPage({
         )}
       </div>
 
-      {/* Lista de planos */}
       {!isCreating && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {plans.length === 0 && (
@@ -192,7 +177,7 @@ export function MembershipPlansPage({
                 <div>
                   <p className="font-bold text-[var(--duo-fg)]">{plan.name}</p>
                   <p className="text-sm text-[var(--duo-fg-muted)]">
-                    {PLAN_TYPES.find((t) => t.value === plan.type)?.label ||
+                    {PLAN_TYPES.find((type) => type.value === plan.type)?.label ??
                       plan.type}{" "}
                     • {plan.duration} dias
                   </p>
@@ -203,20 +188,23 @@ export function MembershipPlansPage({
                   </p>
                 </div>
               </div>
+              <p className="mb-3 text-xs text-[var(--duo-fg-muted)]">
+                {plan.graceDays ?? 0} dias pendentes de acesso apos o vencimento
+              </p>
               {plan.benefits?.length > 0 && (
                 <ul className="mb-3 space-y-1">
-                  {plan.benefits.slice(0, 3).map((b, i) => (
+                  {plan.benefits.slice(0, 3).map((benefit, index) => (
                     <li
-                      key={i}
+                      key={`${plan.id}-benefit-${index}`}
                       className="flex items-center gap-1 text-xs text-[var(--duo-fg-muted)]"
                     >
                       <Check className="h-3 w-3 text-[var(--duo-primary)]" />
-                      {b}
+                      {benefit}
                     </li>
                   ))}
                   {plan.benefits.length > 3 && (
-                    <li className="text-xs text-[var(--duo-fg-muted)] italic">
-                      +{plan.benefits.length - 3} benefícios
+                    <li className="text-xs italic text-[var(--duo-fg-muted)]">
+                      +{plan.benefits.length - 3} beneficios
                     </li>
                   )}
                 </ul>
@@ -233,7 +221,7 @@ export function MembershipPlansPage({
                 <DuoButton
                   size="sm"
                   variant="danger"
-                  onClick={() => handleDelete(plan.id)}
+                  onClick={() => setPlanToDelete(plan.id)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </DuoButton>
@@ -243,7 +231,6 @@ export function MembershipPlansPage({
         </div>
       )}
 
-      {/* Form de criação / edição */}
       {isCreating && (
         <DuoCard.Root
           variant="default"
@@ -263,10 +250,13 @@ export function MembershipPlansPage({
               </label>
               <DuoInput.Simple
                 id="membership-plan-name"
-                placeholder="Ex: Mensal Básico"
+                placeholder="Ex: Mensal Basico"
                 value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
                 }
               />
             </div>
@@ -275,7 +265,7 @@ export function MembershipPlansPage({
                 htmlFor="membership-plan-type"
                 className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
               >
-                Tipo (duração definida automaticamente)
+                Tipo
               </label>
               <DuoSelect.Simple
                 id="membership-plan-type"
@@ -293,16 +283,41 @@ export function MembershipPlansPage({
                 htmlFor="membership-plan-price"
                 className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
               >
-                Preço (R$)
+                Preco (R$)
               </label>
               <DuoInput.Simple
                 id="membership-plan-price"
                 type="number"
                 placeholder="0.00"
                 value={form.price}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, price: e.target.value }))
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    price: event.target.value,
+                  }))
                 }
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="membership-plan-grace-days"
+                className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
+              >
+                Dias pendentes
+              </label>
+              <DuoInput.Simple
+                id="membership-plan-grace-days"
+                type="number"
+                min={0}
+                placeholder="0"
+                value={form.graceDays}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    graceDays: event.target.value,
+                  }))
+                }
+                helperText="Quantos dias o aluno ainda pode acessar depois do vencimento."
               />
             </div>
             <div>
@@ -310,14 +325,17 @@ export function MembershipPlansPage({
                 htmlFor="membership-plan-benefits"
                 className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]"
               >
-                Benefícios (separados por vírgula)
+                Beneficios (separados por virgula)
               </label>
               <DuoInput.Simple
                 id="membership-plan-benefits"
-                placeholder="Acesso total, Avaliação física..."
+                placeholder="Acesso total, Avaliacao fisica..."
                 value={form.benefits}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, benefits: e.target.value }))
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    benefits: event.target.value,
+                  }))
                 }
               />
             </div>
@@ -340,15 +358,15 @@ export function MembershipPlansPage({
       )}
 
       <AlertDialog
-        open={!!planToDelete}
+        open={Boolean(planToDelete)}
         onOpenChange={(open) => !open && setPlanToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá desativar o plano de matrícula. Usuários já
-              inscritos não serão afetados, mas novos alunos não poderão
+              Esta acao ira desativar o plano de matricula. Usuarios ja
+              inscritos nao serao afetados, mas novos alunos nao poderao
               escolher este plano.
             </AlertDialogDescription>
           </AlertDialogHeader>

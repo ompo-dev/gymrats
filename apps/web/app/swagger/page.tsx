@@ -5,7 +5,7 @@ import {
   SwaggerDocsScreen,
   type SwaggerSpec,
 } from "@/components/screens/public";
-import { resolveApiBaseUrl } from "@/lib/api/client-factory";
+import { resolveApiBaseUrl } from "@/lib/api/resolve-api-base-url";
 
 export default function SwaggerPage() {
   const [spec, setSpec] = useState<SwaggerSpec | null>(null);

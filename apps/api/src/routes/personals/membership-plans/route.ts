@@ -1,6 +1,7 @@
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
+import { parseJsonArray } from "@/lib/utils/json";
 import { NextResponse } from "@/runtime/next-server";
 
 type MembershipPlanBody = {
@@ -28,12 +29,7 @@ function parseBenefits(benefits: string | string[] | null | undefined) {
     return [];
   }
 
-  try {
-    const parsed = JSON.parse(benefits);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return parseJsonArray<string>(benefits);
 }
 
 export const GET = createSafeHandler(

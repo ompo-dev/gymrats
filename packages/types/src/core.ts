@@ -693,6 +693,17 @@ export interface StudentGymMembership {
   amount: number;
   status: "active" | "suspended" | "canceled" | "pending";
   autoRenew: boolean;
+  graceDays?: number;
+  authorizationStatus?:
+    | "eligible"
+    | "grace"
+    | "blocked"
+    | "inactive"
+    | "unknown";
+  financialStatus?: "paid" | "pending" | "overdue" | "not_applicable";
+  reasonCode?: string;
+  graceUntil?: Date;
+  openPaymentId?: string;
   paymentMethod?: {
     type: "credit-card" | "debit-card" | "pix";
     last4?: string;
@@ -713,6 +724,29 @@ export interface StudentPayment {
   paymentMethod: "credit-card" | "debit-card" | "pix" | "cash";
   reference?: string;
   receiptUrl?: string;
+  membershipId?: string;
+  kind?:
+    | "membership_initial"
+    | "membership_renewal"
+    | "membership_change_plan"
+    | "manual_regularization";
+  periodStart?: Date;
+  periodEnd?: Date;
+  authorizationStatus?:
+    | "eligible"
+    | "grace"
+    | "blocked"
+    | "inactive"
+    | "unknown";
+  financialStatus?: "paid" | "pending" | "overdue" | "not_applicable";
+  reasonCode?: string;
+  graceUntil?: Date;
+  operationalStatus?:
+    | "up_to_date"
+    | "grace"
+    | "pending"
+    | "overdue"
+    | "blocked";
 }
 
 export interface PaymentMethod {
@@ -834,6 +868,7 @@ export interface MembershipPlan {
   type: "monthly" | "quarterly" | "semi-annual" | "annual" | "trial";
   price: number;
   duration: number;
+  graceDays?: number;
   benefits: string[];
   isActive: boolean;
 }
@@ -855,6 +890,29 @@ export interface Payment {
     | "pix"
     | "bank-transfer";
   reference?: string;
+  membershipId?: string;
+  kind?:
+    | "membership_initial"
+    | "membership_renewal"
+    | "membership_change_plan"
+    | "manual_regularization";
+  periodStart?: Date;
+  periodEnd?: Date;
+  authorizationStatus?:
+    | "eligible"
+    | "grace"
+    | "blocked"
+    | "inactive"
+    | "unknown";
+  financialStatus?: "paid" | "pending" | "overdue" | "not_applicable";
+  reasonCode?: string;
+  graceUntil?: Date;
+  operationalStatus?:
+    | "up_to_date"
+    | "grace"
+    | "pending"
+    | "overdue"
+    | "blocked";
   abacatePayBillingId?: string;
   withdrawnAt?: Date;
   withdrawId?: string;

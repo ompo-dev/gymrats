@@ -1,5 +1,6 @@
 import { createSessionPayload } from "@/lib/auth/session-payload";
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
+import { log } from "@/lib/observability";
 import {
   getBillingPeriodFromPlan,
   hasActivePremiumStatus,
@@ -77,9 +78,12 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Erro ao buscar sessao:", error);
-    const message =
-      error instanceof Error ? error.message : "Erro ao buscar sessao";
-    return NextResponse.json({ error: message }, { status: 500 });
+    log.error("Erro ao buscar sessao", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 },
+    );
   }
 }

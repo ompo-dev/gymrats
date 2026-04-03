@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 
 export async function confirmAbacatePayment(): Promise<{
   success: boolean;

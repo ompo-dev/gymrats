@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
+import { log } from "@/lib/observability/logger";
 import type {
   MuscleGroup,
   PlanSlotData,
@@ -35,6 +36,15 @@ export interface UseEditUnitModalProps {
   studentId?: string;
   weeklyPlan?: WeeklyPlanData | null;
   loadWeeklyPlan?: (force?: boolean) => Promise<void>;
+}
+
+function hasSameOrderedIds(
+  current: Array<{ id: string }> | null,
+  next: Array<{ id: string }>,
+) {
+  if (current == null) return false;
+  if (current.length !== next.length) return false;
+  return current.every((item, index) => item.id === next[index]?.id);
 }
 
 export function useEditUnitModal({
@@ -103,8 +113,13 @@ export function useEditUnitModal({
   const [isEditingUnitInputs, setIsEditingUnitInputs] = useState(false);
   const [workoutTitle, setWorkoutTitle] = useState("");
   const [workoutMuscleGroup, setWorkoutMuscleGroup] = useState<string>("");
-  const [workoutItems, setWorkoutItems] = useState<WorkoutSession[]>([]);
-  const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
+  const requiresLocalListDraft = isGymMode || isLibraryMode;
+  const [workoutItemsDraft, setWorkoutItemsDraft] = useState<
+    WorkoutSession[] | null
+  >(null);
+  const [exerciseItemsDraft, setExerciseItemsDraft] = useState<
+    WorkoutExercise[] | null
+  >(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<
     string | null
   >(null);
@@ -121,18 +136,6 @@ export function useEditUnitModal({
     if (!unit?.workouts?.length) return [];
     return [...unit.workouts].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [unit?.workouts]);
-
-  useEffect(() => {
-    const currentIds = workoutItems.map((workout) => workout.id).join(",");
-    const nextIds = sortedWorkouts.map((workout) => workout.id).join(",");
-
-    if (
-      currentIds !== nextIds ||
-      workoutItems.length !== sortedWorkouts.length
-    ) {
-      setWorkoutItems(sortedWorkouts);
-    }
-  }, [sortedWorkouts, workoutItems]);
 
   const exercisesRawFromStore = useStudentUnifiedStore((state) => {
     if (!editingWorkoutId || !unitId) return null;
@@ -178,17 +181,35 @@ export function useEditUnitModal({
     return [...exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [exercises]);
 
-  useEffect(() => {
-    const currentIds = exerciseItems.map((exercise) => exercise.id).join(",");
-    const nextIds = sortedExercises.map((exercise) => exercise.id).join(",");
+  const workoutItems = useMemo(
+    () =>
+      requiresLocalListDraft
+        ? (workoutItemsDraft ?? sortedWorkouts)
+        : sortedWorkouts,
+    [requiresLocalListDraft, sortedWorkouts, workoutItemsDraft],
+  );
 
-    if (
-      currentIds !== nextIds ||
-      exerciseItems.length !== sortedExercises.length
-    ) {
-      setExerciseItems(sortedExercises);
-    }
-  }, [sortedExercises, exerciseItems]);
+  const exerciseItems = useMemo(
+    () =>
+      requiresLocalListDraft
+        ? (exerciseItemsDraft ?? sortedExercises)
+        : sortedExercises,
+    [exerciseItemsDraft, requiresLocalListDraft, sortedExercises],
+  );
+
+  useEffect(() => {
+    if (!requiresLocalListDraft) return;
+    setWorkoutItemsDraft((current) =>
+      hasSameOrderedIds(current, sortedWorkouts) ? current : sortedWorkouts,
+    );
+  }, [requiresLocalListDraft, sortedWorkouts]);
+
+  useEffect(() => {
+    if (!requiresLocalListDraft) return;
+    setExerciseItemsDraft((current) =>
+      hasSameOrderedIds(current, sortedExercises) ? current : sortedExercises,
+    );
+  }, [requiresLocalListDraft, sortedExercises]);
 
   const calculatedEstimatedTime = useMemo(() => {
     if (!exercises.length) return 0;
@@ -253,7 +274,11 @@ export function useEditUnitModal({
           })
           .then(() => onPlanUpdated?.())
           .catch((error) => {
-            console.error(error);
+            log.error("Edit unit modal failed to update gym workout", {
+              error,
+              studentId,
+              workoutId,
+            });
             toast.error("Erro ao atualizar treino");
           });
         return;
@@ -274,14 +299,21 @@ export function useEditUnitModal({
           })
           .then(() => onPlanUpdated?.())
           .catch((error) => {
-            console.error(error);
+            log.error("Edit unit modal failed to update library workout", {
+              error,
+              planId: weeklyPlan.id,
+              workoutId,
+            });
             toast.error("Erro ao atualizar treino");
           });
         return;
       }
 
       actions.updateWorkout(workoutId, payload).catch((error) => {
-        console.error(error);
+        log.error("Edit unit modal failed to update student workout", {
+          error,
+          workoutId,
+        });
         toast.error("Erro ao atualizar treino");
       });
     },
@@ -312,19 +344,29 @@ export function useEditUnitModal({
     }
   }, [activeWorkout, calculatedEstimatedTime, handleUpdateWorkout]);
 
-  useEffect(() => {
+  const sourceUnitSnapshot = useMemo(() => {
     if (isOpen && isWeeklyPlanMode && weeklyPlan) {
-      if (!isEditingUnitInputs && title === "" && description === "") {
-        setTitle(String(weeklyPlan.title ?? ""));
-        setDescription(String(weeklyPlan.description ?? ""));
-      }
-      return;
+      return {
+        title: String(weeklyPlan.title ?? ""),
+        description: String(weeklyPlan.description ?? ""),
+      };
     }
 
     if (isOpen && unitId && unit) {
-      if (!isEditingUnitInputs && title === "" && description === "") {
-        setTitle(String(unit.title ?? ""));
-        setDescription(String(unit.description ?? ""));
+      return {
+        title: String(unit.title ?? ""),
+        description: String(unit.description ?? ""),
+      };
+    }
+
+    return null;
+  }, [isOpen, isWeeklyPlanMode, unit, unitId, weeklyPlan]);
+
+  useEffect(() => {
+    if (sourceUnitSnapshot) {
+      if (!isEditingUnitInputs) {
+        setTitle(sourceUnitSnapshot.title);
+        setDescription(sourceUnitSnapshot.description);
       }
       return;
     }
@@ -337,17 +379,12 @@ export function useEditUnitModal({
     setDeleteConfirmationId(null);
     setDeleteWorkoutConfirmationId(null);
     setChatSlotId(null);
-    setWorkoutItems([]);
-    setExerciseItems([]);
+    setWorkoutItemsDraft(null);
+    setExerciseItemsDraft(null);
   }, [
-    description,
     isEditingUnitInputs,
     isOpen,
-    isWeeklyPlanMode,
-    title,
-    unit,
-    unitId,
-    weeklyPlan,
+    sourceUnitSnapshot,
   ]);
 
   useEffect(() => {
@@ -401,7 +438,12 @@ export function useEditUnitModal({
       await actions.updateUnit(unitId, { title, description });
       toast.success("Treino atualizado com sucesso!");
     } catch (error) {
-      console.error(error);
+      log.error("Edit unit modal failed to save unit", {
+        error,
+        unitId,
+        isWeeklyPlanMode,
+        apiMode,
+      });
       toast.error(
         isWeeklyPlanMode
           ? "Erro ao atualizar plano"
@@ -465,7 +507,12 @@ export function useEditUnitModal({
 
       toast.success("Novo dia de treino adicionado!");
     } catch (error) {
-      console.error(error);
+      log.error("Edit unit modal failed to create workout", {
+        error,
+        unitId,
+        apiMode,
+        studentId,
+      });
       toast.error("Erro ao criar treino");
     }
   }, [actions, isGymMode, studentId, unitId]);
@@ -509,7 +556,13 @@ export function useEditUnitModal({
       onPlanUpdated?.();
       toast.success("Dia de treino removido!");
     } catch (error) {
-      console.error(error);
+      log.error("Edit unit modal failed to delete workout", {
+        error,
+        workoutId: workoutIdToDelete,
+        apiMode,
+        studentId,
+        planId: weeklyPlan?.id,
+      });
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Falha ao remover treino";
@@ -588,7 +641,14 @@ export function useEditUnitModal({
         onPlanUpdated?.();
         toast.success("Treino removido. O dia foi marcado como descanso.");
       } catch (error) {
-        console.error(error);
+        log.error("Edit unit modal failed to remove workout from slot", {
+          error,
+          slotId,
+          workoutId: slot.workout.id,
+          apiMode,
+          studentId,
+          planId: weeklyPlan?.id,
+        });
         toast.error("Nao foi possivel remover o treino.");
       } finally {
         setLoadingSlotId(null);
@@ -652,7 +712,14 @@ export function useEditUnitModal({
           "Treino adicionado. Adicione exercicios ou use o Chat IA.",
         );
       } catch (error) {
-        console.error(error);
+        log.error("Edit unit modal failed to add workout to slot", {
+          error,
+          slotId,
+          dayName,
+          apiMode,
+          studentId,
+          planId: weeklyPlan?.id,
+        });
         toast.error("Nao foi possivel adicionar o treino.");
       } finally {
         setLoadingSlotId(null);
@@ -671,14 +738,16 @@ export function useEditUnitModal({
 
   const handleReorderWorkouts = useCallback(
     (newOrder: WorkoutSession[]) => {
-      setWorkoutItems(newOrder);
+      if (requiresLocalListDraft) {
+        setWorkoutItemsDraft(newOrder);
+      }
       newOrder.forEach((workout, index) => {
         if ((workout.order ?? 0) !== index) {
           void handleUpdateWorkout(workout.id, { order: index });
         }
       });
     },
-    [handleUpdateWorkout],
+    [handleUpdateWorkout, requiresLocalListDraft],
   );
 
   const handleAddExercise = useCallback(() => {
@@ -705,7 +774,11 @@ export function useEditUnitModal({
           })
           .then(() => onPlanUpdated?.())
           .catch((error) => {
-            console.error(error);
+            log.error("Edit unit modal failed to update gym exercise", {
+              error,
+              studentId,
+              exerciseId,
+            });
             toast.error("Erro ao salvar exercicio");
           });
         return;
@@ -726,14 +799,21 @@ export function useEditUnitModal({
           })
           .then(() => onPlanUpdated?.())
           .catch((error) => {
-            console.error(error);
+            log.error("Edit unit modal failed to update library exercise", {
+              error,
+              planId: weeklyPlan.id,
+              exerciseId,
+            });
             toast.error("Erro ao salvar exercicio");
           });
         return;
       }
 
       actions.updateWorkoutExercise(exerciseId, data).catch((error) => {
-        console.error(error);
+        log.error("Edit unit modal failed to update student exercise", {
+          error,
+          exerciseId,
+        });
         toast.error("Erro ao salvar exercicio");
       });
     },
@@ -749,14 +829,16 @@ export function useEditUnitModal({
 
   const handleReorderExercises = useCallback(
     (newOrder: WorkoutExercise[]) => {
-      setExerciseItems(newOrder);
+      if (requiresLocalListDraft) {
+        setExerciseItemsDraft(newOrder);
+      }
       newOrder.forEach((exercise, index) => {
         if ((exercise.order ?? 0) !== index) {
           handleUpdateExercise(exercise.id, { order: index });
         }
       });
     },
-    [handleUpdateExercise],
+    [handleUpdateExercise, requiresLocalListDraft],
   );
 
   const handleDeleteExercise = useCallback((exerciseId: string) => {
@@ -802,7 +884,13 @@ export function useEditUnitModal({
       onPlanUpdated?.();
       toast.success("Exercicio removido!");
     } catch (error) {
-      console.error(error);
+      log.error("Edit unit modal failed to delete exercise", {
+        error,
+        exerciseId: exerciseIdToDelete,
+        apiMode,
+        studentId,
+        planId: weeklyPlan?.id,
+      });
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Erro ao remover exercicio. Tente novamente.";

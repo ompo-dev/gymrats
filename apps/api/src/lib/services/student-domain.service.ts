@@ -6,6 +6,7 @@ import {
   listNutritionLibraryPlans,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import { parseJsonArray } from "@/lib/utils/json";
 
 function calculateStreakFromWorkoutDates(dates: Date[]) {
   const workoutDays = new Set<string>();
@@ -217,12 +218,12 @@ export class StudentDomainService extends BaseStudentDomainService {
         const profile = student.profile;
         result.profile = {
           ...profile,
-          goals: profile.goals ? JSON.parse(profile.goals) : [],
-          injuries: profile.injuries ? JSON.parse(profile.injuries) : [],
-          availableEquipment: profile.availableEquipment
-            ? JSON.parse(profile.availableEquipment)
-            : [],
-          allergies: profile.allergies ? JSON.parse(profile.allergies) : [],
+          goals: parseJsonArray<string>(profile.goals),
+          injuries: parseJsonArray<string>(profile.injuries),
+          availableEquipment: parseJsonArray<string>(
+            profile.availableEquipment,
+          ),
+          allergies: parseJsonArray<string>(profile.allergies),
           hasWeightLossGoal: profile.goals
             ? profile.goals.includes("perder-peso")
             : false,

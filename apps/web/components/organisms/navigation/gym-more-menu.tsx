@@ -1,17 +1,34 @@
 "use client";
 
-import { BarChart3, Crown, Palette, Settings } from "lucide-react";
+import {
+  BarChart3,
+  Crown,
+  Palette,
+  Settings,
+  ShieldCheck,
+} from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
-import { GymMoreMenuScreen } from "@/components/screens/gym";
+import {
+  GymMoreMenuScreen,
+  type GymMoreMenuItem,
+} from "@/components/screens/gym";
 import { useUserSession } from "@/hooks/use-user-session";
 
-const moreMenuItems = [
+const moreMenuItems: Array<GymMoreMenuItem & { adminOnly?: boolean }> = [
   {
     id: "stats",
     icon: BarChart3,
     label: "Estatísticas",
     description: "Análises detalhadas e relatórios",
     color: "duo-blue" as const,
+  },
+  {
+    id: "catracas",
+    icon: ShieldCheck,
+    label: "Catracas",
+    description: "Presenca, eventos ao vivo e operacao manual",
+    color: "duo-blue" as const,
+    href: "/gym?tab=catracas",
   },
   {
     id: "settings",
@@ -55,9 +72,12 @@ function GymMoreMenuSimple() {
         label: item.label,
         description: item.description,
         color: item.color,
-        href: item.id === "theme-test" ? "/gym/theme-test" : undefined,
-        onSelect:
+        href:
           item.id === "theme-test"
+            ? "/gym/theme-test"
+            : item.href,
+        onSelect:
+          item.href || item.id === "theme-test"
             ? undefined
             : async () => {
                 if (item.id === "subscription") {

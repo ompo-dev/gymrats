@@ -1,6 +1,13 @@
 import type { ZodType } from "zod";
 import { log, recordApiRequest } from "@/lib/observability";
-import { getRequestId } from "@/lib/runtime/request-context";
+import {
+  getRequestId,
+  recordAuthTime,
+  recordHandlerTime,
+  recordResponseTime,
+} from "@/lib/runtime/request-context";
+import { enforceSubjectRateLimit } from "@/lib/security/rate-limiter";
+import { parseJsonSafe } from "@/lib/utils/json";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import {
   requireAdmin,
@@ -94,7 +101,8 @@ async function parseRequestBody(
   }
 }
 
-function attachStandardHeaders(response: NextResponse, startedAt: number) {
+function attachStandardHeaders(response: Response, startedAt: number) {
+  const responseStartedAt = Date.now();
   const requestId = getRequestId();
   const latencyMs = Date.now() - startedAt;
 
@@ -102,6 +110,7 @@ function attachStandardHeaders(response: NextResponse, startedAt: number) {
   if (requestId) {
     response.headers.set("X-Request-Id", requestId);
   }
+  recordResponseTime(Date.now() - responseStartedAt);
 
   return {
     latencyMs,
@@ -150,7 +159,7 @@ export function createSafeHandler<
   TBody = Record<string, string | number | boolean | object | null>,
   TQuery = Record<string, string | number | boolean | object | null>,
 >(
-  handler: (ctx: SafeHandlerContext<TBody, TQuery>) => Promise<NextResponse>,
+  handler: (ctx: SafeHandlerContext<TBody, TQuery>) => Promise<Response>,
   options: HandlerOptions<TBody, TQuery> = {},
 ) {
   return async (
@@ -174,8 +183,10 @@ export function createSafeHandler<
     let adminContext: SafeHandlerContext["adminContext"];
 
     try {
+      const authStartedAt = Date.now();
       if (options.auth === "gym") {
         const result = await requireGym(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -207,6 +218,7 @@ export function createSafeHandler<
         gymContext = nextGymContext;
       } else if (options.auth === "student") {
         const result = await requireStudent(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -229,6 +241,7 @@ export function createSafeHandler<
         };
       } else if (options.auth === "personal") {
         const result = await requirePersonal(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -251,6 +264,7 @@ export function createSafeHandler<
         };
       } else if (options.auth === "admin") {
         const result = await requireAdmin(req);
+        recordAuthTime(Date.now() - authStartedAt);
         if ("response" in result) {
           const { response, latencyMs, requestId } = attachStandardHeaders(
             result.response,
@@ -269,6 +283,38 @@ export function createSafeHandler<
           session: result.session as Record<string, unknown>,
           user: result.user as AuthUser,
         };
+      } else {
+        recordAuthTime(Date.now() - authStartedAt);
+      }
+
+      const authenticatedUserId =
+        adminContext?.user?.id ??
+        gymContext?.user?.id ??
+        studentContext?.user?.id ??
+        personalContext?.user?.id;
+
+      if (authenticatedUserId) {
+        const rateLimitedResponse = await enforceSubjectRateLimit({
+          request: req,
+          subjectKey: authenticatedUserId,
+          actorId: authenticatedUserId,
+        });
+
+        if (rateLimitedResponse) {
+          const handled = attachStandardHeaders(rateLimitedResponse, startedAt);
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: handled.response.status,
+              latencyMs: handled.latencyMs,
+              requestId: handled.requestId,
+              gymContext,
+              studentContext,
+              personalContext,
+              adminContext,
+            }),
+          );
+          return handled.response;
+        }
       }
 
       let body: TBody = {} as TBody;
@@ -315,10 +361,12 @@ export function createSafeHandler<
         !!req.headers.get("x-idempotency-key");
 
       if (!shouldUseIdempotency) {
+        const handlerStartedAt = Date.now();
         const handled = attachStandardHeaders(
           await handler(handlerContext),
           startedAt,
         );
+        recordHandlerTime(Date.now() - handlerStartedAt);
         recordApiRequest(
           buildMetricContext(logMetaBase, {
             status: handled.response.status,
@@ -338,7 +386,7 @@ export function createSafeHandler<
       if (replay && replay.status === "completed" && replay.response_status) {
         try {
           const parsedBody = replay.response_body
-            ? JSON.parse(replay.response_body)
+            ? parseJsonSafe<unknown>(replay.response_body)
             : null;
           const replayResponse = NextResponse.json(parsedBody, {
             status: replay.response_status,
@@ -407,7 +455,9 @@ export function createSafeHandler<
       });
 
       try {
+        const handlerStartedAt = Date.now();
         const response = await handler(handlerContext);
+        recordHandlerTime(Date.now() - handlerStartedAt);
         const responseClone = response.clone();
         const responseText = await responseClone.text();
         await completeIdempotencyKey({
@@ -458,7 +508,12 @@ export function createSafeHandler<
               { status: 400 },
             )
           : NextResponse.json(
-              { error: err?.message || "Erro interno do servidor" },
+              {
+                error:
+                  status >= 500
+                    ? "Erro interno do servidor"
+                    : err?.message || "Erro na requisicao",
+              },
               { status },
             );
 

@@ -5,6 +5,10 @@ import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import { db } from "@/lib/db";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
+const paramsSchema = z.object({
+  installationId: z.string().cuid("installationId deve ser um CUID valido"),
+});
+
 const updateInstallationSchema = z.object({
   expoPushToken: z.string().min(1).max(512).nullable().optional(),
   pushPermission: z
@@ -46,7 +50,7 @@ async function requireOwnedInstallation(
   if (!auth.ok) {
     return {
       errorResponse: NextResponse.json(
-        { error: auth.error.message },
+        { error: "Nao autenticado" },
         { status: auth.error.status },
       ),
     };
@@ -95,7 +99,8 @@ export async function PATCH(
     return validation.response;
   }
 
-  const { installationId } = await Promise.resolve(context.params);
+  const rawParams = await Promise.resolve(context.params);
+  const { installationId } = paramsSchema.parse(rawParams);
   const ownership = await requireOwnedInstallation(request, installationId);
   if ("errorResponse" in ownership) {
     return ownership.errorResponse;
@@ -136,7 +141,8 @@ export async function DELETE(
     params: Promise<{ installationId: string }> | { installationId: string };
   },
 ) {
-  const { installationId } = await Promise.resolve(context.params);
+  const rawParams = await Promise.resolve(context.params);
+  const { installationId } = paramsSchema.parse(rawParams);
   const ownership = await requireOwnedInstallation(request, installationId);
   if ("errorResponse" in ownership) {
     return ownership.errorResponse;

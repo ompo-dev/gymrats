@@ -1,46 +1,39 @@
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { DEFAULT_PERSONAL_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
-import { getPersonalBootstrapServerRequest } from "@/lib/api/bootstrap-server";
-import { createAppQueryClient } from "@/lib/query/create-query-client";
-import { queryKeys } from "@/lib/query/query-keys";
+import { readPersonalBootstrap } from "@/lib/actions/bootstrap-readers";
+import { requireProtectedRouteAccess } from "@/lib/auth/server-route-guard";
+import type { PersonalUnifiedData } from "@/lib/types/personal-unified";
 import { PersonalLayoutContent } from "./layout-content";
-
-export const dynamic = "force-dynamic";
 
 async function PersonalLayoutWrapper({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const queryClient = createAppQueryClient();
+  await requireProtectedRouteAccess("/personal");
+
+  let initialBootstrap: Partial<PersonalUnifiedData> | null = null;
 
   try {
-    await queryClient.fetchQuery({
-      queryKey: queryKeys.personalBootstrap(
-        DEFAULT_PERSONAL_BOOTSTRAP_SECTIONS,
-      ),
-      queryFn: () =>
-        getPersonalBootstrapServerRequest(DEFAULT_PERSONAL_BOOTSTRAP_SECTIONS),
-    });
+    const bootstrap = await readPersonalBootstrap(DEFAULT_PERSONAL_BOOTSTRAP_SECTIONS);
+    initialBootstrap = bootstrap.data ?? null;
   } catch {
-    // Mantemos o layout utilizavel mesmo se o prefetch falhar.
+    // Mantemos o layout utilizável mesmo se o bootstrap falhar.
   }
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <PersonalLayoutContent
-        initialStats={{
-          streak: 0,
-          xp: 0,
-          level: 1,
-          ranking: 0,
-        }}
-      >
-        {children}
-      </PersonalLayoutContent>
-    </HydrationBoundary>
+    <PersonalLayoutContent
+      initialBootstrap={initialBootstrap}
+      initialStats={{
+        streak: 0,
+        xp: 0,
+        level: 1,
+        ranking: 0,
+      }}
+    >
+      {children}
+    </PersonalLayoutContent>
   );
 }
 

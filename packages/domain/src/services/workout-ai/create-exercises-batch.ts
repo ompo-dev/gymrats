@@ -5,6 +5,7 @@
 import { exerciseDatabase } from "@gymrats/catalog/exercises";
 import { db } from "@gymrats/db";
 import type { ExerciseInfo, MuscleGroup } from "@gymrats/types";
+import { log } from "../../log";
 import {
   calculateReps,
   calculateRest,
@@ -335,18 +336,20 @@ export async function createExercisesInBatch(
           });
         }
       } catch (altError) {
-        console.error(
-          "[createExercisesInBatch] Erro ao adicionar alternativas:",
-          altError,
-        );
+        log.error("Failed to create workout exercise alternatives", {
+          workoutId,
+          exerciseName: exercisePlan.name,
+          error: altError,
+        });
       }
 
       createdExercises.push(exercise);
     } catch (exerciseError) {
-      console.error(
-        `[createExercisesInBatch] Erro ao criar exercício ${exercisePlan.name}:`,
-        exerciseError,
-      );
+      log.error("Failed to create workout exercise in batch", {
+        workoutId,
+        exerciseName: exercisePlan.name,
+        error: exerciseError,
+      });
     }
   }
 

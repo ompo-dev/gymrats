@@ -1,4 +1,5 @@
 import { abacatePay } from "@gymrats/api/abacatepay";
+import { parseJsonSafe } from "@gymrats/domain/json";
 import {
   badRequestResponse,
   internalErrorResponse,
@@ -6,16 +7,26 @@ import {
 } from "@/lib/api/utils/response.utils";
 import { log } from "@/lib/observability";
 import { webhookQueue } from "@/lib/queue/queues";
+import { auditLog } from "@/lib/security/audit-log";
+import { claimWebhookReplayKey } from "@/lib/security/webhook-replay";
 import type { NextRequest } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Validar Assinatura HMAC (Obrigatório e Seguro)
     const signature = request.headers.get("x-webhook-signature");
     const rawBody = await request.text();
 
     if (!signature) {
-      log.warn("[Webhook] Tentativa de acesso sem HMAC Signature");
+      log.warn("[Webhook] Tentativa de acesso sem assinatura");
+      await auditLog({
+        action: "PAYMENT:WEBHOOK",
+        request,
+        payload: {
+          path: request.nextUrl.pathname,
+          reason: "missing_signature",
+        },
+        result: "FAILURE",
+      });
       return badRequestResponse("Missing webhook signature");
     }
 
@@ -25,24 +36,71 @@ export async function POST(request: NextRequest) {
     );
 
     if (!isSignatureValid) {
-      log.warn(
-        "[Webhook] Falha na verificação criptográfica de assinatura (HMAC).",
-      );
+      log.warn("[Webhook] Assinatura criptografica invalida");
+      await auditLog({
+        action: "PAYMENT:WEBHOOK",
+        request,
+        payload: {
+          path: request.nextUrl.pathname,
+          reason: "invalid_signature",
+        },
+        result: "FAILURE",
+      });
       return badRequestResponse("Invalid cryptographic signature");
     }
 
-    const body = JSON.parse(rawBody);
-    const { event, data } = body;
+    const isFirstDelivery = await claimWebhookReplayKey(signature, rawBody);
+    if (!isFirstDelivery) {
+      await auditLog({
+        action: "PAYMENT:WEBHOOK",
+        request,
+        payload: {
+          path: request.nextUrl.pathname,
+          replay: true,
+        },
+        result: "SUCCESS",
+      });
+      return successResponse({ received: true, replay: true });
+    }
 
-    log.info(`[Webhook] Evento Recebido Verificado: ${event}`);
+    const body = parseJsonSafe<{
+      event?: string;
+      data?: Record<string, unknown>;
+    }>(rawBody);
 
-    // Em vez de processar todo o fluxo pesado do banco (que arrisca 504 Gateway Timeout),
-    // apenas colocamos na fila do Redis via BullMQ, liberando o AbacatePay na hora.
-    await webhookQueue.add("process-payment", { event, data });
+    if (!body?.event || !body.data || typeof body.data !== "object") {
+      await auditLog({
+        action: "PAYMENT:WEBHOOK",
+        request,
+        payload: {
+          path: request.nextUrl.pathname,
+          reason: "invalid_json",
+        },
+        result: "FAILURE",
+      });
+      return badRequestResponse("Invalid webhook payload");
+    }
+
+    await webhookQueue.add("process-payment", {
+      event: body.event,
+      data: body.data,
+    });
+
+    await auditLog({
+      action: "PAYMENT:WEBHOOK",
+      request,
+      payload: {
+        path: request.nextUrl.pathname,
+        event: body.event,
+      },
+      result: "SUCCESS",
+    });
 
     return successResponse({ received: true, queued: true });
   } catch (error) {
-    log.error("[Webhook] Erro ao enfileirar webhook:", { error });
-    return internalErrorResponse("Error enqueuing webhook", error);
+    log.error("[Webhook] Erro ao enfileirar webhook", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return internalErrorResponse("Error enqueuing webhook");
   }
 }

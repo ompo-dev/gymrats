@@ -1,6 +1,6 @@
 import type { AxiosError } from "axios";
 import type { Payment, StudentData } from "@/lib/types";
-import { apiClient } from "./client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 
 function getErrorMessage(error: unknown, fallback: string) {
   const payload = (error as AxiosError<{ error?: string }>)?.response?.data;

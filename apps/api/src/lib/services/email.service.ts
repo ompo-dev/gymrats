@@ -2,6 +2,15 @@ import nodemailer from "nodemailer";
 import { log } from "@/lib/observability";
 import { emailQueue } from "@/lib/queue/queues";
 
+function requireEnv(name: "EMAIL_USER" | "EMAIL_PASSWORD") {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+
+  return value;
+}
+
 // Configuração do transporter usando Gmail com senha de aplicativo
 // Nota: Para usar OAuth2, seria necessário configurar refresh tokens
 // Por enquanto, usando senha de aplicativo do Google
@@ -12,9 +21,8 @@ const createTransporter = () => {
     port: 587,
     secure: false, // true para 465, false para outras portas
     auth: {
-      user: process.env.EMAIL_USER || "gym.rats.workout@gmail.com",
-      pass:
-        process.env.EMAIL_PASSWORD || "K@r@lh0@4K@r@lh0@4K@r@lh0@4K@r@lh0@4",
+      user: requireEnv("EMAIL_USER"),
+      pass: requireEnv("EMAIL_PASSWORD"),
     },
   });
 };
@@ -43,9 +51,10 @@ export async function processWelcomeEmailSync(
   to: string,
   name: string,
 ): Promise<void> {
+  const emailUser = requireEnv("EMAIL_USER");
   const transporter = createTransporter();
   const mailOptions = {
-    from: '"Gym Rats" <gym.rats.workout@gmail.com>',
+    from: `"Gym Rats" <${emailUser}>`,
     to,
     subject: "🎉 Bem-vindo ao Gym Rats!",
     html: getWelcomeEmailTemplate(name),
@@ -279,9 +288,10 @@ export async function processResetPasswordEmailSync(
   name: string,
   code: string,
 ): Promise<void> {
+  const emailUser = requireEnv("EMAIL_USER");
   const transporter = createTransporter();
   const mailOptions = {
-    from: '"Gym Rats" <gym.rats.workout@gmail.com>',
+    from: `"Gym Rats" <${emailUser}>`,
     to,
     subject: "🔐 Código de recuperação de senha - Gym Rats",
     html: getResetPasswordEmailTemplate(name, code),

@@ -1,10 +1,11 @@
+import { parseJsonArray } from "@gymrats/domain/json";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  personalId: z.string().min(1),
+  personalId: z.string().cuid(),
 });
 
 /**
@@ -80,19 +81,13 @@ export const GET = createSafeHandler(
     }
 
     const plans = personal.membershipPlans.map((plan) => {
-      let benefits: string[] = [];
-      if (plan.benefits) {
-        try {
-          benefits = JSON.parse(plan.benefits);
-        } catch {}
-      }
       return {
         id: plan.id,
         name: plan.name,
         type: plan.type,
         price: plan.price,
         duration: plan.duration,
-        benefits,
+        benefits: parseJsonArray<string>(plan.benefits),
       };
     });
 

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { apiClient } from "@/lib/api/client";
+import { actionClient } from "@/lib/actions/client";
 
 interface PaymentsState {
   simulatingByUrl: Record<string, boolean>;
@@ -15,7 +15,7 @@ export const usePaymentsStore = create<PaymentsState>((set) => ({
     }));
 
     try {
-      await apiClient.post(url, {});
+      await actionClient.post(url, {});
     } finally {
       set((state) => ({
         simulatingByUrl: { ...state.simulatingByUrl, [url]: false },

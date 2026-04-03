@@ -1,6 +1,7 @@
 import { gymLocationsQuerySchema } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
@@ -58,28 +59,13 @@ export const GET = createSafeHandler(
     };
 
     const formattedGyms = gyms.map((gym) => {
-      let amenities: string[] = [];
-      if (gym.amenities) {
-        try {
-          amenities = JSON.parse(gym.amenities);
-        } catch {}
-      }
-      let openingHours: {
+      const amenities = parseJsonArray<string>(gym.amenities);
+      const openingHours = parseJsonSafe<{
         open: string;
         close: string;
         days?: string[];
-      } | null = null;
-      if (gym.openingHours) {
-        try {
-          openingHours = JSON.parse(gym.openingHours);
-        } catch {}
-      }
-      let photos: string[] = [];
-      if (gym.photos) {
-        try {
-          photos = JSON.parse(gym.photos);
-        } catch {}
-      }
+      }>(gym.openingHours);
+      const photos = parseJsonArray<string>(gym.photos);
 
       let distance: number | undefined;
       if (lat && lng && gym.latitude && gym.longitude) {

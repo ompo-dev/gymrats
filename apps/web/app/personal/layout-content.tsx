@@ -8,15 +8,18 @@ import {
   Users,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   AppLayout,
   type TabConfig,
 } from "@/components/templates/layouts/app-layout";
 import { useUserSession } from "@/hooks/use-user-session";
+import type { PersonalUnifiedData } from "@/lib/types/personal-unified";
+import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 
 interface PersonalLayoutContentProps {
   children: React.ReactNode;
+  initialBootstrap?: Partial<PersonalUnifiedData> | null;
   initialStats: {
     streak: number;
     xp: number;
@@ -27,15 +30,32 @@ interface PersonalLayoutContentProps {
 
 export function PersonalLayoutContent({
   children,
+  initialBootstrap,
   initialStats,
 }: PersonalLayoutContentProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const hydrateInitial = usePersonalUnifiedStore(
+    (state) => state.hydrateInitial,
+  );
+  const lastHydratedBootstrapRef =
+    useRef<Partial<PersonalUnifiedData> | null>(null);
   const isOnboarding =
     typeof pathname === "string" && pathname.includes("/onboarding");
-
   const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
   const canAccessPersonal = role === "PERSONAL" || role === "ADMIN" || isAdmin;
+
+  useEffect(() => {
+    if (
+      !initialBootstrap ||
+      lastHydratedBootstrapRef.current === initialBootstrap
+    ) {
+      return;
+    }
+
+    lastHydratedBootstrapRef.current = initialBootstrap;
+    hydrateInitial(initialBootstrap);
+  }, [hydrateInitial, initialBootstrap]);
 
   useEffect(() => {
     if (sessionLoading) return;
@@ -56,7 +76,7 @@ export function PersonalLayoutContent({
         <div className="text-center">
           <h1 className="mb-2 text-2xl font-bold text-duo-fg">Acesso Negado</h1>
           <p className="text-duo-fg-muted">
-            Esta área está disponível apenas para personais.
+            Esta area esta disponivel apenas para personais.
           </p>
         </div>
       </div>
@@ -68,10 +88,10 @@ export function PersonalLayoutContent({
   }
 
   const personalTabs: TabConfig[] = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Início" },
+    { id: "dashboard", icon: LayoutDashboard, label: "Inicio" },
     { id: "students", icon: Users, label: "Alunos" },
     { id: "gyms", icon: Building2, label: "Academias" },
-    { id: "financial", icon: DollarSign, label: "Finanças" },
+    { id: "financial", icon: DollarSign, label: "Financas" },
     { id: "more", icon: MoreHorizontal, label: "Mais" },
   ];
 

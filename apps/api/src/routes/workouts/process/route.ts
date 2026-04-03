@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
+import { log } from "@/lib/observability";
 import {
   calculateReps,
   calculateRest,
@@ -27,6 +28,7 @@ import {
   generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
+import { parseJsonArray } from "@/lib/utils/json";
 
 export async function POST(request: NextRequest) {
   try {
@@ -518,9 +520,10 @@ export async function POST(request: NextRequest) {
             );
           } else if (unit || planSlot) {
             // Se não encontrou, pode ser um workout novo nos previews - criar novo
-            console.log(
-              `[update_workout] Workout não encontrado pelo ID/título "${parsedPlan.targetWorkoutId}", criando novo...`,
-            );
+            log.info("[update_workout] Workout nao encontrado, criando novo", {
+              targetWorkoutId: parsedPlan.targetWorkoutId,
+              title: workoutPlan.title,
+            });
 
             let order = 0;
             let unitIdForCreate: string | null = null;
@@ -582,7 +585,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error("[workouts/process] Erro:", error);
+    log.error("[workouts/process] Erro", { error });
     return internalErrorResponse("Erro ao processar comando", error);
   }
 }
@@ -621,24 +624,28 @@ async function createExercisesInBatch(
 ): Promise<Awaited<ReturnType<typeof prismaClient.workoutExercise.create>>[]> {
   const createdExercises = [];
 
-  console.log(
-    `[createExercisesInBatch] Criando ${exercises.length} exercícios para workout ${workoutId}`,
-  );
+  log.info("[createExercisesInBatch] Criando exercicios", {
+    workoutId,
+    totalExercises: exercises.length,
+  });
 
   for (let i = 0; i < exercises.length; i++) {
     const exercisePlan = exercises[i];
 
     try {
-      console.log(
-        `[createExercisesInBatch] Processando exercício ${i + 1}/${exercises.length}: ${exercisePlan.name}`,
-      );
+      log.debug("[createExercisesInBatch] Processando exercicio", {
+        index: i + 1,
+        totalExercises: exercises.length,
+        name: exercisePlan.name,
+      });
 
       // Buscar ou criar exercício no database educacional
       const exerciseInfo = findOrCreateExercise(exercisePlan.name);
 
-      console.log(
-        `[createExercisesInBatch] Exercício encontrado/criado: ${exerciseInfo.id} - ${exerciseInfo.name}`,
-      );
+      log.debug("[createExercisesInBatch] Exercicio encontrado ou criado", {
+        educationalId: exerciseInfo.id,
+        name: exerciseInfo.name,
+      });
 
       // Calcular sets, reps e rest baseado nas preferências do aluno
       const calculatedSets =
@@ -652,7 +659,7 @@ async function createExercisesInBatch(
         exercisePlan.reps ||
         calculateReps(
           profile.preferredRepRange,
-          profile.goals ? JSON.parse(profile.goals) : [],
+          parseJsonArray<string>(profile.goals),
         );
       const calculatedRest =
         exercisePlan.rest !== undefined
@@ -720,8 +727,12 @@ async function createExercisesInBatch(
           Array.isArray(exercisePlan.alternatives) &&
           exercisePlan.alternatives.length > 0
         ) {
-          console.log(
-            `[createExercisesInBatch] Usando ${exercisePlan.alternatives.length} alternativas fornecidas pela IA`,
+          log.debug(
+            "[createExercisesInBatch] Usando alternativas fornecidas pela IA",
+            {
+              name: exercisePlan.name,
+              totalAlternatives: exercisePlan.alternatives.length,
+            },
           );
           alternativesToCreate = exercisePlan.alternatives
             .slice(0, 3)
@@ -732,18 +743,21 @@ async function createExercisesInBatch(
             }));
         } else if (profile && exerciseInfo) {
           // Fallback: gerar alternativas automaticamente se IA não forneceu
-          console.log(
-            `[createExercisesInBatch] Gerando alternativas automaticamente para ${exercisePlan.name}`,
+          log.debug(
+            "[createExercisesInBatch] Gerando alternativas automaticamente",
+            {
+              name: exercisePlan.name,
+            },
           );
-          const physicalLimitations = profile.physicalLimitations
-            ? JSON.parse(profile.physicalLimitations)
-            : [];
-          const motorLimitations = profile.motorLimitations
-            ? JSON.parse(profile.motorLimitations)
-            : [];
-          const medicalConditions = profile.medicalConditions
-            ? JSON.parse(profile.medicalConditions)
-            : [];
+          const physicalLimitations = parseJsonArray<string>(
+            profile.physicalLimitations,
+          );
+          const motorLimitations = parseJsonArray<string>(
+            profile.motorLimitations,
+          );
+          const medicalConditions = parseJsonArray<string>(
+            profile.medicalConditions,
+          );
           const limitations = [
             ...physicalLimitations,
             ...motorLimitations,
@@ -774,39 +788,46 @@ async function createExercisesInBatch(
               order: index,
             })),
           });
-          console.log(
-            `[createExercisesInBatch] ✅ ${alternativesToCreate.length} alternativas criadas para ${exercisePlan.name}`,
-          );
+          log.info("[createExercisesInBatch] Alternativas criadas", {
+            name: exercisePlan.name,
+            totalAlternatives: alternativesToCreate.length,
+          });
         } else {
-          console.warn(
-            `[createExercisesInBatch] ⚠️ Nenhuma alternativa criada para ${exercisePlan.name} - IA deveria fornecer 2-3 alternativas`,
+          log.warn(
+            "[createExercisesInBatch] Nenhuma alternativa criada para o exercicio",
+            {
+              name: exercisePlan.name,
+            },
           );
         }
       } catch (altError) {
-        console.error(
-          "[createExercisesInBatch] Erro ao adicionar alternativas:",
-          altError,
-        );
+        log.error("[createExercisesInBatch] Erro ao adicionar alternativas", {
+          error: altError,
+          name: exercisePlan.name,
+        });
         // Não falhar a criação do exercício se houver erro nas alternativas
       }
 
       createdExercises.push(exercise);
-      console.log(
-        `[createExercisesInBatch] ✅ Exercício criado com sucesso: ${exercise.name} (ID: ${exercise.id})`,
-      );
+      log.info("[createExercisesInBatch] Exercicio criado com sucesso", {
+        exerciseId: exercise.id,
+        name: exercise.name,
+      });
     } catch (exerciseError) {
       // Log do erro mas continue criando os outros exercícios
-      console.error(
-        `[createExercisesInBatch] ❌ Erro ao criar exercício ${exercisePlan.name}:`,
-        exerciseError,
-      );
+      log.error("[createExercisesInBatch] Erro ao criar exercicio", {
+        error: exerciseError,
+        name: exercisePlan.name,
+      });
       // Não adicionar ao array de criados, mas continuar o loop
     }
   }
 
-  console.log(
-    `[createExercisesInBatch] ✅ Total de ${createdExercises.length}/${exercises.length} exercícios criados com sucesso`,
-  );
+  log.info("[createExercisesInBatch] Batch finalizado", {
+    created: createdExercises.length,
+    requested: exercises.length,
+    workoutId,
+  });
   return createdExercises;
 }
 

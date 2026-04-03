@@ -2,7 +2,7 @@
  * Slice financeiro para student-unified-store.
  */
 
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import type {
   StudentData,
   StudentJoinGymResult,

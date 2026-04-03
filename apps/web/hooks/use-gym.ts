@@ -1,7 +1,7 @@
 "use client";
 
-import { useShallow } from "zustand/react/shallow";
-import { selectDomainStoreSlice } from "@/hooks/shared/select-domain-store";
+import { useMemo } from "react";
+import { createStableDomainSelector } from "@/hooks/shared/select-domain-store";
 import type {
   GymActions,
   GymLoaders,
@@ -21,6 +21,7 @@ function getActions(state: GymUnifiedState): GymActions {
     checkInStudent: state.checkInStudent,
     checkOutStudent: state.checkOutStudent,
     updatePaymentStatus: state.updatePaymentStatus,
+    settlePayment: state.settlePayment,
     updateMemberStatus: state.updateMemberStatus,
     createEquipment: state.createEquipment,
     updateEquipment: state.updateEquipment,
@@ -66,22 +67,24 @@ export function useGym<T extends GymSelector>(
   | GymUnifiedState["data"]
   | GymSelectorReturnMap[T]
   | { [K in T]: GymSelectorReturnMap[K] } {
-  return useGymUnifiedStore(
-    useShallow(
-      (state) =>
-        selectDomainStoreSlice<
-          GymUnifiedState,
-          GymUnifiedState["data"],
-          T,
-          GymActions,
-          GymLoaders
-        >(state, selectors, {
-          getActions,
-          getLoaders,
-        }) as
-          | GymUnifiedState["data"]
-          | GymSelectorReturnMap[T]
-          | { [K in T]: GymSelectorReturnMap[K] },
-    ),
+  const selectorKey = selectors.join("|");
+  const selector = useMemo(
+    () =>
+      createStableDomainSelector<
+        GymUnifiedState,
+        GymUnifiedState["data"],
+        T,
+        GymActions,
+        GymLoaders
+      >(selectors, {
+        getActions,
+        getLoaders,
+      }),
+    [selectorKey],
   );
+
+  return useGymUnifiedStore(selector) as
+    | GymUnifiedState["data"]
+    | GymSelectorReturnMap[T]
+    | { [K in T]: GymSelectorReturnMap[K] };
 }

@@ -1,4 +1,9 @@
 import { create } from "zustand";
+import { actionClient } from "@/lib/actions/client";
+import { log } from "@/lib/observability/logger";
+
+const GYMS_LIST_TTL_MS = 30_000;
+let gymsListInflightRequest: Promise<void> | null = null;
 
 // Dados completos de uma academia
 export interface GymData {
@@ -47,17 +52,18 @@ interface GymsDataState {
   // ID da academia ativa
   activeGymId: string | null;
 
-  // Permissão para criar múltiplas
+  // Permissao para criar multiplas
   canCreateMultipleGyms: boolean;
 
   // Estado de carregamento
   isLoading: boolean;
   isCreating: boolean;
   createError: string;
+  lastLoadedAt: number;
 
   // Actions
   setActiveGymId: (gymId: string) => Promise<void>;
-  loadAllGyms: () => Promise<void>;
+  loadAllGyms: (options?: { force?: boolean }) => Promise<void>;
   createGym: (data: {
     name: string;
     address: string;
@@ -74,79 +80,94 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
   isLoading: true,
   isCreating: false,
   createError: "",
+  lastLoadedAt: 0,
 
   // Mudar academia ativa
   setActiveGymId: async (gymId: string) => {
-    // Atualizar no backend em background usando axios (API → Zustand → Component)
-    // PRIMEIRO: Aguardar o backend atualizar o cookie para não causar race conditions
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post("/api/gyms/set-active", { gymId });
-
-      // SEGUNDO: Atualizar a UI via estado local apenas após o backend ter validado
-      set({ activeGymId: gymId });
+      await actionClient.post("/api/gyms/set-active", { gymId });
+      set({ activeGymId: gymId, lastLoadedAt: Date.now() });
     } catch (error) {
-      console.error("Erro ao salvar academia ativa:", error);
+      log.error("Erro ao salvar academia ativa", { error, gymId });
     }
   },
 
   // Carregar TODOS os dados de TODAS as academias
-  loadAllGyms: async () => {
-    try {
-      set({ isLoading: true });
+  loadAllGyms: async (options) => {
+    const currentState = get();
+    const hasFreshData =
+      !options?.force &&
+      currentState.lastLoadedAt > 0 &&
+      Date.now() - currentState.lastLoadedAt < GYMS_LIST_TTL_MS &&
+      Object.keys(currentState.gymsData).length > 0;
 
-      // Usar axios client (API → Zustand → Component)
-      const { apiClient } = await import("@/lib/api/client");
-      const response = await apiClient.get<{
-        gyms: GymData[];
-        canCreateMultipleGyms?: boolean;
-        activeGymId?: string | null;
-      }>("/api/gyms/list", {
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      });
-      const data = response.data;
-
-      if (data.gyms && Array.isArray(data.gyms)) {
-        // Converter array para Record<id, GymData>
-        const gymsMap: Record<string, GymData> = {};
-        data.gyms.forEach((gym: GymData) => {
-          gymsMap[gym.id] = gym;
-        });
-
-        // Prioridade: API activeGymId > store atual > primeira academia
-        const apiActiveId = data.activeGymId ?? null;
-        const currentState = get();
-        let resolvedActiveId = apiActiveId ?? currentState.activeGymId;
-
-        // Se o ID resolvido não existe mais nas academias, usar a primeira
-        if (resolvedActiveId && !gymsMap[resolvedActiveId]) {
-          resolvedActiveId = data.gyms[0]?.id ?? null;
-        }
-        // Se ainda não tem, usar a primeira
-        if (!resolvedActiveId && data.gyms.length > 0) {
-          resolvedActiveId = data.gyms[0].id;
-        }
-
-        set({
-          gymsData: gymsMap,
-          canCreateMultipleGyms: data.canCreateMultipleGyms || false,
-          activeGymId: resolvedActiveId,
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao carregar academias:", error);
-    } finally {
-      set({ isLoading: false });
+    if (hasFreshData) {
+      return;
     }
+
+    if (gymsListInflightRequest) {
+      return gymsListInflightRequest;
+    }
+
+    const shouldShowLoading = Object.keys(currentState.gymsData).length === 0;
+
+    gymsListInflightRequest = (async () => {
+      try {
+        if (shouldShowLoading) {
+          set({ isLoading: true });
+        }
+
+        const response = await actionClient.get<{
+          gyms: GymData[];
+          canCreateMultipleGyms?: boolean;
+          activeGymId?: string | null;
+        }>("/api/gyms/list", {
+          profile: "minutes",
+          scope: "private",
+          tags: ["gym:list", "gym:list:self", "gym:bootstrap:self"],
+        });
+        const data = response.data;
+
+        if (data.gyms && Array.isArray(data.gyms)) {
+          const gymsMap: Record<string, GymData> = {};
+          data.gyms.forEach((gym: GymData) => {
+            gymsMap[gym.id] = gym;
+          });
+
+          const apiActiveId = data.activeGymId ?? null;
+          const latestState = get();
+          let resolvedActiveId = apiActiveId ?? latestState.activeGymId;
+
+          if (resolvedActiveId && !gymsMap[resolvedActiveId]) {
+            resolvedActiveId = data.gyms[0]?.id ?? null;
+          }
+
+          if (!resolvedActiveId && data.gyms.length > 0) {
+            resolvedActiveId = data.gyms[0].id;
+          }
+
+          set({
+            gymsData: gymsMap,
+            canCreateMultipleGyms: data.canCreateMultipleGyms || false,
+            activeGymId: resolvedActiveId,
+            lastLoadedAt: Date.now(),
+          });
+        }
+      } catch (error) {
+        log.error("Erro ao carregar academias", { error });
+      } finally {
+        gymsListInflightRequest = null;
+        set({ isLoading: false });
+      }
+    })();
+
+    return gymsListInflightRequest;
   },
 
   createGym: async (data) => {
     set({ isCreating: true, createError: "" });
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const response = await apiClient.post<{ error?: string }>(
+      const response = await actionClient.post<{ error?: string }>(
         "/api/gyms/create",
         data,
       );
@@ -155,7 +176,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
         throw new Error(response.data.error || "Erro ao criar academia");
       }
 
-      await get().loadAllGyms();
+      await get().loadAllGyms({ force: true });
     } catch (error) {
       set({
         createError:

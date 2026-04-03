@@ -4,7 +4,7 @@ import { StudentMembershipService } from "@/lib/services/student/student-members
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  membershipId: z.string().min(1),
+  membershipId: z.string().cuid("membershipId deve ser um CUID valido"),
 });
 
 export const POST = createSafeHandler(

@@ -1,6 +1,7 @@
 export { AddPersonalStudentModal } from "./add-personal-student-modal";
 export { PersonalDashboardPage } from "./personal-dashboard";
 export { PersonalFinancialPage } from "./personal-financial";
+export { PersonalGymAccessPage } from "./personal-gym-access";
 export { PersonalGymsPage } from "./personal-gyms";
 export { PersonalSettingsPage } from "./personal-settings";
 export { PersonalStatsPage } from "./personal-stats";

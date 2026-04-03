@@ -5,6 +5,8 @@
  * Não precisa mapear para banco de dados - apenas validar e usar
  */
 
+import { parseJsonSafe } from "@gymrats/domain/json";
+import { log } from "@/lib/observability";
 import type { FoodItem } from "@/lib/types";
 
 export interface ParsedFood {
@@ -152,16 +154,12 @@ export function extractFoodsAndPartialFromStream(
     } else if (c === "]" || c === "}") {
       depth--;
       if (depth === 2 && c === "}" && foodStart >= 0) {
-        try {
-          const raw = JSON.parse(
-            content.slice(foodStart, i + 1),
-          ) as RawParsedFood;
+        const raw = parseJsonSafe<RawParsedFood>(content.slice(foodStart, i + 1));
+        if (raw) {
           const parsed = parseRawFoodToParsedFood(raw);
           if (parsed) {
             foods.push(parsed);
           }
-        } catch {
-          // ignorar
         }
         foodStart = -1;
       }
@@ -227,17 +225,23 @@ export function parseNutritionResponse(
     let parsed: Record<string, import("@/lib/types/api-error").JsonValue>;
 
     try {
-      parsed = JSON.parse(jsonStr) as Record<
-        string,
-        import("@/lib/types/api-error").JsonValue
-      >;
+      const initialParsed = parseJsonSafe<
+        Record<string, import("@/lib/types/api-error").JsonValue>
+      >(jsonStr);
+      if (!initialParsed) {
+        throw new Error("parse falhou");
+      }
+      parsed = initialParsed;
     } catch (firstError) {
       const repaired = tryRepairTruncatedJson(jsonStr);
       try {
-        parsed = JSON.parse(repaired) as Record<
-          string,
-          import("@/lib/types/api-error").JsonValue
-        >;
+        const repairedParsed = parseJsonSafe<
+          Record<string, import("@/lib/types/api-error").JsonValue>
+        >(repaired);
+        if (!repairedParsed) {
+          throw new Error("parse falhou");
+        }
+        parsed = repairedParsed;
       } catch {
         throw new Error(
           `JSON inválido ou truncado. Tente novamente. Detalhe: ${
@@ -340,7 +344,9 @@ export function parseNutritionResponse(
           : "Alimentos processados com sucesso!",
     };
   } catch (error) {
-    console.error("[parseNutritionResponse] Erro ao parsear:", error);
+    log.error("[parseNutritionResponse] Erro ao parsear", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw new Error(
       `Erro ao processar resposta da IA: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
     );

@@ -16,6 +16,7 @@ import { getStudentInfoUseCase } from "@/lib/use-cases/students/get-student-info
 import { getWeightHistoryUseCase } from "@/lib/use-cases/students/get-weight-history";
 import { updateStudentProfileUseCase } from "@/lib/use-cases/students/update-profile";
 import { updateStudentProgressUseCase } from "@/lib/use-cases/students/update-progress";
+import { log } from "@/lib/observability";
 import {
   badRequestResponse,
   internalErrorResponse,
@@ -55,7 +56,9 @@ export async function getStudentProfileHandler({
         : null,
     });
   } catch (error) {
-    console.error("[getStudentProfileHandler] Erro:", error);
+    log.error("[getStudentProfileHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao buscar perfil", error);
   }
 }
@@ -82,7 +85,9 @@ export async function updateStudentProfileHandler({
 
     return successResponse(set, { message: "Perfil salvo com sucesso" });
   } catch (error) {
-    console.error("[updateStudentProfileHandler] Erro:", error);
+    log.error("[updateStudentProfileHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     if (error instanceof Error) {
       if (error.message === "Usuário não encontrado")
         return badRequestResponse(set, "Usuário não encontrado");
@@ -122,7 +127,9 @@ export async function getWeightHistoryHandler({
 
     return successResponse(set, result);
   } catch (error) {
-    console.error("[getWeightHistoryHandler] Erro:", error);
+    log.error("[getWeightHistoryHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao buscar histórico", error);
   }
 }
@@ -151,7 +158,9 @@ export async function addWeightHandler({
     const result = await addWeightUseCase({ studentId, weight, date, notes });
     return successResponse(set, result);
   } catch (error) {
-    console.error("[addWeightHandler] Erro:", error);
+    log.error("[addWeightHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao salvar peso", error);
   }
 }
@@ -187,7 +196,9 @@ export async function getWeightHistoryFilteredHandler({
 
     return successResponse(set, result);
   } catch (error) {
-    console.error("[getWeightHistoryFilteredHandler] Erro:", error);
+    log.error("[getWeightHistoryFilteredHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao buscar histórico", error);
   }
 }
@@ -200,7 +211,9 @@ export async function getStudentProgressHandler({
     const result = await getStudentProgressUseCase({ studentId });
     return successResponse(set, result);
   } catch (error) {
-    console.error("[getStudentProgressHandler] Erro:", error);
+    log.error("[getStudentProgressHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao buscar progresso", error);
   }
 }
@@ -229,7 +242,9 @@ export async function updateStudentProgressHandler({
       message: "Progresso atualizado com sucesso",
     });
   } catch (error) {
-    console.error("[updateStudentProgressHandler] Erro:", error);
+    log.error("[updateStudentProgressHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao atualizar progresso", error);
   }
 }
@@ -242,7 +257,9 @@ export async function getStudentInfoHandler({
     const result = await getStudentInfoUseCase({ studentId });
     return successResponse(set, result);
   } catch (error) {
-    console.error("[getStudentInfoHandler] Erro:", error);
+    log.error("[getStudentInfoHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(
       set,
       "Erro ao buscar informações do student",
@@ -259,7 +276,9 @@ export async function getPersonalRecordsHandler({
     const result = await getPersonalRecordsUseCase({ studentId });
     return successResponse(set, result);
   } catch (error) {
-    console.error("[getPersonalRecordsHandler] Erro:", error);
+    log.error("[getPersonalRecordsHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao buscar personal records", error);
   }
 }
@@ -269,7 +288,9 @@ export async function getDayPassesHandler({ set, studentId }: StudentContext) {
     const result = await getDayPassesUseCase({ studentId });
     return successResponse(set, result);
   } catch (error) {
-    console.error("[getDayPassesHandler] Erro:", error);
+    log.error("[getDayPassesHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao buscar day passes", error);
   }
 }
@@ -279,7 +300,9 @@ export async function getFriendsHandler({ set, studentId }: StudentContext) {
     const result = await getFriendsUseCase({ studentId });
     return successResponse(set, result);
   } catch (error) {
-    console.error("[getFriendsHandler] Erro:", error);
+    log.error("[getFriendsHandler] Erro", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse(set, "Erro ao buscar amigos", error);
   }
 }

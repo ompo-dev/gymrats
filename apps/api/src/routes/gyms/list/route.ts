@@ -1,6 +1,5 @@
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
-import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
@@ -12,9 +11,6 @@ export const GET = createSafeHandler(
         { status: 400 },
       );
     }
-
-    // Sincronizar isActive: com Premium/Enterprise todas as academias ficam ativas
-    await GymSubscriptionService.enforceActiveGymLimit(userId);
 
     const gyms = await db.gym.findMany({
       where: { userId },

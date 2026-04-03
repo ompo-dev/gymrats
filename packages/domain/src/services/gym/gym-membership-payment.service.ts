@@ -1,5 +1,7 @@
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { db } from "@gymrats/db";
+import { computeNextBillingDate } from "../../access-authorization";
+import { GymAccessEligibilityService } from "./gym-access-eligibility.service";
 import { log } from "../../log";
 import { PIX_EXPIRES_IN_SECONDS } from "../../subscription";
 
@@ -38,7 +40,12 @@ export async function createPendingMembershipPayment(
   if (amount <= 0) throw new Error("Valor deve ser maior que zero");
 
   const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + plan.duration);
+  const periodStart = new Date();
+  const periodEnd = computeNextBillingDate({
+    now: periodStart,
+    previousNextBillingDate: periodStart,
+    durationDays: plan.duration,
+  });
 
   const payment = await db.payment.create({
     data: {
@@ -46,13 +53,18 @@ export async function createPendingMembershipPayment(
       studentId,
       studentName: student.user?.name ?? "Aluno",
       planId,
+      membershipId,
       amount,
       dueDate,
       status: "pending",
       paymentMethod: "pix",
       reference: `membership:${membershipId}`,
+      kind: "membership_initial",
+      periodStart,
+      periodEnd,
     },
   });
+  await GymAccessEligibilityService.refreshStudentEligibility(gymId, studentId);
   return { paymentId: payment.id };
 }
 
@@ -121,7 +133,12 @@ export async function createMembershipPaymentPix(
 
   const pix = pixResponse.data;
   const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + plan.duration);
+  const periodStart = new Date();
+  const periodEnd = computeNextBillingDate({
+    now: periodStart,
+    previousNextBillingDate: periodStart,
+    durationDays: plan.duration,
+  });
   const pixExpiresAt = pix.expiresAt ? new Date(pix.expiresAt) : null;
 
   const payment = await db.payment.create({
@@ -130,6 +147,7 @@ export async function createMembershipPaymentPix(
       studentId,
       studentName: student.user?.name ?? "Aluno",
       planId,
+      membershipId: options?.membershipId ?? null,
       amount,
       dueDate,
       status: "pending",
@@ -141,8 +159,13 @@ export async function createMembershipPaymentPix(
       reference: options?.membershipId
         ? `membership:${options.membershipId}`
         : null,
+      kind: "membership_initial",
+      periodStart,
+      periodEnd,
     },
   });
+
+  await GymAccessEligibilityService.refreshStudentEligibility(gymId, studentId);
 
   return {
     brCode: pix.brCode,
@@ -224,7 +247,12 @@ export async function createChangePlanPaymentPix(
 
   const pix = pixResponse.data;
   const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + newPlan.duration);
+  const periodStart = new Date();
+  const periodEnd = computeNextBillingDate({
+    now: periodStart,
+    previousNextBillingDate: periodStart,
+    durationDays: newPlan.duration,
+  });
   const pixExpiresAt = pix.expiresAt ? new Date(pix.expiresAt) : null;
 
   const payment = await db.payment.create({
@@ -233,6 +261,7 @@ export async function createChangePlanPaymentPix(
       studentId: membership.studentId,
       studentName: membership.student?.user?.name ?? "Aluno",
       planId,
+      membershipId,
       amount,
       dueDate,
       status: "pending",
@@ -242,8 +271,16 @@ export async function createChangePlanPaymentPix(
       pixBrCodeBase64: pix.brCodeBase64,
       pixExpiresAt,
       reference: `membership:${membershipId}`,
+      kind: "membership_change_plan",
+      periodStart,
+      periodEnd,
     },
   });
+
+  await GymAccessEligibilityService.refreshStudentEligibility(
+    membership.gymId,
+    membership.studentId,
+  );
 
   return {
     brCode: pix.brCode,
@@ -311,15 +348,10 @@ export async function createPixForPendingPayment(
   const membershipId = payment.reference?.startsWith("membership:")
     ? payment.reference.slice("membership:".length)
     : undefined;
-  let kind: "membership-payment" | "membership-change-plan" =
-    "membership-payment";
-  if (membershipId) {
-    const membership = await db.gymMembership.findFirst({
-      where: { id: membershipId },
-      select: { status: true },
-    });
-    if (membership?.status === "active") kind = "membership-change-plan";
-  }
+  const kind =
+    payment.kind === "membership_change_plan"
+      ? "membership-change-plan"
+      : "membership-payment";
 
   const amountCentavos = Math.round(payment.amount * 100);
   const description = `${payment.plan.name} - ${payment.gym.name}`.slice(0, 37);

@@ -5,7 +5,7 @@ import { persistBusinessEvent } from "@/lib/observability";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  paymentId: z.string().min(1),
+  paymentId: z.string().cuid(),
 });
 
 const patchBodySchema = z.object({

@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
 import type { NextRequest } from "@/runtime/next-server";
@@ -83,7 +84,7 @@ export async function PUT(
       message: "Exercício atualizado com sucesso",
     });
   } catch (error) {
-    console.error("[gym/exercises] Erro PUT:", error);
+    log.error("[gym/exercises] Erro PUT", { error });
     return internalErrorResponse("Erro ao atualizar exercício");
   }
 }
@@ -127,7 +128,7 @@ export async function DELETE(
     if (!exercise) return notFoundResponse("Exercício não encontrado");
 
     if (!exercise.workout) {
-      console.error("Exercício sem treino vinculado", { exerciseId });
+      log.error("Exercicio sem treino vinculado", { exerciseId });
       return internalErrorResponse(
         "Erro de inconsistência de dados. Contate o suporte.",
       );
@@ -148,7 +149,7 @@ export async function DELETE(
 
     return successResponse({ message: "Exercício excluído com sucesso" });
   } catch (error) {
-    console.error("[gym/exercises] Erro DELETE:", error);
+    log.error("[gym/exercises] Erro DELETE", { error });
     if ((error as { code?: string })?.code === "P2025") {
       return notFoundResponse("Exercício não encontrado para exclusão");
     }

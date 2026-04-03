@@ -91,7 +91,7 @@ export default function PersonalOnboardingPage() {
       try {
         const result = await refetchProfile();
         const resolvedProfile =
-          (result.data?.data.profile as { id?: string } | null | undefined) ??
+          (result?.data.profile as { id?: string } | null | undefined) ??
           profile;
         if (resolvedProfile?.id) {
           window.location.href = "/personal";

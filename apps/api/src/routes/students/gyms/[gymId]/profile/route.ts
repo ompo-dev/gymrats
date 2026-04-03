@@ -1,10 +1,11 @@
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  gymId: z.string().min(1),
+  gymId: z.string().cuid("gymId deve ser um CUID valido"),
 });
 
 export const GET = createSafeHandler(
@@ -49,32 +50,14 @@ export const GET = createSafeHandler(
       );
     }
 
-    let openingHours:
-      | { open?: string; close?: string; days?: string[] }
-      | undefined;
-    if (gym.openingHours) {
-      try {
-        openingHours = JSON.parse(gym.openingHours) as {
-          open?: string;
-          close?: string;
-          days?: string[];
-        };
-      } catch {}
-    }
-
-    let amenities: string[] = [];
-    if (gym.amenities) {
-      try {
-        amenities = JSON.parse(gym.amenities);
-      } catch {}
-    }
-
-    let photos: string[] = [];
-    if (gym.photos) {
-      try {
-        photos = JSON.parse(gym.photos);
-      } catch {}
-    }
+    const openingHours =
+      parseJsonSafe<{
+        open?: string;
+        close?: string;
+        days?: string[];
+      }>(gym.openingHours) ?? undefined;
+    const amenities = parseJsonArray<string>(gym.amenities);
+    const photos = parseJsonArray<string>(gym.photos);
 
     let myMembership: {
       id: string;
@@ -131,7 +114,7 @@ export const GET = createSafeHandler(
         type: p.type,
         price: p.price,
         duration: p.duration,
-        benefits: p.benefits ? JSON.parse(p.benefits) : [],
+        benefits: parseJsonArray<string>(p.benefits),
       })),
       personals,
       myMembership,

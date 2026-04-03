@@ -21,6 +21,8 @@ export const GET = createSafeHandler(
       windowHours: dataset.windowHours,
       counts: dataset.counts,
       api: dataset.api,
+      cache: dataset.cache,
+      webVitals: dataset.webVitals,
       domains: dataset.domains,
       recentEvents: dataset.recentEvents.slice(0, 25),
       recentBusinessEvents: dataset.recentBusinessEvents,

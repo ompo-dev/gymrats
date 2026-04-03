@@ -5,6 +5,7 @@
  */
 
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { addWeightUseCase } from "@/lib/use-cases/students/add-weight";
 import { getDayPassesUseCase } from "@/lib/use-cases/students/get-day-passes";
 import { getFriendsUseCase } from "@/lib/use-cases/students/get-friends";
@@ -56,7 +57,7 @@ export async function getStudentProfileHandler(
       >,
     );
   } catch (error) {
-    console.error("[getStudentProfileHandler] Erro:", error);
+    log.error("[getStudentProfileHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar perfil", error);
   }
 }
@@ -82,7 +83,7 @@ export async function updateStudentProfileHandler(
 
     return successResponse({ message: "Perfil salvo com sucesso" });
   } catch (error) {
-    console.error("[updateStudentProfileHandler] Erro:", error);
+    log.error("[updateStudentProfileHandler] Erro", { error });
     if (error instanceof Error) {
       if (error.message === "Usuário não encontrado")
         return badRequestResponse("Usuário não encontrado");
@@ -118,7 +119,7 @@ export async function getWeightHistoryHandler(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[getWeightHistoryHandler] Erro:", error);
+    log.error("[getWeightHistoryHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar histórico", error);
   }
 }
@@ -147,7 +148,7 @@ export async function addWeightHandler(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[addWeightHandler] Erro:", error);
+    log.error("[addWeightHandler] Erro", { error });
     return internalErrorResponse("Erro ao salvar peso", error);
   }
 }
@@ -179,7 +180,7 @@ export async function getWeightHistoryFilteredHandler(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[getWeightHistoryFilteredHandler] Erro:", error);
+    log.error("[getWeightHistoryFilteredHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar histórico", error);
   }
 }
@@ -208,7 +209,7 @@ export async function getStudentProgressHandler(
       >,
     );
   } catch (error) {
-    console.error("[getStudentProgressHandler] Erro:", error);
+    log.error("[getStudentProgressHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar progresso", error);
   }
 }
@@ -241,7 +242,7 @@ export async function updateStudentProgressHandler(
 
     return successResponse({ message: "Progresso atualizado com sucesso" });
   } catch (error) {
-    console.error("[updateStudentProgressHandler] Erro:", error);
+    log.error("[updateStudentProgressHandler] Erro", { error });
     return internalErrorResponse("Erro ao atualizar progresso", error);
   }
 }
@@ -263,7 +264,7 @@ export async function getStudentInfoHandler(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[getStudentInfoHandler] Erro:", error);
+    log.error("[getStudentInfoHandler] Erro", { error });
     return internalErrorResponse(
       "Erro ao buscar informações do student",
       error,
@@ -288,7 +289,7 @@ export async function getPersonalRecordsHandler(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[getPersonalRecordsHandler] Erro:", error);
+    log.error("[getPersonalRecordsHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar personal records", error);
   }
 }
@@ -310,7 +311,7 @@ export async function getDayPassesHandler(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[getDayPassesHandler] Erro:", error);
+    log.error("[getDayPassesHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar day passes", error);
   }
 }
@@ -332,7 +333,7 @@ export async function getFriendsHandler(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[getFriendsHandler] Erro:", error);
+    log.error("[getFriendsHandler] Erro", { error });
     return internalErrorResponse("Erro ao buscar amigos", error);
   }
 }
@@ -363,7 +364,7 @@ export async function weekResetHandler(
       weekStart: nextMonday.toISOString(),
     });
   } catch (error) {
-    console.error("[weekResetHandler] Erro:", error);
+    log.error("[weekResetHandler] Erro", { error });
     return internalErrorResponse("Erro ao resetar semana");
   }
 }

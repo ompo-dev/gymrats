@@ -5,7 +5,7 @@ import type {
   PersonalSubscriptionData,
 } from "@gymrats/types/personal-module";
 import { getPersonalBootstrapRequest } from "@/lib/api/bootstrap";
-import { apiClient } from "@/lib/api/client";
+import { actionClient as apiClient } from "@/lib/actions/client";
 import type { Expense, FinancialSummary } from "@/lib/types";
 import type {
   PersonalDataSection,

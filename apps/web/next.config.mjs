@@ -39,33 +39,58 @@ function resolveProxyTarget() {
 
 const cspConnectSrc = [
   "'self'",
-  "wss:",
-  "https:",
   toOrigin(process.env.NEXT_PUBLIC_APP_URL),
   toOrigin(process.env.NEXT_PUBLIC_API_URL),
   toOrigin(process.env.BETTER_AUTH_URL),
   toOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL),
+  "https://accounts.google.com",
+  "https://oauth2.googleapis.com",
+  "https://vitals.vercel-insights.com",
 ].filter(Boolean);
 
 if (process.env.NODE_ENV !== "production") {
   cspConnectSrc.push("ws:");
+  cspConnectSrc.push("wss:");
+}
+
+const cspScriptSrc = ["'self'", "'unsafe-inline'"];
+if (process.env.NODE_ENV !== "production") {
+  cspScriptSrc.push("'unsafe-eval'");
 }
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https:",
+  `script-src ${[...new Set(cspScriptSrc)].join(" ")}`,
   "style-src 'self' 'unsafe-inline' https:",
   "img-src 'self' blob: data: https:",
   "font-src 'self' data: https:",
   `connect-src ${[...new Set(cspConnectSrc)].join(" ")}`,
-  "frame-src 'self' https:",
+  "frame-src 'self' https://accounts.google.com",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
   "media-src 'self' https:",
 ].join("; ");
 
+const customCacheHandlerPath = "./cache-handlers/redis-cache-handler.mjs";
+const shouldUseCustomCacheHandler =
+  process.env.NEXT_PRIVATE_USE_CUSTOM_CACHE_HANDLER === "1";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  cacheComponents: true,
+  ...(shouldUseCustomCacheHandler
+    ? {
+        cacheHandler: customCacheHandlerPath,
+        cacheHandlers: {
+          default: customCacheHandlerPath,
+          remote: customCacheHandlerPath,
+        },
+        cacheMaxMemorySize: 0,
+      }
+    : {}),
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     unoptimized: true,
@@ -81,6 +106,42 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  cacheLife: {
+    default: {
+      revalidate: 900,
+      expire: 31536000,
+    },
+    seconds: {
+      stale: 30,
+      revalidate: 1,
+      expire: 60,
+    },
+    minutes: {
+      stale: 300,
+      revalidate: 60,
+      expire: 3600,
+    },
+    hours: {
+      stale: 300,
+      revalidate: 3600,
+      expire: 86400,
+    },
+    days: {
+      stale: 300,
+      revalidate: 86400,
+      expire: 604800,
+    },
+    weeks: {
+      stale: 300,
+      revalidate: 604800,
+      expire: 2592000,
+    },
+    max: {
+      stale: 300,
+      revalidate: 2592000,
+      expire: 31536000,
+    },
+  },
   experimental: {
     externalDir: true,
     optimizePackageImports: [
@@ -119,10 +180,6 @@ const nextConfig = {
         source: "/student/:path*",
         headers: [
           {
-            key: "Cache-Control",
-            value: "private, no-store, no-cache, must-revalidate",
-          },
-          {
             key: "X-DNS-Prefetch-Control",
             value: "on",
           },
@@ -132,10 +189,6 @@ const nextConfig = {
         source: "/gym/:path*",
         headers: [
           {
-            key: "Cache-Control",
-            value: "private, no-store, no-cache, must-revalidate",
-          },
-          {
             key: "X-DNS-Prefetch-Control",
             value: "on",
           },
@@ -144,10 +197,6 @@ const nextConfig = {
       {
         source: "/personal/:path*",
         headers: [
-          {
-            key: "Cache-Control",
-            value: "private, no-store, no-cache, must-revalidate",
-          },
           {
             key: "X-DNS-Prefetch-Control",
             value: "on",
@@ -178,26 +227,17 @@ const nextConfig = {
             value: "max-age=31536000; includeSubDomains; preload",
           },
           {
+            key: "Permissions-Policy",
+            value:
+              "camera=(), microphone=(), geolocation=(self), interest-cohort=()",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+          {
             key: "Content-Security-Policy",
             value: contentSecurityPolicy,
-          },
-        ],
-      },
-      {
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      {
-        source: "/_next/image/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
           },
         ],
       },

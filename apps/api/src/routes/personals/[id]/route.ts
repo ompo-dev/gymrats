@@ -6,7 +6,7 @@ import { featureFlags } from "@/lib/feature-flags";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().cuid("id deve ser um CUID valido"),
 });
 
 export const GET = createSafeHandler(
@@ -78,6 +78,13 @@ export const PATCH = createSafeHandler(
         ...(payload.bio !== undefined ? { bio: payload.bio as string } : {}),
         ...(payload.address !== undefined
           ? { address: payload.address as string }
+          : {}),
+        ...(payload.cref !== undefined ? { cref: payload.cref as string } : {}),
+        ...(payload.pixKey !== undefined
+          ? { pixKey: payload.pixKey as string }
+          : {}),
+        ...(payload.pixKeyType !== undefined
+          ? { pixKeyType: payload.pixKeyType as string }
           : {}),
         ...(payload.latitude !== undefined
           ? { latitude: payload.latitude as number }

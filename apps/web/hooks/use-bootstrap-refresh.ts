@@ -1,47 +1,30 @@
 "use client";
 
-import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { invalidateDomainBootstrapCache } from "@/hooks/shared/use-domain-bootstrap";
 import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 
 export type BootstrapDomain = "student" | "gym" | "personal";
 
-function matchesDomain(queryKey: unknown, domain: string) {
-  return Array.isArray(queryKey) && queryKey[0] === domain;
+export function invalidateBootstrapDomains(domains: readonly BootstrapDomain[]) {
+  for (const domain of domains) {
+    clearBootstrapHydrationState(domain);
+    invalidateDomainBootstrapCache(domain);
+  }
 }
 
-export async function invalidateQueryDomains(
-  queryClient: QueryClient,
-  domains: readonly string[],
-) {
-  await Promise.all(
-    domains.map(async (domain) => {
-      clearBootstrapHydrationState(domain as BootstrapDomain);
-      await queryClient.invalidateQueries({
-        predicate: (query) => matchesDomain(query.queryKey, domain),
-      });
-    }),
-  );
+export function invalidateBootstrapDomain(domain: BootstrapDomain) {
+  invalidateBootstrapDomains([domain]);
 }
 
-export async function invalidateBootstrapQueries(
-  queryClient: QueryClient,
-  domain: BootstrapDomain,
-) {
-  clearBootstrapHydrationState(domain);
-  await queryClient.invalidateQueries({
-    predicate: (query) =>
-      matchesDomain(query.queryKey, domain) &&
-      query.queryKey[1] === "bootstrap",
-  });
-}
-
-export function useInvalidateBootstrap(domain: BootstrapDomain) {
-  const queryClient = useQueryClient();
+function useInvalidateBootstrap(domain: BootstrapDomain) {
+  const router = useRouter();
 
   return useCallback(async () => {
-    await invalidateBootstrapQueries(queryClient, domain);
-  }, [domain, queryClient]);
+    invalidateBootstrapDomain(domain);
+    router.refresh();
+  }, [domain, router]);
 }
 
 export function useInvalidateStudentBootstrap() {

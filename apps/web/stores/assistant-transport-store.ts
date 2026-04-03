@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { apiClient } from "@/lib/api/client";
-import { resolveApiBaseUrl } from "@/lib/api/client-factory";
+import { actionClient as apiClient } from "@/lib/actions/client";
+import { resolveApiBaseUrl } from "@/lib/api/resolve-api-base-url";
 
 interface StreamJsonSseParams {
   key: string;

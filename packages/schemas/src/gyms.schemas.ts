@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-/**
- * Schemas de validação para rotas de gyms
- */
-
 export const createGymSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório").max(255, "Nome muito longo"),
   address: z.string().min(1, "Endereço é obrigatório"),
@@ -19,13 +15,14 @@ export const setActiveGymSchema = z.object({
 export const updateGymProfileSchema = z
   .object({
     name: z.string().min(1, "Nome é obrigatório").optional(),
-    // Campos opcionais: string vazia = não atualizar (permite salvar só horários)
     address: z.preprocess(
-      (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
       z.string().min(1, "Endereço é obrigatório").optional().nullable(),
     ),
     phone: z.preprocess(
-      (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
       z.string().min(1, "Telefone é obrigatório").optional().nullable(),
     ),
     cnpj: z.string().optional().nullable(),
@@ -78,7 +75,7 @@ export const gymLocationsQuerySchema = z.object({
     .optional(),
   isPartner: z
     .string()
-    .transform((val) => val === "true")
+    .transform((value) => value === "true")
     .optional(),
 });
 
@@ -158,20 +155,38 @@ export const createGymPaymentSchema = z.object({
   studentId: z.string().min(1, "studentId é obrigatório"),
   studentName: z.string().optional().default("Aluno"),
   planId: z.string().optional().nullable(),
+  membershipId: z.string().optional().nullable(),
   amount: z.number().positive("Valor deve ser maior que zero"),
-  dueDate: z
-    .string()
-    .datetime()
-    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  dueDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   paymentMethod: z.string().optional().default("pix"),
   reference: z.string().optional().nullable(),
+  kind: z
+    .enum([
+      "membership_initial",
+      "membership_renewal",
+      "membership_change_plan",
+      "manual_regularization",
+    ])
+    .optional(),
+  periodStart: z
+    .string()
+    .datetime()
+    .optional()
+    .nullable()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable()),
+  periodEnd: z
+    .string()
+    .datetime()
+    .optional()
+    .nullable()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable()),
 });
 
 export const gymPlansQuerySchema = z.object({
   includeInactive: z
     .string()
     .optional()
-    .transform((val) => val === "true")
+    .transform((value) => value === "true")
     .default("false"),
 });
 
@@ -180,6 +195,7 @@ export const createGymPlanSchema = z.object({
   type: z.enum(["monthly", "quarterly", "semi-annual", "annual", "trial"]),
   price: z.number().positive("Preço deve ser maior que zero"),
   duration: z.number().int().positive("Duração deve ser positiva"),
+  graceDays: z.number().int().min(0).default(0),
   benefits: z.array(z.string()).default([]),
 });
 
@@ -215,12 +231,7 @@ export const updateGymEquipmentSchema = z.object({
     .string()
     .datetime()
     .optional()
-    .or(
-      z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
-    ),
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
 });
 
 export const createGymMaintenanceSchema = z.object({
@@ -232,12 +243,7 @@ export const createGymMaintenanceSchema = z.object({
     .string()
     .datetime()
     .optional()
-    .or(
-      z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
-    )
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional())
     .nullable(),
 });
 
@@ -252,6 +258,7 @@ export const updateGymPlanSchema = z.object({
     .optional(),
   price: z.number().positive().optional(),
   duration: z.number().int().positive().optional(),
+  graceDays: z.number().int().min(0).optional(),
   benefits: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
 });

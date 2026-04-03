@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { ReferralService } from "@/lib/services/referral.service";
@@ -34,7 +35,7 @@ export class WebhookService {
     data: AbacatePayWebhookPayload,
   ): Promise<void> {
     if (event !== "billing.paid") {
-      console.log(`[WebhookService] Evento ignorado: ${event}`);
+      log.debug("[WebhookService] Evento ignorado", { event });
       return;
     }
 
@@ -51,9 +52,7 @@ export class WebhookService {
       metadata.billingPeriod === "annual" ? "annual" : "monthly";
 
     if (!paymentId) {
-      console.error(
-        "[WebhookService] billing.paid sem id em billing ou pixQrCode",
-      );
+      log.error("[WebhookService] billing.paid sem id em billing ou pixQrCode");
       return;
     }
 
@@ -63,78 +62,43 @@ export class WebhookService {
       include: { plan: true },
     });
 
-    if (payment && payment.status === "pending") {
-      if (kind === "membership-payment") {
-        const membershipId =
-          typeof metadata.membershipId === "string"
-            ? metadata.membershipId
-            : undefined;
-        if (membershipId) {
-          const now = new Date();
-          await db.$transaction([
-            db.payment.update({
-              where: { id: payment.id },
-              data: { status: "paid", date: now },
-            }),
-            db.gymMembership.update({
-              where: { id: membershipId },
-              data: {
-                status: "active",
-                startDate: new Date(),
-                nextBillingDate: payment.dueDate,
-              },
-            }),
-          ]);
-          console.log(
-            `[WebhookService] Membership ${membershipId} ativado via PIX (payment ${payment.id})`,
-          );
-          await GymDomainService.incrementActiveStudentsOnly(payment.gymId);
-          await GymSubscriptionService.syncStudentEnterpriseBenefit(
-            payment.studentId,
-          );
-          return;
-        }
+    if (
+      payment &&
+      (payment.status === "pending" || payment.status === "overdue") &&
+      ((payment.kind && payment.kind.startsWith("membership_")) ||
+        kind === "membership-payment" ||
+        kind === "membership-change-plan" ||
+        payment.reference?.startsWith("membership:"))
+    ) {
+      const normalizedKind =
+        payment.kind ??
+        (kind === "membership-change-plan"
+          ? "membership_change_plan"
+          : "membership_initial");
+
+      if (
+        payment.kind !== normalizedKind ||
+        (!payment.membershipId && typeof metadata.membershipId === "string")
+      ) {
+        await db.payment.update({
+          where: { id: payment.id },
+          data: {
+            kind: normalizedKind,
+            membershipId:
+              payment.membershipId ??
+              (typeof metadata.membershipId === "string"
+                ? metadata.membershipId
+                : null),
+          },
+        });
       }
 
-      if (kind === "membership-change-plan") {
-        const membershipId =
-          typeof metadata.membershipId === "string"
-            ? metadata.membershipId
-            : undefined;
-        const planId =
-          typeof metadata.planId === "string" ? metadata.planId : undefined;
-        if (membershipId && planId && payment.plan) {
-          const now = new Date();
-          const nextBillingDate = new Date();
-          nextBillingDate.setDate(
-            nextBillingDate.getDate() + payment.plan.duration,
-          );
-          await db.$transaction([
-            db.payment.update({
-              where: { id: payment.id },
-              data: { status: "paid", date: now },
-            }),
-            db.gymMembership.update({
-              where: { id: membershipId },
-              data: {
-                planId,
-                amount: payment.plan.price,
-                nextBillingDate,
-                status: "active",
-              },
-            }),
-          ]);
-          console.log(
-            `[WebhookService] Membership ${membershipId} plano alterado via PIX (payment ${payment.id})`,
-          );
-          if (payment.studentId) {
-            await GymSubscriptionService.syncStudentEnterpriseBenefit(
-              payment.studentId,
-            );
-          }
-          return;
-        }
-      }
+      await GymDomainService.settlePayment(payment.gymId, payment.id);
+      log.info("[WebhookService] Membership payment regularizado via webhook", {
+        paymentId: payment.id,
+      });
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
+      return;
     }
 
     // Idempotência
@@ -199,9 +163,10 @@ export class WebhookService {
       }
       await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
-      console.log(
-        `[WebhookService] Processando indicação GYM: ${gymSub.gymId} | Amount: ${amount}`,
-      );
+      log.info("[WebhookService] Processando indicacao GYM", {
+        gymId: gymSub.gymId,
+        amount,
+      });
       await ReferralService.onFirstPaymentConfirmed(
         "GYM",
         gymSub.gymId,
@@ -234,9 +199,9 @@ export class WebhookService {
           canceledAt: null,
         },
       });
-      console.log(
-        `[WebhookService] PersonalSubscription ${personalSub.id} ativada`,
-      );
+      log.info("[WebhookService] PersonalSubscription ativada", {
+        personalSubscriptionId: personalSub.id,
+      });
       return;
     }
 
@@ -276,9 +241,9 @@ export class WebhookService {
             updatedAt: now,
           },
         });
-        console.log(
-          `[WebhookService] BoostCampaign ${boostCampaign.id} ativada via PIX`,
-        );
+        log.info("[WebhookService] BoostCampaign ativada via PIX", {
+          boostCampaignId: boostCampaign.id,
+        });
         return;
       }
 
@@ -319,16 +284,16 @@ export class WebhookService {
             data: { status: "paid", assignmentId: assignment.id },
           });
 
-          console.log(
-            `[WebhookService] PersonalStudentPayment ${personalPayment.id} pago`,
-          );
+          log.info("[WebhookService] PersonalStudentPayment pago", {
+            personalStudentPaymentId: personalPayment.id,
+          });
           return;
         }
       }
 
-      console.error(
-        `[WebhookService] Registro não encontrado para paymentId: ${paymentId} ou metadata id`,
-      );
+      log.error("[WebhookService] Registro nao encontrado para paymentId", {
+        paymentId,
+      });
       return;
     }
 
@@ -374,12 +339,14 @@ export class WebhookService {
       },
     });
 
-    console.log(
-      `[WebhookService] Assinatura do aluno ${subscription.studentId} atualizada para ${updatedPlanName}.`,
-    );
-    console.log(
-      `[WebhookService] Processando indicação STUDENT: ${subscription.studentId} | Amount: ${amount}`,
-    );
+    log.info("[WebhookService] Assinatura do aluno atualizada", {
+      studentId: subscription.studentId,
+      updatedPlanName,
+    });
+    log.info("[WebhookService] Processando indicacao STUDENT", {
+      studentId: subscription.studentId,
+      amount,
+    });
 
     await ReferralService.onFirstPaymentConfirmed(
       "STUDENT",

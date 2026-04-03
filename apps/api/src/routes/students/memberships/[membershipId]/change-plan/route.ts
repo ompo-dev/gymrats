@@ -4,11 +4,11 @@ import { createChangePlanPaymentPix } from "@/lib/services/gym/gym-membership-pa
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
-  membershipId: z.string().min(1),
+  membershipId: z.string().cuid("membershipId deve ser um CUID valido"),
 });
 
 const bodySchema = z.object({
-  planId: z.string().min(1),
+  planId: z.string().cuid("planId deve ser um CUID valido"),
 });
 
 export const POST = createSafeHandler(

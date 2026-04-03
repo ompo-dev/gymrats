@@ -10,6 +10,7 @@
 - Para listar scripts disponiveis: `npm run migration:status`
 - Para revisar sem aplicar: `npm run migration:dry-run`
 - Para aplicar todos os `apply-*.js`: `npm run migration:apply`
+- Para aplicar um script especifico: `npm run migration:apply:script -- --script=apply-nome-da-migration.js`
 - Os wrappers `*.mjs` de Prisma continuam apenas como apoio tecnico complementar.
 
 ## Arquivos auxiliares

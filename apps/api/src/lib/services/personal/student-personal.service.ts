@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 import type {
   ExerciseLog,
   MuscleGroup,
@@ -136,18 +137,8 @@ function buildUserProfile(
   } | null,
   goals: UserProfile["goals"],
 ): UserProfile {
-  const availableEquipment: string[] = profile?.availableEquipment
-    ? (() => {
-        try {
-          const arr = JSON.parse(profile.availableEquipment);
-          return Array.isArray(arr)
-            ? arr.filter((x: unknown) => typeof x === "string")
-            : [];
-        } catch {
-          return [];
-        }
-      })()
-    : [];
+  const availableEquipment = parseJsonArray<unknown>(profile?.availableEquipment)
+    .filter((x): x is string => typeof x === "string");
   const gender = (
     ["male", "female", "non-binary", "prefer-not-to-say"].includes(
       student.gender ?? "",
@@ -489,20 +480,11 @@ export class StudentPersonalService {
     );
     const result: StudentData[] = [];
 
-    const parseJson = <T>(s: string | null | undefined, fallback: T): T => {
-      if (!s) return fallback;
-      try {
-        return JSON.parse(s) as T;
-      } catch {
-        return fallback;
-      }
-    };
-
     for (const a of assignments) {
       const { student } = a;
       const profile = student.profile;
       const progress = student.progress;
-      const goals: string[] = parseJson(profile?.goals, []);
+      const goals: string[] = parseJsonSafe<string[]>(profile?.goals, []) ?? [];
       const workoutsCompleted = progress?.workoutsCompleted ?? 0;
       const weeklyFreq = profile?.weeklyWorkoutFrequency ?? 3;
       const expectedMonthly = weeklyFreq * 4;
@@ -554,11 +536,12 @@ export class StudentPersonalService {
                 | "forca"
                 | "resistencia"
               )[],
-              injuries: parseJson<string[]>(profile.injuries, []),
-              availableEquipment: parseJson<string[]>(
+              injuries: parseJsonSafe<string[]>(profile.injuries, []) ?? [],
+              availableEquipment:
+                parseJsonSafe<string[]>(
                 profile.availableEquipment,
                 [],
-              ),
+                ) ?? [],
               gymType:
                 (profile.gymType as
                   | "academia-completa"
@@ -636,7 +619,8 @@ export class StudentPersonalService {
         currentWeight: profile?.weight ?? 0,
         weightHistory: [],
         attendanceRate,
-        favoriteEquipment: parseJson<string[]>(profile?.availableEquipment, []),
+        favoriteEquipment:
+          parseJsonSafe<string[]>(profile?.availableEquipment, []) ?? [],
         gymMembership: a.gym
           ? {
               id: a.id,
@@ -716,15 +700,7 @@ export class StudentPersonalService {
     const profile = student.profile;
     const progress = student.progress;
     const goals: UserProfile["goals"] = profile?.goals
-      ? toGoals(
-          (() => {
-            try {
-              return JSON.parse(profile.goals);
-            } catch {
-              return [];
-            }
-          })(),
-        )
+      ? toGoals(parseJsonSafe<unknown[]>(profile.goals, []))
       : [];
     const weightHistoryList = student.weightHistory ?? [];
     const currentWeight = profile?.weight ?? 0;
@@ -758,21 +734,15 @@ export class StudentPersonalService {
     }));
 
     const workoutHistory = (student.workouts ?? []).map((wh) => {
-      const setsParsed = (ex: { sets: string }) => {
-        try {
-          const s = JSON.parse(ex.sets);
-          return Array.isArray(s)
-            ? s.map((set: { weight?: number; reps?: number }, i: number) => ({
-                setNumber: i + 1,
-                weight: set.weight ?? 0,
-                reps: set.reps ?? 0,
-                completed: true,
-              }))
-            : [];
-        } catch {
-          return [];
-        }
-      };
+      const setsParsed = (ex: { sets: string }) =>
+        parseJsonArray<{ weight?: number; reps?: number }>(ex.sets).map(
+          (set, i) => ({
+            setNumber: i + 1,
+            weight: set.weight ?? 0,
+            reps: set.reps ?? 0,
+            completed: true,
+          }),
+        );
       return {
         date: wh.date,
         workoutId: wh.workoutId ?? "",
@@ -793,13 +763,7 @@ export class StudentPersonalService {
         overallFeedback: toOverallFeedback(wh.overallFeedback ?? undefined),
         bodyPartsFatigued: wh.bodyPartsFatigued
           ? toMuscleGroups(
-              (() => {
-                try {
-                  return JSON.parse(wh.bodyPartsFatigued);
-                } catch {
-                  return [];
-                }
-              })(),
+              parseJsonSafe<unknown[]>(wh.bodyPartsFatigued, []),
             )
           : [],
       };
@@ -828,16 +792,9 @@ export class StudentPersonalService {
       hasWeightLossGoal: goals.includes("perder-peso"),
       attendanceRate,
       favoriteEquipment: profile?.availableEquipment
-        ? (() => {
-            try {
-              const arr = JSON.parse(profile.availableEquipment);
-              return Array.isArray(arr)
-                ? arr.filter((x: unknown) => typeof x === "string")
-                : [];
-            } catch {
-              return [];
-            }
-          })()
+        ? (parseJsonSafe<unknown[]>(profile.availableEquipment, []) ?? []).filter(
+            (x): x is string => typeof x === "string",
+          )
         : [],
       currentWeight,
       personalRecords: (student.records ?? []).map((r) => ({

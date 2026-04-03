@@ -8,15 +8,18 @@ import {
   Users,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   AppLayout,
   type TabConfig,
 } from "@/components/templates/layouts/app-layout";
 import { useUserSession } from "@/hooks/use-user-session";
+import type { GymUnifiedData } from "@/lib/types/gym-unified";
+import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
 interface GymLayoutContentProps {
   children: React.ReactNode;
+  initialBootstrap?: Partial<GymUnifiedData> | null;
   initialStats: {
     streak: number;
     xp: number;
@@ -27,20 +30,30 @@ interface GymLayoutContentProps {
 
 export function GymLayoutContent({
   children,
+  initialBootstrap,
   initialStats,
 }: GymLayoutContentProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
+  const lastHydratedBootstrapRef = useRef<Partial<GymUnifiedData> | null>(null);
   const isOnboarding =
     typeof pathname === "string" && pathname.includes("/onboarding");
-
-  // ✅ SEGURO: Verificar role no servidor
-  // ⚠️ IMPORTANTE: Esta validação no cliente é apenas para UX
-  // A proteção real deve estar no middleware/proxy.ts
   const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
   const canAccessGym = role === "GYM" || role === "ADMIN" || isAdmin;
 
-  // Redirecionar conforme role (PENDING pode acessar onboarding para explorar)
+  useEffect(() => {
+    if (
+      !initialBootstrap ||
+      lastHydratedBootstrapRef.current === initialBootstrap
+    ) {
+      return;
+    }
+
+    lastHydratedBootstrapRef.current = initialBootstrap;
+    hydrateInitial(initialBootstrap);
+  }, [hydrateInitial, initialBootstrap]);
+
   useEffect(() => {
     if (sessionLoading) return;
 
@@ -53,14 +66,13 @@ export function GymLayoutContent({
     }
   }, [canAccessGym, role, sessionLoading, router, isOnboarding]);
 
-  // Não renderizar nada se não pode acessar
   if (!sessionLoading && !canAccessGym && role && role !== "PENDING") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-duo-bg">
         <div className="text-center">
           <h1 className="mb-2 text-2xl font-bold text-duo-fg">Acesso Negado</h1>
           <p className="text-duo-fg-muted">
-            Esta área está disponível apenas para academias.
+            Esta area esta disponivel apenas para academias.
           </p>
         </div>
       </div>
@@ -68,10 +80,10 @@ export function GymLayoutContent({
   }
 
   const gymTabs: TabConfig[] = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Início" },
+    { id: "dashboard", icon: LayoutDashboard, label: "Inicio" },
     { id: "students", icon: Users, label: "Alunos" },
     { id: "equipment", icon: Dumbbell, label: "Equip." },
-    { id: "financial", icon: DollarSign, label: "Finanças" },
+    { id: "financial", icon: DollarSign, label: "Financas" },
     { id: "more", icon: MoreHorizontal, label: "Mais" },
   ];
 

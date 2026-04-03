@@ -26,9 +26,9 @@ export function PersonalFinancialSubscriptionTab({
     handleSubscribe,
     handleCancelConfirm,
     handlePixConfirmed,
+    refreshSubscription,
     isSubmitting,
     isCanceling,
-    refreshFinancial,
   } = usePersonalFinancial();
 
   const plans = useMemo(
@@ -65,11 +65,6 @@ export function PersonalFinancialSubscriptionTab({
         billingPeriod: "monthly" as const,
       }
     : null;
-
-  const refreshSubscription = useCallback(
-    async () => refreshFinancial(),
-    [refreshFinancial],
-  );
 
   const handlePaymentSuccess = useCallback(
     async () => refreshSubscription(),

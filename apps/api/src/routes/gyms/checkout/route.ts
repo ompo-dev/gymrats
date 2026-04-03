@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { db } from "@/lib/db";
+import { AccessService } from "@/lib/services/access/access.service";
 import { NextResponse } from "@/runtime/next-server";
 
 const checkOutSchema = z.object({
@@ -9,36 +9,22 @@ const checkOutSchema = z.object({
 
 export const POST = createSafeHandler(
   async ({ body, gymContext }) => {
-    const { gymId } = gymContext!;
-    const { checkInId } = body;
-
-    const checkIn = await db.checkIn.findUnique({ where: { id: checkInId } });
-
-    if (!checkIn || checkIn.gymId !== gymId) {
-      return NextResponse.json(
-        { error: "Check-in não encontrado" },
-        { status: 404 },
+    try {
+      const checkIn = await AccessService.closeLegacyGymCheckIn(
+        gymContext!.gymId,
+        body.checkInId,
       );
+      return NextResponse.json({ success: true, checkIn });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Falha ao registrar checkout";
+      const status = message.includes("não encontrado")
+        ? 404
+        : message.includes("aberta")
+          ? 409
+          : 400;
+      return NextResponse.json({ error: message }, { status });
     }
-
-    if (checkIn.checkOut) {
-      return NextResponse.json(
-        { error: "Checkout já realizado" },
-        { status: 409 },
-      );
-    }
-
-    const now = new Date();
-    const duration = Math.round(
-      (now.getTime() - checkIn.timestamp.getTime()) / (1000 * 60),
-    ); // minutos
-
-    const updated = await db.checkIn.update({
-      where: { id: checkInId },
-      data: { checkOut: now, duration },
-    });
-
-    return NextResponse.json({ success: true, checkIn: updated });
   },
   {
     auth: "gym",

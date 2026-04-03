@@ -7,7 +7,7 @@ import { PersonalGymService } from "@/lib/services/personal/personal-gym.service
 import { NextResponse } from "@/runtime/next-server";
 
 const deleteAffiliationSchema = z.object({
-  gymId: z.string().min(1),
+  gymId: z.string().cuid("gymId deve ser um CUID valido"),
 });
 
 export const GET = createSafeHandler(

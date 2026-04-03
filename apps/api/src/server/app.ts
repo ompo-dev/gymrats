@@ -1,5 +1,6 @@
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
+import { log } from "@/lib/observability";
 import { corsPlugin } from "./plugins/cors";
 import { dbPlugin } from "./plugins/db";
 import { rateLimitPlugin } from "./plugins/rate-limit";
@@ -29,6 +30,6 @@ export const apiApp = new Elysia()
   .use(createRouteModulesPlugin({ exclude: [...routeModuleOverrides] }))
   .get("/health", () => ({ status: "ok" }));
 
-console.log(
-  `[api] route runtime loaded with ${getRouteModuleCount({ exclude: [...routeModuleOverrides] })} route files`,
-);
+log.info("[api] route runtime loaded", {
+  routeCount: getRouteModuleCount({ exclude: [...routeModuleOverrides] }),
+});

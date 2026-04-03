@@ -24,7 +24,7 @@ interface ErrorBoundaryState {
   errorInfo: ErrorInfo | null;
   errorId: string;
   componentStack: string;
-  timestamp: Date;
+  timestamp: Date | null;
   route: string;
   userAgent: string;
   url: string;
@@ -46,7 +46,7 @@ export class ErrorBoundary extends Component<
       errorInfo: null,
       errorId: "",
       componentStack: "",
-      timestamp: new Date(),
+      timestamp: null,
       route: "",
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
       url: typeof window !== "undefined" ? window.location.href : "",
@@ -121,7 +121,7 @@ export class ErrorBoundary extends Component<
       errorInfo: null,
       errorId: "",
       componentStack: "",
-      timestamp: new Date(),
+      timestamp: null,
       route: "",
       expanded: false,
       copied: false,
@@ -149,14 +149,17 @@ export class ErrorBoundary extends Component<
     const { error, errorId, timestamp, route, url, userAgent, componentStack } =
       this.state;
 
+    const timestampIso = timestamp?.toISOString() ?? "N/A";
+    const timestampLocal = timestamp?.toLocaleString("pt-BR") ?? "N/A";
+
     return `
 ═══════════════════════════════════════════════════════════
 🚨 RELATÓRIO DE ERRO - GymRats
 ═══════════════════════════════════════════════════════════
 
 ID do Erro: ${errorId}
-Timestamp: ${timestamp.toISOString()}
-Data/Hora Local: ${timestamp.toLocaleString("pt-BR")}
+Timestamp: ${timestampIso}
+Data/Hora Local: ${timestampLocal}
 
 ═══════════════════════════════════════════════════════════
 📋 INFORMAÇÕES DO ERRO
@@ -245,10 +248,12 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
                       Data/Hora:
                     </span>
                     <span className="text-foreground">
-                      {timestamp.toLocaleString("pt-BR", {
-                        dateStyle: "full",
-                        timeStyle: "long",
-                      })}
+                      {timestamp
+                        ? timestamp.toLocaleString("pt-BR", {
+                            dateStyle: "full",
+                            timeStyle: "long",
+                          })
+                        : "N/A"}
                     </span>
                   </div>
                   <div className="flex items-start gap-2">

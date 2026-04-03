@@ -27,6 +27,7 @@ export type GymActions = Pick<
   | "checkInStudent"
   | "checkOutStudent"
   | "updatePaymentStatus"
+  | "settlePayment"
   | "updateMemberStatus"
   | "createEquipment"
   | "updateEquipment"

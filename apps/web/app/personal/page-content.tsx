@@ -2,9 +2,10 @@
 
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { parseAsString, useQueryState } from "nuqs";
+import { useRouter } from "next/navigation";
 import { Suspense, useMemo } from "react";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
-import { useInvalidatePersonalBootstrap } from "@/hooks/use-bootstrap-refresh";
+import { invalidateBootstrapDomain } from "@/hooks/use-bootstrap-refresh";
 import { usePersonal } from "@/hooks/use-personal";
 import {
   usePersonalDashboardBootstrapBridge,
@@ -47,14 +48,20 @@ function PersonalDashboardTab({
 }: {
   onViewGym: (gymId: string) => void;
 }) {
-  usePersonalDashboardBootstrapBridge();
-
   const { profile, subscription, financialSummary } = usePersonal(
     "profile",
     "subscription",
     "financialSummary",
   );
   const { affiliations, students, stats } = usePersonalStatsSnapshot();
+  usePersonalDashboardBootstrapBridge({
+    enabled:
+      !profile &&
+      !subscription &&
+      !financialSummary &&
+      affiliations.length === 0 &&
+      students.length === 0,
+  });
 
   return (
     <PersonalDashboardPageContent
@@ -87,13 +94,19 @@ function PersonalStudentsTab() {
 
 function PersonalGymsTab({
   gymId,
+  gymView,
   onViewGym,
   onBackFromGym,
+  onOpenGymAccess,
+  onBackFromAccess,
   onRefresh,
 }: {
   gymId: string | null;
+  gymView: string | null;
   onViewGym: (gymId: string) => void;
   onBackFromGym: () => void;
+  onOpenGymAccess: () => void;
+  onBackFromAccess: () => void;
   onRefresh: () => Promise<void>;
 }) {
   usePersonalGymsBootstrapBridge();
@@ -105,8 +118,11 @@ function PersonalGymsTab({
       affiliations={affiliations}
       onRefresh={onRefresh}
       gymId={gymId}
+      gymView={gymView}
       onViewGym={onViewGym}
       onBackFromGym={onBackFromGym}
+      onOpenGymAccess={onOpenGymAccess}
+      onBackFromAccess={onBackFromAccess}
     />
   );
 }
@@ -162,6 +178,16 @@ function PersonalSettingsTab({
     "membershipPlans",
   );
 
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-pulse text-sm text-duo-gray-dark">
+          Carregando configurações...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <PersonalSettingsPageContent
       profile={profile}
@@ -187,16 +213,17 @@ function PersonalStatsTab() {
 }
 
 function PersonalHomeContent() {
+  const router = useRouter();
   const [tab, setTab] = useQueryState(
     "tab",
     parseAsString.withDefault("dashboard"),
   );
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
-  const refreshPersonalBootstrap = useInvalidatePersonalBootstrap();
-
-  const refreshGyms = refreshPersonalBootstrap;
-  const refreshFinancial = refreshPersonalBootstrap;
-  const refreshSettings = refreshPersonalBootstrap;
+  const [gymView, setGymView] = useQueryState("gymView", parseAsString);
+  const refreshPersonalSurface = async () => {
+    invalidateBootstrapDomain("personal");
+    router.refresh();
+  };
 
   return (
     <div className="px-4 py-6">
@@ -205,6 +232,7 @@ function PersonalHomeContent() {
           onViewGym={(id) => {
             void (async () => {
               await setGymId(id);
+              await setGymView("profile");
               await setTab("gyms");
             })();
           }}
@@ -214,20 +242,33 @@ function PersonalHomeContent() {
       {tab === "gyms" && (
         <PersonalGymsTab
           gymId={gymId ?? null}
-          onRefresh={refreshGyms}
+          gymView={gymView ?? null}
+          onRefresh={refreshPersonalSurface}
           onViewGym={(id) => {
-            void setGymId(id);
+            void (async () => {
+              await setGymId(id);
+              await setGymView("profile");
+            })();
           }}
           onBackFromGym={() => {
-            void setGymId(null);
+            void (async () => {
+              await setGymView(null);
+              await setGymId(null);
+            })();
+          }}
+          onOpenGymAccess={() => {
+            void setGymView("catracas");
+          }}
+          onBackFromAccess={() => {
+            void setGymView("profile");
           }}
         />
       )}
       {tab === "financial" && (
-        <PersonalFinancialTab onRefresh={refreshFinancial} />
+        <PersonalFinancialTab onRefresh={refreshPersonalSurface} />
       )}
       {tab === "settings" && (
-        <PersonalSettingsTab onRefresh={refreshSettings} />
+        <PersonalSettingsTab onRefresh={refreshPersonalSurface} />
       )}
       {tab === "stats" && <PersonalStatsTab />}
       {tab === "more" && <PersonalMoreMenu.Simple />}
