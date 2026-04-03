@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { actionClient as apiClient } from "@/lib/actions/client";
 import type { NutritionPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -249,6 +248,7 @@ function StudentNutritionLibraryModal() {
     createNutritionLibraryPlan,
     deleteNutritionLibraryPlan,
     activateNutritionLibraryPlan,
+    getNutritionLibraryPlanDetail,
   } = useStudent("actions");
   const { loadNutritionLibraryPlans, loadActiveNutritionPlan, loadNutrition } =
     useStudent("loaders");
@@ -272,13 +272,6 @@ function StudentNutritionLibraryModal() {
     }
   }, [activePlan, isOpen, loadActiveNutritionPlan, loadNutritionLibraryPlans]);
 
-  const loadStudentPlanDetail = async (planId: string) => {
-    const response = await apiClient.get<{
-      data?: NutritionPlanData | null;
-    }>(`/api/nutrition/library/${planId}`);
-    return response.data.data ?? null;
-  };
-
   const syncStudentNutrition = async () => {
     await Promise.allSettled([
       loadNutritionLibraryPlans(),
@@ -294,7 +287,9 @@ function StudentNutritionLibraryModal() {
         title: "Novo Plano Alimentar",
       });
       await loadNutritionLibraryPlans();
-      const nextPlan = planId ? await loadStudentPlanDetail(planId) : null;
+      const nextPlan = planId
+        ? await getNutritionLibraryPlanDetail(planId)
+        : null;
       setEditingPlan(nextPlan);
       toast.success("Plano alimentar criado!");
     } catch {
@@ -337,7 +332,7 @@ function StudentNutritionLibraryModal() {
 
   const handleEditRequest = async (planId: string) => {
     try {
-      const plan = await loadStudentPlanDetail(planId);
+      const plan = await getNutritionLibraryPlanDetail(planId);
       if (!plan) {
         toast.error("Nao foi possivel carregar o plano alimentar.");
         return;
@@ -414,6 +409,9 @@ function ScopedNutritionLibraryModal({
   const activateNutritionLibraryPlan = useStudentDetailStore(
     (state) => state.activateNutritionLibraryPlan,
   );
+  const getNutritionLibraryPlanDetail = useStudentDetailStore(
+    (state) => state.getNutritionLibraryPlanDetail,
+  );
   const libraryPlans = useStudentDetailStore(
     (state) => state.nutritionLibraryPlans[detailKey] ?? EMPTY_NUTRITION_PLANS,
   );
@@ -447,15 +445,6 @@ function ScopedNutritionLibraryModal({
     studentId,
   ]);
 
-  const loadScopedPlanDetail = async (planId: string) => {
-    const response = await apiClient.get<{
-      data?: NutritionPlanData | null;
-    }>(
-      `/api/${scope}/students/${studentId}/nutrition/library/${planId}`,
-    );
-    return response.data.data ?? null;
-  };
-
   const syncScopedPlans = async () => {
     await Promise.allSettled([
       loadNutritionLibraryPlans(scope, studentId),
@@ -475,7 +464,9 @@ function ScopedNutritionLibraryModal({
         },
       });
       await loadNutritionLibraryPlans(scope, studentId);
-      const nextPlan = planId ? await loadScopedPlanDetail(planId) : null;
+      const nextPlan = planId
+        ? await getNutritionLibraryPlanDetail({ scope, studentId, planId })
+        : null;
       setEditingPlan(nextPlan);
       toast.success("Plano alimentar criado!");
     } catch {
@@ -526,7 +517,11 @@ function ScopedNutritionLibraryModal({
 
   const handleEditRequest = async (planId: string) => {
     try {
-      const plan = await loadScopedPlanDetail(planId);
+      const plan = await getNutritionLibraryPlanDetail({
+        scope,
+        studentId,
+        planId,
+      });
       if (!plan) {
         toast.error("Nao foi possivel carregar o plano alimentar.");
         return;

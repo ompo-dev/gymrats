@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { actionClient as apiClient } from "@/lib/actions/client";
 import type { WeeklyPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
@@ -42,17 +41,10 @@ export function TrainingLibraryModal() {
     }
   }, [isOpen, loadLibraryPlans]);
 
-  const loadPlanDetail = async (planId: string) => {
-    const response = await apiClient.get<{
-      data?: WeeklyPlanData | null;
-    }>(`/api/workouts/library/${planId}`);
-    return response.data.data ?? null;
-  };
-
   const openPlanEditor = async (planId: string) => {
     setOpeningId(planId);
     try {
-      const plan = await loadPlanDetail(planId);
+      const plan = await actions.getLibraryPlanDetail(planId);
       if (!plan) {
         toast.error("Nao foi possivel carregar o treino.");
         return;
@@ -103,7 +95,9 @@ export function TrainingLibraryModal() {
         title: "Novo Plano Semanal",
         isLibraryTemplate: true,
       });
-      const newPlan = planId ? await loadPlanDetail(planId) : null;
+      const newPlan = planId
+        ? await actions.getLibraryPlanDetail(planId)
+        : null;
       if (!newPlan?.id) {
         toast.error("Plano criado, mas nao foi possivel abrir a edicao.");
         return;

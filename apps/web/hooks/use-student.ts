@@ -53,6 +53,8 @@ function getActions(state: StudentUnifiedState) {
     updateLibraryPlan: state.updateLibraryPlan,
     deleteLibraryPlan: state.deleteLibraryPlan,
     activateLibraryPlan: state.activateLibraryPlan,
+    getLibraryPlanDetail: state.getLibraryPlanDetail,
+    getNutritionLibraryPlanDetail: state.getNutritionLibraryPlanDetail,
     createUnit: state.createUnit,
     updateUnit: state.updateUnit,
     deleteUnit: state.deleteUnit,

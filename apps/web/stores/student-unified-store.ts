@@ -10,15 +10,16 @@
 import { create } from "zustand";
 
 import { actionClient as apiClient } from "@/lib/actions/client";
-import { waitForJobCompletion } from "@/lib/api/job-client";
 import { log } from "@/lib/observability/logger";
 import type {
   DailyNutrition,
   DifficultyLevel,
   MuscleGroup,
+  NutritionPlanData,
   PersonalRecord,
   Unit,
   UserProgress,
+  WeeklyPlanData,
   WorkoutExercise,
   WorkoutSession,
   WorkoutType,
@@ -165,6 +166,7 @@ export interface StudentUnifiedState {
 
   // === ACTIONS - LIBRARY ===
   loadLibraryPlans: (force?: boolean) => Promise<void>;
+  getLibraryPlanDetail: (planId: string) => Promise<WeeklyPlanData | null>;
   createLibraryPlan: (data: LibraryPlanPayload) => Promise<string>;
   updateLibraryPlan: (
     planId: string,
@@ -172,6 +174,9 @@ export interface StudentUnifiedState {
   ) => Promise<void>;
   deleteLibraryPlan: (planId: string) => Promise<void>;
   activateLibraryPlan: (planId: string) => Promise<void>;
+  getNutritionLibraryPlanDetail: (
+    planId: string,
+  ) => Promise<NutritionPlanData | null>;
 
   // === ACTIONS - WORKOUT MANAGEMENT ===
   createUnit: (data: { title: string; description?: string }) => Promise<void>;
@@ -668,6 +673,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
       },
 
+      getLibraryPlanDetail: async (planId: string) => {
+        const response = await apiClient.get<{
+          data?: WeeklyPlanData | null;
+        }>(`/api/workouts/library/${planId}`);
+        return response.data.data ?? null;
+      },
+
       createLibraryPlan: async (data: LibraryPlanPayload) => {
         const response = await apiClient.post<{
           data?: { id?: string };
@@ -715,13 +727,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }
 
         try {
-          const response = await apiClient.post<{
-            jobId?: string;
-          }>("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
-          const jobId = response.data.jobId;
-          if (jobId) {
-            await waitForJobCompletion(jobId);
-          }
+          await apiClient.post("/api/workouts/weekly-plan/activate", {
+            libraryPlanId: planId,
+          });
           await get().loadWeeklyPlan(true);
         } catch (error) {
           set((s) => ({
@@ -735,6 +743,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       // === ACTIONS - ATUALIZAR DADOS ===
+      getNutritionLibraryPlanDetail: async (planId: string) => {
+        const response = await apiClient.get<{
+          data?: NutritionPlanData | null;
+        }>(`/api/nutrition/library/${planId}`);
+        return response.data.data ?? null;
+      },
+
       updateProgress: async (updates) => {
         // Optimistic update - atualiza UI imediatamente
         const previousProgress = get().data.progress;
