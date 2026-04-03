@@ -55,7 +55,18 @@ interface FinancialOverviewTabProps {
   disableWithdraw?: boolean;
 }
 
-export function FinancialOverviewTab({
+interface FinancialOverviewActions {
+  createWithdraw: (payload: {
+    amountCents: number;
+    fake?: boolean;
+  }) => Promise<unknown>;
+}
+
+interface FinancialOverviewTabContentProps extends FinancialOverviewTabProps {
+  actions?: FinancialOverviewActions;
+}
+
+function FinancialOverviewTabContent({
   financialSummary,
   payments = [],
   subscription,
@@ -65,9 +76,9 @@ export function FinancialOverviewTab({
   fakeWithdraw = true,
   showWithdraw = true,
   disableWithdraw = false,
-}: FinancialOverviewTabProps) {
+  actions,
+}: FinancialOverviewTabContentProps) {
   const { toast } = useToast();
-  const actions = useGym("actions");
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [isWithdrawing, setIsWithdrawing] = useState(false);
@@ -86,7 +97,7 @@ export function FinancialOverviewTab({
 
     setIsWithdrawing(true);
     try {
-      await actions.createWithdraw({
+      await actions?.createWithdraw({
         amountCents,
         fake: fakeWithdraw,
       });
@@ -321,4 +332,17 @@ export function FinancialOverviewTab({
       </DuoCard.Root>
     </div>
   );
+}
+
+function GymFinancialOverviewTab(props: FinancialOverviewTabProps) {
+  const actions = useGym("actions");
+  return <FinancialOverviewTabContent {...props} actions={actions} />;
+}
+
+export function FinancialOverviewTab(props: FinancialOverviewTabProps) {
+  if (!props.showWithdraw) {
+    return <FinancialOverviewTabContent {...props} />;
+  }
+
+  return <GymFinancialOverviewTab {...props} />;
 }

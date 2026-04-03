@@ -31,45 +31,45 @@ interface FinancialAdsTabProps {
 }
 
 interface FinancialAdsStoreSlice {
-  campaigns: BoostCampaign[];
-  coupons: Coupon[];
-  membershipPlans: BoostCampaignPlanOption[];
-  actions: {
-    createBoostCampaign: (payload: {
-      title: string;
-      description: string;
-      primaryColor: string;
-      linkedCouponId: string | null;
-      linkedPlanId: string | null;
-      durationHours: number;
-      amountCents: number;
-      radiusKm: number;
-    }) => Promise<{
-      brCode: string;
-      brCodeBase64?: string;
-      amount?: number;
-      campaignId?: string;
-      expiresAt?: string;
-    }>;
-    getBoostCampaignPix: (campaignId: string) => Promise<{
-      brCode: string;
-      brCodeBase64: string;
-      amount: number;
-      expiresAt?: string;
-    }>;
-    deleteBoostCampaign: (campaignId: string) => Promise<void>;
-    checkBoostCampaignActive: (campaignId: string) => Promise<boolean>;
-  };
-  loaders: {
-    loadSection: (section: string, force?: boolean) => Promise<unknown>;
-  };
+  createBoostCampaign: (payload: {
+    title: string;
+    description: string;
+    primaryColor: string;
+    linkedCouponId: string | null;
+    linkedPlanId: string | null;
+    durationHours: number;
+    amountCents: number;
+    radiusKm: number;
+  }) => Promise<{
+    brCode: string;
+    brCodeBase64?: string;
+    amount?: number;
+    campaignId?: string;
+    expiresAt?: string;
+  }>;
+  getBoostCampaignPix: (campaignId: string) => Promise<{
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    expiresAt?: string;
+  }>;
+  deleteBoostCampaign: (campaignId: string) => Promise<void>;
+  checkBoostCampaignActive: (campaignId: string) => Promise<boolean>;
+}
+
+interface FinancialAdsLoaders {
+  loadSection: (section: string, force?: boolean) => Promise<unknown>;
 }
 
 interface FinancialAdsTabContentProps {
   campaigns: BoostCampaign[];
   coupons: Coupon[];
   plans: BoostCampaignPlanOption[];
-  selectedStore: FinancialAdsStoreSlice;
+  storeCampaigns: BoostCampaign[];
+  storeCoupons: Coupon[];
+  storePlans: BoostCampaignPlanOption[];
+  actions: FinancialAdsStoreSlice;
+  loaders: FinancialAdsLoaders;
   variant: "gym" | "personal";
 }
 
@@ -140,7 +140,11 @@ function FinancialAdsTabContent({
   campaigns,
   coupons,
   plans,
-  selectedStore,
+  storeCampaigns,
+  storeCoupons,
+  storePlans,
+  actions,
+  loaders,
   variant,
 }: FinancialAdsTabContentProps) {
   const { toast } = useToast();
@@ -151,39 +155,36 @@ function FinancialAdsTabContent({
     coupons.length === 0,
   );
   const [hasHydratedPlans, setHasHydratedPlans] = useState(plans.length === 0);
-  const campaignsList = hasHydratedCampaigns
-    ? selectedStore.campaigns
-    : campaigns;
-  const couponsList = hasHydratedCoupons ? selectedStore.coupons : coupons;
-  const plansList = hasHydratedPlans ? selectedStore.membershipPlans : plans;
-  const actions = selectedStore.actions;
+  const campaignsList = hasHydratedCampaigns ? storeCampaigns : campaigns;
+  const couponsList = hasHydratedCoupons ? storeCoupons : coupons;
+  const plansList = hasHydratedPlans ? storePlans : plans;
 
   useEffect(() => {
     if (
       !hasHydratedCampaigns &&
-      (selectedStore.campaigns.length > 0 || campaigns.length === 0)
+      (storeCampaigns.length > 0 || campaigns.length === 0)
     ) {
       setHasHydratedCampaigns(true);
     }
-  }, [campaigns.length, hasHydratedCampaigns, selectedStore.campaigns.length]);
+  }, [campaigns.length, hasHydratedCampaigns, storeCampaigns.length]);
 
   useEffect(() => {
     if (
       !hasHydratedCoupons &&
-      (selectedStore.coupons.length > 0 || coupons.length === 0)
+      (storeCoupons.length > 0 || coupons.length === 0)
     ) {
       setHasHydratedCoupons(true);
     }
-  }, [coupons.length, hasHydratedCoupons, selectedStore.coupons.length]);
+  }, [coupons.length, hasHydratedCoupons, storeCoupons.length]);
 
   useEffect(() => {
     if (
       !hasHydratedPlans &&
-      (selectedStore.membershipPlans.length > 0 || plans.length === 0)
+      (storePlans.length > 0 || plans.length === 0)
     ) {
       setHasHydratedPlans(true);
     }
-  }, [hasHydratedPlans, plans.length, selectedStore.membershipPlans.length]);
+  }, [hasHydratedPlans, plans.length, storePlans.length]);
 
   // creation modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -229,7 +230,7 @@ function FinancialAdsTabContent({
       : campaignsList.filter((c) => c.status === statusFilter);
 
   const refreshCampaigns = async () => {
-    await selectedStore.loaders.loadSection("campaigns", true);
+    await loaders.loadSection("campaigns", true);
   };
 
   const handleCreate = async () => {
@@ -780,9 +781,7 @@ function FinancialAdsTabContent({
           pollConfig={{
             type: "check",
             check: async () => {
-              return selectedStore.actions.checkBoostCampaignActive(
-                pixModal.campaignId,
-              );
+              return actions.checkBoostCampaignActive(pixModal.campaignId);
             },
           }}
           onPaymentConfirmed={() => {
@@ -804,20 +803,22 @@ function GymAdsContent({
   coupons,
   plans,
 }: Omit<FinancialAdsTabProps, "variant">) {
-  const selectedStore = useGym(
-    "campaigns",
-    "coupons",
-    "membershipPlans",
-    "actions",
-    "loaders",
-  ) as FinancialAdsStoreSlice;
+  const storeCampaigns = useGym("campaigns");
+  const storeCoupons = useGym("coupons");
+  const storePlans = useGym("membershipPlans") as BoostCampaignPlanOption[];
+  const actions = useGym("actions") as FinancialAdsStoreSlice;
+  const loaders = useGym("loaders") as FinancialAdsLoaders;
 
   return (
     <FinancialAdsTabContent
       campaigns={campaigns ?? []}
       coupons={coupons ?? []}
       plans={plans ?? []}
-      selectedStore={selectedStore}
+      storeCampaigns={storeCampaigns}
+      storeCoupons={storeCoupons}
+      storePlans={storePlans}
+      actions={actions}
+      loaders={loaders}
       variant="gym"
     />
   );
@@ -828,20 +829,24 @@ function PersonalAdsContent({
   coupons,
   plans,
 }: Omit<FinancialAdsTabProps, "variant">) {
-  const selectedStore = usePersonal(
-    "campaigns",
-    "coupons",
+  const storeCampaigns = usePersonal("campaigns");
+  const storeCoupons = usePersonal("coupons");
+  const storePlans = usePersonal(
     "membershipPlans",
-    "actions",
-    "loaders",
-  ) as FinancialAdsStoreSlice;
+  ) as BoostCampaignPlanOption[];
+  const actions = usePersonal("actions") as FinancialAdsStoreSlice;
+  const loaders = usePersonal("loaders") as FinancialAdsLoaders;
 
   return (
     <FinancialAdsTabContent
       campaigns={campaigns ?? []}
       coupons={coupons ?? []}
       plans={plans ?? []}
-      selectedStore={selectedStore}
+      storeCampaigns={storeCampaigns}
+      storeCoupons={storeCoupons}
+      storePlans={storePlans}
+      actions={actions}
+      loaders={loaders}
       variant="personal"
     />
   );

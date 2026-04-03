@@ -102,7 +102,8 @@ export function GymSettingsPage({
   plans = [],
 }: GymSettingsPageProps) {
   const router = useRouter();
-  const { profile: storeProfile, actions } = useGym("profile", "actions");
+  const storeProfile = useGym("profile");
+  const actions = useGym("actions");
   const profile = storeProfile ?? initialProfile;
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -309,8 +310,8 @@ export function GymSettingsPage({
       await useAuthStore.getState().signOut();
       router.push("/welcome");
       router.refresh();
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+    } catch {
+      setSaveError("Nao foi possivel sair da conta.");
     }
   };
 

@@ -17,35 +17,33 @@ interface FinancialCouponsTabProps {
 }
 
 interface FinancialCouponsStoreSlice {
-  coupons: Coupon[];
-  actions: {
-    createCoupon: (payload: {
-      code: string;
-      notes: string;
-      discountKind: "PERCENTAGE" | "FIXED";
-      discount: number;
-      maxRedeems?: number;
-      expiresAt: Date | null;
-    }) => Promise<unknown>;
-    deleteCoupon: (couponId: string) => Promise<unknown>;
-  };
+  createCoupon: (payload: {
+    code: string;
+    notes: string;
+    discountKind: "PERCENTAGE" | "FIXED";
+    discount: number;
+    maxRedeems?: number;
+    expiresAt: Date | null;
+  }) => Promise<unknown>;
+  deleteCoupon: (couponId: string) => Promise<unknown>;
 }
 
 interface FinancialCouponsTabContentProps {
   coupons: Coupon[];
-  selectedStore: FinancialCouponsStoreSlice;
+  storeCoupons: Coupon[];
+  actions: FinancialCouponsStoreSlice;
 }
 
 function FinancialCouponsTabContent({
   coupons,
-  selectedStore,
+  storeCoupons,
+  actions,
 }: FinancialCouponsTabContentProps) {
   const { toast } = useToast();
   const [hasHydratedCoupons, setHasHydratedCoupons] = useState(
     coupons.length === 0,
   );
-  const couponsList = hasHydratedCoupons ? selectedStore.coupons : coupons;
-  const actions = selectedStore.actions;
+  const couponsList = hasHydratedCoupons ? storeCoupons : coupons;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [code, setCode] = useState("");
@@ -65,11 +63,11 @@ function FinancialCouponsTabContent({
   useEffect(() => {
     if (
       !hasHydratedCoupons &&
-      (selectedStore.coupons.length > 0 || coupons.length === 0)
+      (storeCoupons.length > 0 || coupons.length === 0)
     ) {
       setHasHydratedCoupons(true);
     }
-  }, [coupons.length, hasHydratedCoupons, selectedStore.coupons.length]);
+  }, [coupons.length, hasHydratedCoupons, storeCoupons.length]);
 
   const handleDiscountChange = useCallback(
     (value: string) => {
@@ -387,24 +385,25 @@ function FinancialCouponsTabContent({
 }
 
 function GymCouponsContent({ coupons }: { coupons: Coupon[] }) {
-  const selectedStore = useGym("coupons", "actions") as FinancialCouponsStoreSlice;
+  const storeCoupons = useGym("coupons");
+  const actions = useGym("actions") as FinancialCouponsStoreSlice;
   return (
     <FinancialCouponsTabContent
       coupons={coupons}
-      selectedStore={selectedStore}
+      storeCoupons={storeCoupons}
+      actions={actions}
     />
   );
 }
 
 function PersonalCouponsContent({ coupons }: { coupons: Coupon[] }) {
-  const selectedStore = usePersonal(
-    "coupons",
-    "actions",
-  ) as FinancialCouponsStoreSlice;
+  const storeCoupons = usePersonal("coupons");
+  const actions = usePersonal("actions") as FinancialCouponsStoreSlice;
   return (
     <FinancialCouponsTabContent
       coupons={coupons}
-      selectedStore={selectedStore}
+      storeCoupons={storeCoupons}
+      actions={actions}
     />
   );
 }

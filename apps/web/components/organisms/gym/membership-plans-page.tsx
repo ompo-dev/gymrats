@@ -46,7 +46,8 @@ export function MembershipPlansPage({
 }: {
   plans: MembershipPlan[];
 }) {
-  const { actions, membershipPlans } = useGym("actions", "membershipPlans");
+  const membershipPlans = useGym("membershipPlans");
+  const actions = useGym("actions");
   const [hasHydratedPlans, setHasHydratedPlans] = useState(
     initialPlans.length === 0,
   );
@@ -115,8 +116,7 @@ export function MembershipPlansPage({
       }
 
       resetForm();
-    } catch (error) {
-      console.error("Erro ao salvar plano:", error);
+    } catch {
       alert("Erro ao salvar plano");
     } finally {
       setSaving(false);
@@ -130,8 +130,7 @@ export function MembershipPlansPage({
 
     try {
       await actions.deleteMembershipPlan(planToDelete);
-    } catch (error) {
-      console.error("Erro ao deletar plano:", error);
+    } catch {
       alert("Erro ao deletar plano");
     } finally {
       setPlanToDelete(null);

@@ -14,13 +14,17 @@ interface FinancialExpensesTabProps {
   variant?: "gym" | "personal";
 }
 
-export function FinancialExpensesTab({
-  expenses = [],
-  variant = "gym",
-}: FinancialExpensesTabProps) {
-  const gymExpenses = useGym("expenses");
-  const personalExpenses = usePersonal("expenses");
-  const storeExpenses = variant === "personal" ? personalExpenses : gymExpenses;
+interface FinancialExpensesTabContentProps {
+  expenses: Expense[];
+  storeExpenses: Expense[];
+  variant: "gym" | "personal";
+}
+
+function FinancialExpensesTabContent({
+  expenses,
+  storeExpenses,
+  variant,
+}: FinancialExpensesTabContentProps) {
   const [hasHydratedExpenses, setHasHydratedExpenses] = useState(
     expenses.length === 0,
   );
@@ -112,5 +116,38 @@ export function FinancialExpensesTab({
         variant={variant}
       />
     </>
+  );
+}
+
+function GymExpensesContent({ expenses }: { expenses: Expense[] }) {
+  const storeExpenses = useGym("expenses");
+  return (
+    <FinancialExpensesTabContent
+      expenses={expenses}
+      storeExpenses={storeExpenses}
+      variant="gym"
+    />
+  );
+}
+
+function PersonalExpensesContent({ expenses }: { expenses: Expense[] }) {
+  const storeExpenses = usePersonal("expenses");
+  return (
+    <FinancialExpensesTabContent
+      expenses={expenses}
+      storeExpenses={storeExpenses}
+      variant="personal"
+    />
+  );
+}
+
+export function FinancialExpensesTab({
+  expenses = [],
+  variant = "gym",
+}: FinancialExpensesTabProps) {
+  return variant === "personal" ? (
+    <PersonalExpensesContent expenses={expenses} />
+  ) : (
+    <GymExpensesContent expenses={expenses} />
   );
 }

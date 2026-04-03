@@ -29,12 +29,24 @@ const defaultState = {
 export const useSubscriptionUIStore = create<SubscriptionUIState>((set) => ({
   ...defaultState,
 
-  setSelectedPlan: (planId) => set({ selectedPlan: planId }),
+  setSelectedPlan: (planId) =>
+    set((state) =>
+      state.selectedPlan === planId ? state : { selectedPlan: planId },
+    ),
 
-  setSelectedBillingPeriod: (period) => set({ selectedBillingPeriod: period }),
+  setSelectedBillingPeriod: (period) =>
+    set((state) =>
+      state.selectedBillingPeriod === period
+        ? state
+        : { selectedBillingPeriod: period },
+    ),
 
   setIsProcessingPayment: (processing) =>
-    set({ isProcessingPayment: processing }),
+    set((state) =>
+      state.isProcessingPayment === processing
+        ? state
+        : { isProcessingPayment: processing },
+    ),
 
   initializeFromSubscription: (
     plans,
@@ -93,9 +105,18 @@ export const useSubscriptionUIStore = create<SubscriptionUIState>((set) => ({
       defaultPlanId = defaultPlan?.id || "";
     }
 
-    set({
-      selectedPlan: defaultPlanId,
-      selectedBillingPeriod: defaultBillingPeriod,
+    set((state) => {
+      if (
+        state.selectedPlan === defaultPlanId &&
+        state.selectedBillingPeriod === defaultBillingPeriod
+      ) {
+        return state;
+      }
+
+      return {
+        selectedPlan: defaultPlanId,
+        selectedBillingPeriod: defaultBillingPeriod,
+      };
     });
   },
 

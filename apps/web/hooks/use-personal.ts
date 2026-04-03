@@ -1,7 +1,7 @@
 "use client";
 
-import { useShallow } from "zustand/react/shallow";
-import { selectDomainStoreSlice } from "@/hooks/shared/select-domain-store";
+import { useMemo } from "react";
+import { createStableDomainSelector } from "@/hooks/shared/select-domain-store";
 import type {
   PersonalActions,
   PersonalLoaders,
@@ -60,22 +60,24 @@ export function usePersonal<T extends PersonalSelector>(
   | PersonalUnifiedState["data"]
   | PersonalSelectorReturnMap[T]
   | { [K in T]: PersonalSelectorReturnMap[K] } {
-  return usePersonalUnifiedStore(
-    useShallow(
-      (state) =>
-        selectDomainStoreSlice<
-          PersonalUnifiedState,
-          PersonalUnifiedState["data"],
-          T,
-          PersonalActions,
-          PersonalLoaders
-        >(state, selectors, {
-          getActions,
-          getLoaders,
-        }) as
-          | PersonalUnifiedState["data"]
-          | PersonalSelectorReturnMap[T]
-          | { [K in T]: PersonalSelectorReturnMap[K] },
-    ),
+  const selectorKey = selectors.join("|");
+  const selector = useMemo(
+    () =>
+      createStableDomainSelector<
+        PersonalUnifiedState,
+        PersonalUnifiedState["data"],
+        T,
+        PersonalActions,
+        PersonalLoaders
+      >(selectors, {
+        getActions,
+        getLoaders,
+      }),
+    [selectorKey],
   );
+
+  return usePersonalUnifiedStore(selector) as
+    | PersonalUnifiedState["data"]
+    | PersonalSelectorReturnMap[T]
+    | { [K in T]: PersonalSelectorReturnMap[K] };
 }

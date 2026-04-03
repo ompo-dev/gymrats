@@ -66,7 +66,8 @@ export function PersonalMembershipPlansPage({
   plans: PersonalMembershipPlan[];
   onRefresh?: () => Promise<void>;
 }) {
-  const { actions, membershipPlans } = usePersonal("actions", "membershipPlans");
+  const membershipPlans = usePersonal("membershipPlans");
+  const actions = usePersonal("actions");
   const [hasHydratedPlans, setHasHydratedPlans] = useState(
     initialPlans.length === 0,
   );
@@ -131,8 +132,7 @@ export function PersonalMembershipPlansPage({
         }
 
         resetForm();
-      } catch (error) {
-        console.error("Erro ao salvar plano:", error);
+      } catch {
         alert("Erro ao salvar plano");
       }
     });
@@ -146,8 +146,7 @@ export function PersonalMembershipPlansPage({
     startTransition(async () => {
       try {
         await actions.deleteMembershipPlan(planToDelete);
-      } catch (error) {
-        console.error("Erro ao deletar plano:", error);
+      } catch {
         alert("Erro ao deletar plano");
       } finally {
         setPlanToDelete(null);

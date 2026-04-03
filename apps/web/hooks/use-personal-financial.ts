@@ -5,13 +5,13 @@ import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
 export function usePersonalFinancial() {
-  const { subscription, students, affiliations, actions, loaders } = usePersonal(
+  const { subscription, students, affiliations } = usePersonal(
     "subscription",
     "students",
     "affiliations",
-    "actions",
-    "loaders",
   );
+  const actions = usePersonal("actions");
+  const loaders = usePersonal("loaders");
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
