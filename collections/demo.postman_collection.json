@@ -1,0 +1,223 @@
+{
+  "event": [],
+  "info": {
+    "_postman_id": "collection_8cff9152-f351-4e0b-aa02-a137fa6b844f",
+    "name": "Demo Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "item": [
+        {
+          "description": "Public GraphQL query using an environment variable.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('country payload exists', () => {",
+                  "  const body = JSON.parse(pm.response.text());",
+                  "  pm.expect(body.data.country.code).to.equal(pm.environment.get('countryCode'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "id": "req_graphql_country",
+          "name": "GraphQL Country",
+          "protocolProfileBehavior": {
+            "mainapi": {
+              "captureTimeline": true,
+              "followRedirects": true,
+              "graphql": {
+                "operationName": "Country",
+                "query": "query Country($code: ID!) { country(code: $code) { code name capital currency } }",
+                "variables": {
+                  "code": "{{countryCode}}"
+                }
+              },
+              "offline": false,
+              "protocol": "graphql",
+              "retries": 0,
+              "tags": [
+                "mock",
+                "graphql"
+              ],
+              "timeoutMs": 30000,
+              "useWebSocketTransport": false,
+              "verifyTls": true
+            }
+          },
+          "request": {
+            "body": {
+              "graphql": {
+                "operationName": "Country",
+                "query": "query Country($code: ID!) { country(code: $code) { code name capital currency } }",
+                "variables": {
+                  "code": "{{countryCode}}"
+                }
+              },
+              "mode": "graphql"
+            },
+            "header": [],
+            "method": "POST",
+            "url": "{{graphqlBase}}/"
+          },
+          "response": []
+        }
+      ],
+      "name": "GraphQL"
+    },
+    {
+      "item": [
+        {
+          "description": "Offline gRPC template. Replace endpoint, service and proto path with your project values.",
+          "event": [],
+          "id": "req_grpc_template",
+          "name": "gRPC Template",
+          "protocolProfileBehavior": {
+            "mainapi": {
+              "captureTimeline": true,
+              "followRedirects": true,
+              "grpc": {
+                "endpoint": "{{grpcEndpoint}}",
+                "message": {
+                  "message": "hello from Main-API"
+                },
+                "metadata": [],
+                "method": "Ping",
+                "packageName": "demo",
+                "protoFile": "protos/demo.proto",
+                "service": "demo.DemoService",
+                "streaming": "unary",
+                "useReflection": false
+              },
+              "offline": true,
+              "protocol": "grpc",
+              "retries": 0,
+              "tags": [
+                "mock",
+                "grpc",
+                "offline"
+              ],
+              "timeoutMs": 30000,
+              "verifyTls": true
+            }
+          },
+          "request": {
+            "header": [],
+            "method": "GRPC",
+            "url": "{{grpcEndpoint}}"
+          },
+          "response": []
+        }
+      ],
+      "name": "gRPC"
+    },
+    {
+      "item": [
+        {
+          "description": "Public echo request to validate the shared HTTP pipeline.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status code is 200', () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "id": "req_http_echo",
+          "name": "HTTP Echo",
+          "protocolProfileBehavior": {
+            "mainapi": {
+              "captureTimeline": true,
+              "followRedirects": true,
+              "offline": false,
+              "protocol": "http",
+              "retries": 0,
+              "tags": [
+                "mock",
+                "http"
+              ],
+              "timeoutMs": 30000,
+              "verifyTls": true
+            }
+          },
+          "request": {
+            "header": [],
+            "method": "GET",
+            "url": "{{httpBase}}/get?source=main-api"
+          },
+          "response": []
+        }
+      ],
+      "name": "REST"
+    },
+    {
+      "item": [
+        {
+          "description": "Echo handshake for the shared WebSocket runner.",
+          "event": [],
+          "id": "req_websocket_echo",
+          "name": "WebSocket Echo",
+          "protocolProfileBehavior": {
+            "mainapi": {
+              "captureTimeline": true,
+              "followRedirects": true,
+              "offline": false,
+              "protocol": "websocket",
+              "retries": 0,
+              "tags": [
+                "mock",
+                "websocket"
+              ],
+              "timeoutMs": 15000,
+              "verifyTls": true,
+              "websocket": {
+                "expectedMessages": 1,
+                "handshakeTimeoutMs": 8000,
+                "headers": [],
+                "initialMessages": [
+                  "hello from Main-API"
+                ],
+                "protocols": [],
+                "url": "{{socketUrl}}"
+              }
+            }
+          },
+          "request": {
+            "header": [],
+            "method": "WS",
+            "url": "{{socketUrl}}"
+          },
+          "response": []
+        }
+      ],
+      "name": "WebSocket"
+    }
+  ],
+  "variable": [
+    {
+      "key": "graphqlBase",
+      "value": "https://countries.trevorblades.com"
+    },
+    {
+      "key": "grpcEndpoint",
+      "value": "grpc://localhost:50051"
+    },
+    {
+      "key": "httpBase",
+      "value": "https://postman-echo.com"
+    },
+    {
+      "key": "socketUrl",
+      "value": "wss://echo.websocket.events"
+    }
+  ]
+}

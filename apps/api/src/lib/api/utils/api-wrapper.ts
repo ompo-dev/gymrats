@@ -16,6 +16,7 @@ import {
   requireStudent,
 } from "../middleware/auth.middleware";
 import {
+  buildIdempotencyFingerprint,
   completeIdempotencyKey,
   failIdempotencyKey,
   getReplayRecord,
@@ -382,7 +383,40 @@ export function createSafeHandler<
       }
 
       const idemKey = req.headers.get("x-idempotency-key") as string;
+      const idempotencyFingerprint = buildIdempotencyFingerprint({
+        route: req.nextUrl.pathname,
+        method,
+        actorId: authenticatedUserId ?? null,
+        body,
+      });
+
       const replay = await getReplayRecord(idemKey);
+      if (
+        replay &&
+        replay.request_fingerprint !== idempotencyFingerprint
+      ) {
+        const mismatchResponse = NextResponse.json(
+          {
+            error:
+              "Idempotency key ja utilizada em uma requisicao diferente",
+          },
+          { status: 409 },
+        );
+        const handled = attachStandardHeaders(mismatchResponse, startedAt);
+        recordApiRequest(
+          buildMetricContext(logMetaBase, {
+            status: handled.response.status,
+            latencyMs: handled.latencyMs,
+            requestId: handled.requestId,
+            gymContext,
+            studentContext,
+            personalContext,
+            adminContext,
+          }),
+        );
+        return handled.response;
+      }
+
       if (replay && replay.status === "completed" && replay.response_status) {
         try {
           const parsedBody = replay.response_body
@@ -447,12 +481,86 @@ export function createSafeHandler<
         return handled.response;
       }
 
-      await reserveIdempotencyKey({
+      const reserved = await reserveIdempotencyKey({
         key: idemKey,
         route: req.nextUrl.pathname,
         method,
-        body: body as Record<string, string | number | boolean | object | null>,
+        requestFingerprint: idempotencyFingerprint,
       });
+
+      if (!reserved) {
+        const latestReplay = await getReplayRecord(idemKey);
+        if (
+          latestReplay &&
+          latestReplay.request_fingerprint !== idempotencyFingerprint
+        ) {
+          const mismatchResponse = NextResponse.json(
+            {
+              error:
+                "Idempotency key ja utilizada em uma requisicao diferente",
+            },
+            { status: 409 },
+          );
+          const handled = attachStandardHeaders(mismatchResponse, startedAt);
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: handled.response.status,
+              latencyMs: handled.latencyMs,
+              requestId: handled.requestId,
+              gymContext,
+              studentContext,
+              personalContext,
+              adminContext,
+            }),
+          );
+          return handled.response;
+        }
+
+        if (
+          latestReplay &&
+          latestReplay.status === "completed" &&
+          latestReplay.response_status
+        ) {
+          const parsedBody = latestReplay.response_body
+            ? parseJsonSafe<unknown>(latestReplay.response_body)
+            : null;
+          const replayResponse = NextResponse.json(parsedBody, {
+            status: latestReplay.response_status,
+          });
+          replayResponse.headers.set("X-Idempotency-Replay", "true");
+          const handled = attachStandardHeaders(replayResponse, startedAt);
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: latestReplay.response_status,
+              latencyMs: handled.latencyMs,
+              requestId: handled.requestId,
+              gymContext,
+              studentContext,
+              personalContext,
+              adminContext,
+            }),
+          );
+          return handled.response;
+        }
+
+        const processingResponse = NextResponse.json(
+          { error: "Requisicao idempotente em processamento" },
+          { status: 409 },
+        );
+        const handled = attachStandardHeaders(processingResponse, startedAt);
+        recordApiRequest(
+          buildMetricContext(logMetaBase, {
+            status: handled.response.status,
+            latencyMs: handled.latencyMs,
+            requestId: handled.requestId,
+            gymContext,
+            studentContext,
+            personalContext,
+            adminContext,
+          }),
+        );
+        return handled.response;
+      }
 
       try {
         const handlerStartedAt = Date.now();

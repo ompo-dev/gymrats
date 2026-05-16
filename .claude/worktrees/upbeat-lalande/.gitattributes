@@ -1,0 +1,15 @@
+# Normalizar line endings para LF no repositório
+* text=auto eol=lf
+
+# Arquivos Windows específicos
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Arquivos que devem sempre usar LF
+*.sh text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf

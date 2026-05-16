@@ -13,6 +13,8 @@ const child = spawn(command[0], command[1], {
     NODE_ENV: process.env.NODE_ENV || "test",
     PORT: process.env.PLAYWRIGHT_API_PORT || "3001",
     CRON_SECRET: process.env.CRON_SECRET || "gymrats-e2e-cron-secret",
+    REDIS_URL: process.env.REDIS_URL || "redis://127.0.0.1:6379",
+    PAYOUT_EXECUTION_MODE: process.env.PAYOUT_EXECUTION_MODE || "fake",
   },
 });
 

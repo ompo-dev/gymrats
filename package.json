@@ -48,6 +48,7 @@
     "migration:create": "node apps/web/scripts/migration/create-prisma-migration.mjs",
     "migration:create:prisma": "node apps/web/scripts/migration/create-prisma-migration.mjs",
     "migration:status:prisma": "node apps/web/scripts/migration/prisma-migration-status.mjs",
+    "migration:safety:prisma": "node apps/web/scripts/migration/prisma-migration-safety.mjs",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:changed": "node scripts/lint-changed.mjs",

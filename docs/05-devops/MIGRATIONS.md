@@ -73,6 +73,7 @@ Os wrappers do Prisma continuam disponiveis como apoio tecnico, mas nao sao o fl
 - `apps/web/scripts/migration/apply-prisma-migrations.mjs`
 - `apps/web/scripts/migration/prisma-migration-status.mjs`
 - `apps/web/scripts/migration/create-prisma-migration.mjs`
+- `apps/web/scripts/migration/prisma-migration-safety.mjs`
 
 Ver status do historico Prisma:
 
@@ -84,6 +85,12 @@ Aplicar migrations Prisma pendentes:
 
 ```bash
 npm run migration:apply:prisma -- --env-file=.env.docker
+```
+
+Rodar safety-check da cadeia Prisma (obrigatorio antes de deploy Prisma):
+
+```bash
+npm run migration:safety:prisma -- --env-file=.env.docker
 ```
 
 Criar uma nova migration Prisma:
@@ -103,3 +110,9 @@ Ou seja:
 - os scripts operacionais vivem em `apps/web/scripts/migration`
 - o runner canonico do stack vive em `apps/web/scripts/migration/run-stack-migrations.mjs`
 - os artefatos versionados do Prisma continuam em `packages/db/prisma/migrations`
+
+## Estrategia de historico Prisma (trilha A/B)
+
+- Trilha A: ambiente onde migrations legadas ja foram aplicadas. Nao reescrever historico aplicado; tratar com resolve/baseline por ambiente.
+- Trilha B: ambiente sem aplicacao completa da cadeia legada. Corrigir cadeia/estrategia antes de `prisma migrate deploy`.
+- O `apply-prisma-migrations.mjs` roda `prisma-migration-safety.mjs` e bloqueia deploy se detectar inconsistencia critica.

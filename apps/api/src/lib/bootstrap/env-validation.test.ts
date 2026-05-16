@@ -11,6 +11,7 @@ const REQUIRED_ENV = {
   EMAIL_PASSWORD: "password",
   GOOGLE_CLIENT_ID: "google-client-id",
   GOOGLE_CLIENT_SECRET: "google-client-secret",
+  CRON_SECRET: "cron-secret",
   NODE_ENV: "test",
 } as const;
 
@@ -48,5 +49,15 @@ describe("validateEnvironment", () => {
     };
 
     expect(() => validateEnvironment()).toThrow(/Invalid NODE_ENV/);
+  });
+
+  it("throws when PAYOUT_EXECUTION_MODE is invalid", () => {
+    process.env = {
+      ...originalEnv,
+      ...REQUIRED_ENV,
+      PAYOUT_EXECUTION_MODE: "maybe",
+    };
+
+    expect(() => validateEnvironment()).toThrow(/Invalid PAYOUT_EXECUTION_MODE/);
   });
 });

@@ -116,7 +116,7 @@ export const apiApp = baseApiApp
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       set.status = 401;
       return { error: "Unauthorized" };
     }

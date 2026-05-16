@@ -1,5 +1,6 @@
 import { db } from "@gymrats/db";
 import { extractBearerToken } from "./auth-tokens";
+import { generateSessionToken } from "./session-token";
 
 const SESSION_DURATION_DAYS = 30;
 
@@ -7,9 +8,7 @@ export async function createSession(userId: string): Promise<string> {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + SESSION_DURATION_DAYS);
 
-  const token = `${Date.now()}-${Math.random()
-    .toString(36)
-    .substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`;
+  const token = generateSessionToken();
 
   await db.session.create({
     data: {

@@ -328,8 +328,16 @@ export class WebhookService {
       },
     });
 
-    await db.subscriptionPayment.create({
-      data: {
+    await db.subscriptionPayment.upsert({
+      where: { abacatePayBillingId: paymentId },
+      update: {
+        subscriptionId: subscription.id,
+        amount: amount / 100,
+        status: "succeeded",
+        paymentMethod: billing?.payment?.method || "pix",
+        paidAt: now,
+      },
+      create: {
         subscriptionId: subscription.id,
         amount: amount / 100,
         status: "succeeded",

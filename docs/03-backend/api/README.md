@@ -8,6 +8,7 @@
 
 ## Arquivos
 - `API_COMPLETA.md`: Arquivo da camada local.
+- `IDEMPOTENCY_POLICY.md`: Politica operacional de idempotencia server-side.
 
 ## Detalhamento técnico por arquivo
 

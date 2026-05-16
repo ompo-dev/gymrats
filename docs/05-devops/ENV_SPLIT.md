@@ -61,6 +61,12 @@ Essas variaveis alimentam `api`, `worker` e `cron`:
 - `ABACATEPAY_API_TOKEN`
 - `ABACATEPAY_WEBHOOK_SECRET`
 - `CRON_SECRET`
+- `PAYOUT_EXECUTION_MODE`
+
+Politica atual de saque durante fase de testes:
+
+- `PAYOUT_EXECUTION_MODE=fake`: saques simulados server-side (gym + referral/student), com auditoria de `simulation=true`
+- `PAYOUT_EXECUTION_MODE=real`: saques reais via PSP
 
 ## Banco remoto no Supabase
 
