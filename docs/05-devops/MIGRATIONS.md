@@ -116,3 +116,9 @@ Ou seja:
 - Trilha A: ambiente onde migrations legadas ja foram aplicadas. Nao reescrever historico aplicado; tratar com resolve/baseline por ambiente.
 - Trilha B: ambiente sem aplicacao completa da cadeia legada. Corrigir cadeia/estrategia antes de `prisma migrate deploy`.
 - O `apply-prisma-migrations.mjs` roda `prisma-migration-safety.mjs` e bloqueia deploy se detectar inconsistencia critica.
+
+## Guard-rail em CI
+
+- O workflow `.github/workflows/security.yml` executa `npm run migration:safety:prisma`.
+- Pull request com cadeia Prisma inconsistente deve falhar antes de merge/deploy.
+- O objetivo e evitar rollout parcial quando houver risco de drift entre `packages/db/prisma/migrations` e estado esperado de aplicacao.

@@ -18,7 +18,6 @@ const meta = {
     balanceReais: gymFinancialFixture.balanceWithdraws?.balanceReais ?? 0,
     balanceCents: gymFinancialFixture.balanceWithdraws?.balanceCents ?? 0,
     withdraws: gymFinancialFixture.balanceWithdraws?.withdraws ?? [],
-    fakeWithdraw: true,
     showWithdraw: true,
     disableWithdraw: true,
   },

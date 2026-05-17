@@ -185,6 +185,17 @@ export async function requireGym(
   }
 
   const isAdmin = auth.user?.role === "ADMIN";
+  const isGymRole = auth.user?.role === "GYM";
+
+  if (!isAdmin && !isGymRole) {
+    return {
+      response: NextResponse.json(
+        { error: "Usuario nao e uma academia" },
+        { status: 403 },
+      ),
+      error: "Acesso negado: requer role GYM ou ADMIN",
+    };
+  }
 
   if (!isAdmin && (!auth.user?.gyms || auth.user.gyms.length === 0)) {
     return {

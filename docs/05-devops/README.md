@@ -16,3 +16,6 @@
 - O stack local atual usa `.env.docker` como ambiente padrao.
 - `stack:migrate` e explicito e nao roda automaticamente no `stack:up`.
 - O caminho canonico de migrations do projeto permanece em `apps/web/scripts/migration`.
+- O cron semanal deve rodar apenas no Railway; os `crons` do Vercel foram desativados.
+- Readiness operacional da API: `GET /readyz` (db + redis), com `503` quando dependencia critica nao estiver pronta.
+- O workflow `.github/workflows/security.yml` inclui guard-rail para cadeia Prisma inconsistente via `npm run migration:safety:prisma`.

@@ -130,5 +130,4 @@ export const apiApp = baseApiApp
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
-  .get("/healthz", () => ({ status: "ok" }));
+  });

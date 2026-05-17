@@ -112,7 +112,6 @@ export async function PATCH(
       id: ownership.installation.id,
     },
     data: {
-      userId: ownership.auth.user.id,
       expoPushToken:
         body.expoPushToken === undefined ? undefined : body.expoPushToken,
       pushPermission:

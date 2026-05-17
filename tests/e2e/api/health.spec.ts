@@ -4,15 +4,46 @@ const apiBaseURL =
   process.env.PLAYWRIGHT_API_BASE_URL || "http://127.0.0.1:3001";
 
 test("health endpoints respond", async ({ request }) => {
-  const [health, healthz] = await Promise.all([
+  const [health, healthz, readyz] = await Promise.all([
     request.get(`${apiBaseURL}/health`),
     request.get(`${apiBaseURL}/healthz`),
+    request.get(`${apiBaseURL}/readyz`),
   ]);
 
   expect(health.ok()).toBeTruthy();
   expect(healthz.ok()).toBeTruthy();
   await expect(health.json()).resolves.toMatchObject({ status: "ok" });
   await expect(healthz.json()).resolves.toMatchObject({ status: "ok" });
+
+  expect([200, 503]).toContain(readyz.status());
+
+  const readyzBody = (await readyz.json()) as {
+    status: "ready" | "not_ready";
+    dependencies: {
+      database: { status: "ready" | "not_ready"; latencyMs: number };
+      redis: { status: "ready" | "not_ready"; latencyMs: number };
+    };
+  };
+
+  expect(readyzBody).toMatchObject({
+    status: expect.stringMatching(/^(ready|not_ready)$/),
+    dependencies: {
+      database: {
+        status: expect.stringMatching(/^(ready|not_ready)$/),
+        latencyMs: expect.any(Number),
+      },
+      redis: {
+        status: expect.stringMatching(/^(ready|not_ready)$/),
+        latencyMs: expect.any(Number),
+      },
+    },
+  });
+
+  if (readyz.status() === 200) {
+    expect(readyzBody.status).toBe("ready");
+  } else {
+    expect(readyzBody.status).toBe("not_ready");
+  }
 });
 
 test("protected bootstrap endpoints reject anonymous requests", async ({

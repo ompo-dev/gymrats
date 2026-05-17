@@ -287,6 +287,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     await Promise.all([
       paymentFlow.invalidatePaymentQueries(),
       refetchSubscription(),
+      refetchFinancial(),
     ]);
   };
 
@@ -484,9 +485,12 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       | StudentSubscriptionData
       | null
       | undefined;
-    await Promise.all([paymentFlow.invalidatePaymentQueries()]);
+    await Promise.all([
+      paymentFlow.invalidatePaymentQueries(),
+      refetchFinancial(),
+    ]);
     return latestSubscription?.status === "active";
-  }, [paymentFlow, refetchSubscription]);
+  }, [paymentFlow, refetchFinancial, refetchSubscription]);
 
   const handleCancelConfirm = async () => {
     cancelDialogModal.close();

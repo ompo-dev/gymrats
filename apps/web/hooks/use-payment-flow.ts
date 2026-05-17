@@ -27,7 +27,9 @@ export function usePaymentFlow() {
       setIsPayingNow(true);
 
       try {
-        return await payStudentPayment(paymentId);
+        const result = await payStudentPayment(paymentId);
+        await invalidatePaymentQueries();
+        return result;
       } finally {
         setIsPayingNow(false);
       }
@@ -41,6 +43,7 @@ export function usePaymentFlow() {
 
       try {
         await cancelStudentPayment(paymentId);
+        await invalidatePaymentQueries();
       } finally {
         setIsCancelingPayment(false);
       }

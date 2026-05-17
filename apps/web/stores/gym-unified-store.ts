@@ -430,7 +430,7 @@ export interface GymUnifiedState {
     amount: number;
     expiresAt?: string;
   }>;
-  createWithdraw: (data: { amountCents: number; fake?: boolean }) => Promise<{
+  createWithdraw: (data: { amountCents: number }) => Promise<{
     success: true;
     withdraw: { id: string; amount: number; status: string };
   }>;
@@ -1517,7 +1517,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
       return response.data;
     },
 
-    createWithdraw: async ({ amountCents, fake }) => {
+    createWithdraw: async ({ amountCents }) => {
       const previous = get().data.balanceWithdraws;
       const tempId = `temp-withdraw-${Date.now()}`;
       return runOptimisticMutation({
@@ -1561,7 +1561,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           const response = await apiClient.post<{
             success: true;
             withdraw: { id: string; amount: number; status: string };
-          }>("/api/gyms/withdraws", { amountCents, fake });
+          }>("/api/gyms/withdraws", { amountCents });
           return response.data;
         },
         onSuccess: async (result) => {

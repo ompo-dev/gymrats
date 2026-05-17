@@ -40,8 +40,6 @@ interface FinancialPageProps {
     createdAt: Date;
     completedAt: Date | null;
   }[];
-  /** Quando true, saque só persiste no DB (dev). Remover para usar AbacatePay real. */
-  fakeWithdraw?: boolean;
   expenses: Expense[];
   subscription?: {
     id: string;
@@ -70,7 +68,6 @@ export default function FinancialPage({
   balanceReais,
   balanceCents,
   withdraws,
-  fakeWithdraw = true,
   expenses,
   subscription: initialSubscription,
   campaigns = [],
@@ -250,7 +247,6 @@ export default function FinancialPage({
           balanceReais={balanceWithdraws?.balanceReais ?? balanceReais}
           balanceCents={balanceWithdraws?.balanceCents ?? balanceCents}
           withdraws={balanceWithdraws?.withdraws ?? withdraws}
-          fakeWithdraw={fakeWithdraw}
         />
       )}
 
@@ -284,3 +280,4 @@ export default function FinancialPage({
     </div>
   );
 }
+

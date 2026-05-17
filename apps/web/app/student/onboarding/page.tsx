@@ -62,6 +62,9 @@ export default function StudentOnboardingPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMode, setSubmitMode] = useState<"skip" | "complete" | null>(
+    null,
+  );
 
   useEffect(() => {
     setIsMounted(true);
@@ -114,7 +117,7 @@ export default function StudentOnboardingPage() {
   // Reseta forceValidation quando o step muda
   useEffect(() => {
     setForceValidation(false);
-  }, []);
+  }, [step]);
 
   const [formData, setFormData] = useState<OnboardingData>({
     age: "",
@@ -162,28 +165,40 @@ export default function StudentOnboardingPage() {
     setStep(step - 1);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (mode: "skip" | "complete") => {
+    const payload: OnboardingData =
+      mode === "skip"
+        ? {
+            ...formData,
+            physicalLimitations: [],
+            motorLimitations: [],
+            medicalConditions: [],
+            limitationDetails: {},
+          }
+        : formData;
+
     if (
-      !formData.age ||
-      !formData.gender ||
-      !formData.height ||
-      !formData.weight ||
-      !formData.fitnessLevel ||
-      !formData.targetCalories
+      !payload.age ||
+      !payload.gender ||
+      !payload.height ||
+      !payload.weight ||
+      !payload.fitnessLevel ||
+      !payload.targetCalories
     ) {
       return;
     }
 
     setIsLoading(true);
     setIsSubmitting(true);
-    setShowConfetti(true);
+    setSubmitMode(mode);
+    setShowConfetti(mode === "complete");
 
     try {
       const { submitOnboarding } = await import("./actions");
 
       // Iniciar salvamento - retorna imediatamente após salvar perfil básico
       // A geração de treinos roda em background e não bloqueia
-      const result = await submitOnboarding(formData);
+      const result = await submitOnboarding(payload);
 
       if (!result.success) {
         console.error("[Onboarding] Erro ao salvar:", result.error);
@@ -207,6 +222,7 @@ export default function StudentOnboardingPage() {
       alert(msg);
       setIsLoading(false);
       setIsSubmitting(false);
+      setSubmitMode(null);
       setShowConfetti(false);
     }
   };
@@ -358,7 +374,7 @@ export default function StudentOnboardingPage() {
               <>
                 <div className="flex-1">
                   <DuoButton
-                    onClick={handleSubmit}
+                    onClick={() => void handleSubmit("skip")}
                     disabled={isLoading}
                     variant="white"
                     className="w-full"
@@ -366,7 +382,7 @@ export default function StudentOnboardingPage() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        SALVANDO...
+                        {submitMode === "skip" ? "PULANDO..." : "SALVANDO..."}
                       </>
                     ) : (
                       "PULAR"
@@ -375,7 +391,7 @@ export default function StudentOnboardingPage() {
                 </div>
                 <div className="flex-1">
                   <DuoButton
-                    onClick={handleSubmit}
+                    onClick={() => void handleSubmit("complete")}
                     disabled={isLoading}
                     variant={!isLoading ? "primary" : "locked"}
                     className="w-full"
@@ -383,7 +399,9 @@ export default function StudentOnboardingPage() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        SALVANDO...
+                        {submitMode === "complete"
+                          ? "COMPLETANDO..."
+                          : "SALVANDO..."}
                       </>
                     ) : (
                       <>COMPLETAR</>

@@ -501,7 +501,6 @@ export async function getGymBalanceWithdraws(): Promise<BalanceWithdraws> {
 
 export async function createGymWithdraw(data: {
   amountCents: number;
-  fake?: boolean;
 }): Promise<
   | { success: true; withdraw: { id: string; amount: number; status: string } }
   | { success: false; error: string }

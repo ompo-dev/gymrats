@@ -48,19 +48,31 @@ function PersonalDashboardTab({
 }: {
   onViewGym: (gymId: string) => void;
 }) {
-  const { profile, subscription, financialSummary } = usePersonal(
+  const { profile, subscription, financialSummary, metadata } = usePersonal(
     "profile",
     "subscription",
     "financialSummary",
+    "metadata",
   );
   const { affiliations, students, stats } = usePersonalStatsSnapshot();
+
+  const shouldBootstrapDashboard = useMemo(() => {
+    const resources = metadata.resources ?? {};
+    const requiredResources = [
+      "profile",
+      "affiliations",
+      "students",
+      "subscription",
+      "financialSummary",
+    ] as const;
+
+    return requiredResources.some(
+      (resource) => resources[resource]?.status !== "ready",
+    );
+  }, [metadata.resources]);
+
   usePersonalDashboardBootstrapBridge({
-    enabled:
-      !profile &&
-      !subscription &&
-      !financialSummary &&
-      affiliations.length === 0 &&
-      students.length === 0,
+    enabled: shouldBootstrapDashboard,
   });
 
   return (
@@ -182,7 +194,7 @@ function PersonalSettingsTab({
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-pulse text-sm text-duo-gray-dark">
-          Carregando configurações...
+          Carregando configuracoes...
         </div>
       </div>
     );
@@ -282,9 +294,7 @@ export default function PersonalHome(
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center p-8">
-          Carregando...
-        </div>
+        <div className="flex items-center justify-center p-8">Carregando...</div>
       }
     >
       <PersonalHomeContent />

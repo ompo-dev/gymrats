@@ -25,6 +25,12 @@ No split local, os valores canonicos sao:
 - `NEXT_PUBLIC_APP_URL=http://localhost:3000`
 - `NEXT_PUBLIC_API_URL=http://localhost:4000`
 
+Observacao U1:
+
+- `NEXT_PUBLIC_FAKE_WITHDRAW` e apenas hint de UX legado.
+- O modo fake/real de saque nao e controlado pelo cliente.
+- A decisao efetiva e exclusivamente server-side via `PAYOUT_EXECUTION_MODE`.
+
 ## Variaveis server-side do frontend
 
 Essas variaveis sao usadas pelo runtime server-side do `web`:
@@ -61,12 +67,18 @@ Essas variaveis alimentam `api`, `worker` e `cron`:
 - `ABACATEPAY_API_TOKEN`
 - `ABACATEPAY_WEBHOOK_SECRET`
 - `CRON_SECRET`
+- `NODE_ENV`
 - `PAYOUT_EXECUTION_MODE`
 
 Politica atual de saque durante fase de testes:
 
 - `PAYOUT_EXECUTION_MODE=fake`: saques simulados server-side (gym + referral/student), com auditoria de `simulation=true`
 - `PAYOUT_EXECUTION_MODE=real`: saques reais via PSP
+
+Politica de cron seguro:
+
+- `CRON_SECRET` e obrigatorio na API.
+- Endpoints de cron sem `Authorization: Bearer <CRON_SECRET>` valido devem falhar com `401`.
 
 ## Banco remoto no Supabase
 

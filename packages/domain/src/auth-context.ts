@@ -118,8 +118,22 @@ export async function resolveGymContext(
   policy: AuthContextPolicy,
   deps: AuthContextDeps = authContextDeps,
 ): Promise<AuthContextResolution<GymContext>> {
-  let gymId: string | null | undefined =
-    auth.user.activeGymId || auth.user.gyms?.[0]?.id;
+  const gymIds = Array.isArray(auth.user.gyms)
+    ? auth.user.gyms
+        .map((gym) => gym?.id)
+        .filter((gymId): gymId is string => Boolean(gymId))
+    : [];
+
+  let gymId: string | null | undefined = auth.user.activeGymId;
+  if (gymId && gymIds.length > 0 && !gymIds.includes(gymId)) {
+    return fail("Academia ativa invalida", 403);
+  }
+
+  if (!gymId && gymIds.length === 1) {
+    gymId = gymIds[0];
+  } else if (!gymId && gymIds.length > 1) {
+    return fail("Selecione uma academia ativa para continuar", 409);
+  }
 
   if (!gymId && shouldUseLookup(policy.gymLookupWhenMissing, auth.user.role)) {
     gymId = await deps.findGymIdByUserId(auth.user.id);

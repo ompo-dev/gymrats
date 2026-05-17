@@ -110,7 +110,6 @@ export async function getGymBoostCampaignPixRequest(campaignId: string) {
 
 export async function createGymWithdrawRequest(data: {
   amountCents: number;
-  fake?: boolean;
 }) {
   try {
     const response = await apiClient.post<{

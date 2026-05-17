@@ -429,59 +429,102 @@ export class GymFinancialService {
     | { ok: true; withdraw: GymBalanceWithdraws["withdraws"][0] }
     | { ok: false; error: string }
   > {
-    const gym = await db.gym.findUnique({
-      where: { id: gymId },
-      select: { pixKey: true, pixKeyType: true },
-    });
-    if (!gym?.pixKey || !gym.pixKeyType) {
-      return {
-        ok: false,
-        error:
-          "Cadastre sua chave PIX nas configurações da academia para sacar.",
-      };
-    }
-    const amountReais = data.amountCents / 100;
     if (data.amountCents < 350) {
-      return { ok: false, error: "Valor mínimo para saque é R$ 3,50." };
+      return { ok: false, error: "Valor minimo para saque e R$ 3,50." };
     }
 
-    const { balanceCents } =
-      await GymFinancialService.getBalanceAndWithdraws(gymId);
-    if (data.amountCents > balanceCents) {
-      return { ok: false, error: "Saldo insuficiente." };
-    }
+    const amountReais = data.amountCents / 100;
+    const reservation = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM gyms WHERE id = ${gymId} FOR UPDATE`;
 
-    const externalId = `gym-withdraw-${gymId}-${Date.now()}`;
+      const gym = await tx.gym.findUnique({
+        where: { id: gymId },
+        select: { pixKey: true, pixKeyType: true },
+      });
+      if (!gym?.pixKey || !gym.pixKeyType) {
+        return {
+          ok: false as const,
+          error: "Cadastre sua chave PIX nas configuracoes da academia para sacar.",
+        };
+      }
+      const gymPixKey = gym.pixKey;
+      const gymPixKeyType = gym.pixKeyType;
 
-    if (data.fake) {
-      const w = await db.gymWithdraw.create({
+      const [paidAgg, withdraws] = await Promise.all([
+        tx.payment.aggregate({
+          where: { gymId, status: "paid" },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        tx.gymWithdraw.findMany({
+          where: { gymId },
+        }),
+      ]);
+
+      const paidCount = paidAgg._count.id ?? 0;
+      const totalReceivedGross = paidAgg._sum.amount ?? 0;
+      const totalReceived = totalReceivedGross - paidCount * ABACATEPAY_FEE_REAIS;
+      const completedWithdraws = withdraws.filter(
+        (withdraw) =>
+          withdraw.status === "complete" || withdraw.status === "completed",
+      );
+      const totalWithdrawnGross = completedWithdraws.reduce(
+        (sum, withdraw) => sum + withdraw.amount,
+        0,
+      );
+      const totalWithdrawn =
+        totalWithdrawnGross + completedWithdraws.length * ABACATEPAY_FEE_REAIS;
+      const balanceCents = Math.floor(
+        Math.max(0, totalReceived - totalWithdrawn) * 100,
+      );
+
+      if (data.amountCents > balanceCents) {
+        return { ok: false as const, error: "Saldo insuficiente." };
+      }
+
+      const externalId = `gym-withdraw-${gymId}-${Date.now()}`;
+      const withdraw = await tx.gymWithdraw.create({
         data: {
           gymId,
           amount: amountReais,
-          pixKey: gym.pixKey,
-          pixKeyType: gym.pixKeyType,
+          pixKey: gymPixKey,
+          pixKeyType: gymPixKeyType,
           externalId,
-          status: "complete",
-          completedAt: new Date(),
+          status: data.fake ? "complete" : "pending",
+          completedAt: data.fake ? new Date() : null,
         },
       });
+
+      return {
+        ok: true as const,
+        gymPixKey,
+        gymPixKeyType,
+        withdraw,
+      };
+    });
+
+    if (!reservation.ok) {
+      return reservation;
+    }
+
+    if (data.fake) {
       return {
         ok: true,
         withdraw: {
-          id: w.id,
-          amount: w.amount,
-          pixKey: w.pixKey,
-          pixKeyType: w.pixKeyType,
-          externalId: w.externalId,
-          status: w.status,
-          createdAt: w.createdAt,
-          completedAt: w.completedAt,
+          id: reservation.withdraw.id,
+          amount: reservation.withdraw.amount,
+          pixKey: reservation.withdraw.pixKey,
+          pixKeyType: reservation.withdraw.pixKeyType,
+          externalId: reservation.withdraw.externalId,
+          status: reservation.withdraw.status,
+          createdAt: reservation.withdraw.createdAt,
+          completedAt: reservation.withdraw.completedAt,
         },
       };
     }
 
     const { abacatePay } = await import("@gymrats/api/abacatepay");
-    const pixType = gym.pixKeyType.toUpperCase() as
+    const pixType = reservation.gymPixKeyType.toUpperCase() as
       | "CPF"
       | "CNPJ"
       | "PHONE"
@@ -489,41 +532,43 @@ export class GymFinancialService {
       | "RANDOM"
       | "BR_CODE";
     const res = await abacatePay.createWithdraw({
-      externalId,
+      externalId: reservation.withdraw.externalId,
       amount: data.amountCents,
-      pix: { type: pixType, key: gym.pixKey },
+      pix: { type: pixType, key: reservation.gymPixKey },
       description: `Saque academia ${gymId}`,
     });
+
     if (res.error || !res.data) {
+      await db.gymWithdraw.update({
+        where: { id: reservation.withdraw.id },
+        data: { status: "failed", completedAt: null },
+      });
       return {
         ok: false,
         error: res.error ?? "Falha ao criar saque na AbacatePay.",
       };
     }
 
-    const w = await db.gymWithdraw.create({
+    const finalized = await db.gymWithdraw.update({
+      where: { id: reservation.withdraw.id },
       data: {
-        gymId,
-        amount: amountReais,
-        pixKey: gym.pixKey,
-        pixKeyType: gym.pixKeyType,
-        externalId,
         abacateId: res.data.id,
         status: res.data.status === "COMPLETE" ? "complete" : "pending",
         completedAt: res.data.status === "COMPLETE" ? new Date() : null,
       },
     });
+
     return {
       ok: true,
       withdraw: {
-        id: w.id,
-        amount: w.amount,
-        pixKey: w.pixKey,
-        pixKeyType: w.pixKeyType,
-        externalId: w.externalId,
-        status: w.status,
-        createdAt: w.createdAt,
-        completedAt: w.completedAt,
+        id: finalized.id,
+        amount: finalized.amount,
+        pixKey: finalized.pixKey,
+        pixKeyType: finalized.pixKeyType,
+        externalId: finalized.externalId,
+        status: finalized.status,
+        createdAt: finalized.createdAt,
+        completedAt: finalized.completedAt,
       },
     };
   }

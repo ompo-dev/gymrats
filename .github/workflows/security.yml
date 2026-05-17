@@ -34,6 +34,9 @@ jobs:
       - name: Generate Prisma client
         run: pnpm exec prisma generate --schema packages/db/prisma/schema.prisma
 
+      - name: Prisma migration chain safety
+        run: pnpm run migration:safety:prisma
+
       - name: Route auth compliance
         run: pnpm run audit:routes:auth
 

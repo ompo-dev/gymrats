@@ -4,20 +4,23 @@
 
 Este runbook documenta o split operacional alvo do GymRats:
 
-- `apps/web` continua como frontend em Next.js na Vercel
-- `apps/api` vira o backend HTTP canonico no Railway
-- `apps/worker` processa filas e webhooks no Railway
-- `apps/cron` executa jobs agendados no Railway
+- `apps/web` continua como frontend Next.js na Vercel.
+- `apps/api` e o backend HTTP canonico no Railway.
+- `apps/worker` processa filas e webhooks no Railway.
+- `apps/cron` executa jobs agendados no Railway.
 
-O contrato externo `/api/*` deve ser preservado no host do frontend, com proxy same-origin da Vercel para o backend dedicado no Railway.
+O contrato externo `/api/*` deve permanecer no host do frontend via proxy same-origin da Vercel para a API no Railway.
 
 ## Estado atual consolidado
 
-- O frontend usa `/api` no browser quando `API_PROXY_TARGET` esta configurado.
-- Os fluxos de SSE do chat de treino e nutricao ja usam URL absoluta da API.
-- Better Auth foi centralizado para aceitar `Bearer`, `one-time-token` e `trustedOrigins`.
-- Redis e BullMQ foram movidos para pacotes compartilhados e deixados lazy para nao quebrar o build do frontend.
-- O monorepo ja possui scripts de verificacao do split.
+- Frontend usa `/api` no browser quando `API_PROXY_TARGET` esta configurado.
+- Fluxos de SSE de treino/nutricao usam URL absoluta da API.
+- Better Auth centralizado para `Bearer`, `one-time-token` e `trustedOrigins`.
+- Redis/BullMQ em pacotes compartilhados com carregamento lazy para nao quebrar build do frontend.
+- API expoe `GET /health`, `GET /healthz` (liveness) e `GET /readyz` (readiness por dependencia).
+- Cron semanal esta fail-closed com `CRON_SECRET` obrigatorio.
+- Politica de idempotencia com fingerprint por rota/metodo/ator/body canonico.
+- Modo de saque e controlado apenas no servidor por `PAYOUT_EXECUTION_MODE`.
 
 ## Scripts de verificacao
 
@@ -28,12 +31,12 @@ npm run verify:split
 npm run build
 ```
 
-O primeiro valida a fronteira do frontend e gera bundles de `api`, `worker` e `cron`.
-O segundo continua validando o build atual do `apps/web`.
+- `verify:split` valida fronteira do frontend e gera bundles de `api`, `worker` e `cron`.
+- `build` valida o build atual do `apps/web`.
 
 ## Servicos no Railway
 
-Criar tres servicos a partir da raiz do repositório, sem mudar o `Root Directory`:
+Criar tres servicos a partir da raiz do repositorio, sem mudar o `Root Directory`.
 
 ### API
 
@@ -80,6 +83,8 @@ Manter o projeto apontando para a raiz do repo:
 - `CORS_ALLOWED_ORIGINS=https://app.seudominio.com`
 - `TRUSTED_ORIGINS=https://app.seudominio.com`
 - `CRON_SECRET`
+- `NODE_ENV=production`
+- `PAYOUT_EXECUTION_MODE=fake|real`
 
 ### Worker
 
@@ -99,23 +104,74 @@ Manter o projeto apontando para a raiz do repo:
 - `BETTER_AUTH_URL=https://app.seudominio.com`
 - `NEXT_PUBLIC_API_URL=https://api.seudominio.com`
 
+## Politicas operacionais U1
+
+### 1) Cron seguro (fail-closed)
+
+- `CRON_SECRET` e obrigatorio em runtime da API.
+- Endpoint `/api/cron/week-reset` exige `Authorization: Bearer <CRON_SECRET>`.
+- Sem header valido (ou sem segredo configurado), a API retorna `401`.
+
+Exemplo de chamada autorizada:
+
+```bash
+curl -i \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  https://api.seudominio.com/api/cron/week-reset
+```
+
+### 2) Readiness e health
+
+- `GET /health` e `GET /healthz`: liveness simples.
+- `GET /readyz`: readiness real, validando `database` e `redis`.
+- `readyz` retorna:
+  - `200` com `status=ready` quando dependencias estao OK.
+  - `503` com `status=not_ready` quando alguma dependencia falha.
+
+### 3) Politica oficial de idempotencia
+
+- Aplica em `POST/PATCH/DELETE` quando o cliente envia `x-idempotency-key`.
+- Fingerprint canonico inclui: `route + method + actorId + body ordenado`.
+- Reuso da mesma chave com fingerprint diferente retorna `409`.
+- Reuso identico retorna replay com header `X-Idempotency-Replay: true`.
+
+Recomendacao de cliente:
+
+- Gerar chave unica por acao mutavel do usuario.
+- Reutilizar a mesma chave apenas para retry da mesma acao.
+- Nunca reaproveitar a mesma chave para payload diferente.
+
+### 4) Politica de payout fake/real
+
+- `PAYOUT_EXECUTION_MODE=fake`: saque simulado server-side (modo atual de testes).
+- `PAYOUT_EXECUTION_MODE=real`: saque real via PSP.
+- O cliente nao deve controlar simulacao; a decisao e exclusivamente server-side.
+- Logs de auditoria distinguem simulacao via `simulation=true`.
+
 ## Ordem segura de rollout
 
 1. Subir `api`, `worker` e `cron` no Railway com variaveis completas.
-2. Validar `GET /healthz` na API.
-3. Testar auth, pagamentos e webhooks em homologacao com `API_PROXY_TARGET` apontando para o Railway.
+2. Validar `GET /healthz` e `GET /readyz` na API.
+3. Testar auth, pagamentos e webhooks em homologacao com `API_PROXY_TARGET` apontando para Railway.
 4. Configurar `API_PROXY_TARGET` e `API_INTERNAL_URL` na Vercel para o dominio da API.
-5. Validar login, callback OAuth, chat-stream, pagamentos e week-reset sem preflight no browser.
-6. Desligar o uso publico das rotas `app/api/*` do Next apenas quando a paridade estiver homologada.
+5. Validar login, callback OAuth, chat-stream, pagamentos e week-reset sem preflight indevido no browser.
+6. Desligar o uso publico das rotas legadas `app/api/*` do Next apenas apos paridade homologada.
 
 ## Criticos de operacao
 
-- Em producao do Railway, `REDIS_URL` e obrigatoria para `api`, `worker` e `cron`.
-- O frontend nao deve importar banco, BullMQ ou workflows server-side em componentes, hooks e stores.
-- O webhook de pagamento deve entrar pela API e delegar o processamento pesado ao worker.
-- O cron semanal deve rodar no Railway, nao na Vercel.
+- Em producao Railway, `REDIS_URL` e obrigatoria para `api`, `worker` e `cron`.
+- Frontend nao deve importar banco, BullMQ ou workflows server-side em componentes/hooks/stores.
+- Webhook de pagamento entra pela API e delega processamento pesado ao worker.
+- Cron semanal deve rodar no Railway, nao na Vercel.
+- Antes de deploy com Prisma, rodar safety-check da cadeia de migration.
+
+## Validacao e rollback
+
+Checklist detalhado de validacao pos-deploy e plano de rollback:
+
+- `docs/05-devops/U1_POST_DEPLOY_CHECKLIST.md`
 
 ## Observacoes
 
-- O projeto segue em producao com clientes ativos; o rollout deve ser controlado e sem quebra de contrato.
-- O build do frontend continua passando no estado atual, mesmo antes do corte final do backend legado do Next.
+- Projeto segue com clientes ativos; rollout deve ser controlado e sem quebra de contrato.
+- Durante fase operacional de testes, manter `PAYOUT_EXECUTION_MODE=fake` ate decisao explicita de go-live financeiro real.

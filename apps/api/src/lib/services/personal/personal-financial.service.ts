@@ -57,7 +57,8 @@ export class PersonalFinancialService {
       revenueGrowth: 0,
     };
 
-    const [expenses, membershipPlans] = await Promise.all([
+    const [expenses, membershipPlans, paidPayments, pendingPayments] =
+      await Promise.all([
       db.personalExpense.aggregate({
         where: { personalId, date: { gte: startOfMonth } },
         _sum: { amount: true },
@@ -66,20 +67,32 @@ export class PersonalFinancialService {
         where: { personalId, isActive: true },
         select: { price: true },
       }),
+      db.personalStudentPayment.aggregate({
+        where: { personalId, status: "paid", createdAt: { gte: startOfMonth } },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+      db.personalStudentPayment.aggregate({
+        where: { personalId, status: "pending" },
+        _sum: { amount: true },
+      }),
     ]);
 
     const totalDespesas = expenses._sum.amount ?? 0;
-    const totalReceitas = 0; // TODO: Implement when PersonalPayment model exists
+    const totalReceitas = paidPayments._sum.amount ?? 0;
 
     const mrr = membershipPlans.reduce((sum, plan) => sum + plan.price, 0);
-    const avgTicket = 0;
+    const avgTicket =
+      (paidPayments._count.id ?? 0) > 0
+        ? totalReceitas / (paidPayments._count.id ?? 1)
+        : 0;
 
     const summary = {
       totalRevenue: totalReceitas,
       totalExpenses: totalDespesas,
       netProfit: totalReceitas - totalDespesas,
       monthlyRecurring: mrr,
-      pendingPayments: defaultSummary.pendingPayments,
+      pendingPayments: pendingPayments._sum.amount ?? 0,
       overduePayments: defaultSummary.overduePayments,
       averageTicket: avgTicket,
       churnRate: defaultSummary.churnRate,
@@ -152,7 +165,35 @@ export class PersonalFinancialService {
       }
     }
 
-    const payload: unknown[] = [];
+    const payments = await db.personalStudentPayment.findMany({
+      where: { personalId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        student: {
+          include: {
+            user: {
+              select: { name: true },
+            },
+          },
+        },
+        plan: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const payload = payments.map((payment) => ({
+      id: payment.id,
+      studentId: payment.studentId,
+      studentName: payment.student.user?.name ?? "Aluno",
+      planId: payment.planId,
+      planName: payment.plan.name,
+      amount: payment.amount,
+      status: payment.status,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+      abacatePayBillingId: payment.abacatePayBillingId,
+    }));
     await setCachedJson(
       cacheKey,
       payload,

@@ -24,6 +24,14 @@ import {
 import { useUserSession } from "@/hooks/use-user-session";
 import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
+function TabFallback({ message }: { message: string }) {
+  return (
+    <div className="rounded-xl border border-duo-border bg-duo-bg-card p-6 text-sm text-duo-gray-dark">
+      {message}
+    </div>
+  );
+}
+
 function GymDashboardTab() {
   const {
     profile,
@@ -44,7 +52,7 @@ function GymDashboardTab() {
   const equipment = normalizeEquipmentList(rawEquipment);
 
   if (!profile || !stats) {
-    return null;
+    return <TabFallback message="Carregando dados do dashboard..." />;
   }
 
   return (
@@ -123,7 +131,7 @@ function GymStatsTab() {
   const { stats, equipment: rawEquipment = [] } = useGym("stats", "equipment");
 
   if (!stats) {
-    return null;
+    return <TabFallback message="Carregando estatisticas..." />;
   }
 
   return (
@@ -161,7 +169,7 @@ function GymGamificationTab() {
   const profile = useGym("profile");
 
   if (!profile) {
-    return null;
+    return <TabFallback message="Carregando gamificacao..." />;
   }
 
   return <GymGamificationPage profile={profile} />;
@@ -173,6 +181,18 @@ function GymHomeContent() {
   const userIsAdmin = isAdmin || role === "ADMIN";
 
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
+  const knownTabs = [
+    "dashboard",
+    "students",
+    "equipment",
+    "financial",
+    "stats",
+    "settings",
+    "catracas",
+    "gamification",
+    "more",
+  ] as const;
+  const isKnownTab = knownTabs.includes(tab as (typeof knownTabs)[number]);
 
   useEffect(() => {
     if (tab === "gamification" && hasResolvedSession && !userIsAdmin) {
@@ -190,8 +210,15 @@ function GymHomeContent() {
       {tab === "settings" && <GymSettingsTab />}
       {tab === "catracas" && <GymAccessPage />}
       {tab === "gamification" &&
-        (userIsAdmin ? <GymGamificationTab /> : null)}
+        (userIsAdmin ? (
+          <GymGamificationTab />
+        ) : (
+          <TabFallback message="A aba de gamificacao e restrita a administradores." />
+        ))}
       {tab === "more" && <GymMoreMenu.Simple />}
+      {!isKnownTab && (
+        <TabFallback message="Aba invalida. Selecione uma opcao no menu." />
+      )}
     </div>
   );
 }

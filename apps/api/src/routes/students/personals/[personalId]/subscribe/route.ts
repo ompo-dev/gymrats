@@ -16,7 +16,7 @@ const bodySchema = z.object({
 
 /**
  * POST /api/students/personals/[personalId]/subscribe
- * Assina um plano do personal (cria pagamento PIX e assignment após confirmação).
+ * Assina um plano do personal (cria pagamento PIX e assignment apos confirmacao).
  */
 export const POST = createSafeHandler(
   async ({ studentContext, params, body }) => {
@@ -26,7 +26,7 @@ export const POST = createSafeHandler(
 
     if (!studentId) {
       return NextResponse.json(
-        { error: "Estudante não autenticado" },
+        { error: "Estudante nao autenticado" },
         { status: 401 },
       );
     }
@@ -37,7 +37,7 @@ export const POST = createSafeHandler(
 
     if (existingAssignment && existingAssignment.status === "active") {
       return NextResponse.json(
-        { error: "Você já está inscrito com este personal" },
+        { error: "Voce ja esta inscrito com este personal" },
         { status: 409 },
       );
     }
@@ -57,36 +57,32 @@ export const POST = createSafeHandler(
     ]);
 
     if (!personal) {
-      return NextResponse.json(
-        { error: "Personal não encontrado" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Personal nao encontrado" }, { status: 404 });
     }
     if (!plan) {
       return NextResponse.json(
-        { error: "Plano não encontrado ou não está ativo" },
+        { error: "Plano nao encontrado ou nao esta ativo" },
         { status: 404 },
       );
     }
     if (!student) {
-      return NextResponse.json(
-        { error: "Aluno não encontrado" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Aluno nao encontrado" }, { status: 404 });
     }
 
+    const now = new Date();
     let finalPrice = plan.price;
     let appliedCouponInfo: { code: string; discountString: string } | undefined;
+    let consumedCouponId: string | null = null;
 
     if (couponId) {
       const coupon = await db.personalCoupon.findFirst({
         where: { id: couponId, personalId, isActive: true },
       });
       if (coupon) {
-        const now = new Date();
         const isExpired = !!coupon.expiresAt && coupon.expiresAt <= now;
         const isMaxed =
           coupon.maxUses !== -1 && coupon.currentUses >= coupon.maxUses;
+
         if (isExpired || isMaxed) {
           await db.personalCoupon.update({
             where: { id: coupon.id },
@@ -107,12 +103,35 @@ export const POST = createSafeHandler(
             };
           }
           if (finalPrice < 3.5) finalPrice = 3.5;
-          const updatedCoupon = await db.personalCoupon.update({
-            where: { id: coupon.id },
+
+          const consumeResult = await db.personalCoupon.updateMany({
+            where: {
+              id: coupon.id,
+              personalId,
+              isActive: true,
+              ...(coupon.maxUses !== -1
+                ? { currentUses: { lt: coupon.maxUses } }
+                : {}),
+              ...(coupon.expiresAt ? { expiresAt: { gt: now } } : {}),
+            },
             data: { currentUses: { increment: 1 } },
+          });
+
+          if (consumeResult.count === 0) {
+            return NextResponse.json(
+              { error: "Cupom indisponivel. Atualize e tente novamente." },
+              { status: 409 },
+            );
+          }
+
+          consumedCouponId = coupon.id;
+          const updatedCoupon = await db.personalCoupon.findUnique({
+            where: { id: coupon.id },
             select: { currentUses: true, maxUses: true },
           });
+
           if (
+            updatedCoupon &&
             updatedCoupon.maxUses !== -1 &&
             updatedCoupon.currentUses >= updatedCoupon.maxUses
           ) {
@@ -127,8 +146,14 @@ export const POST = createSafeHandler(
 
     const amountCentavos = Math.round(finalPrice * 100);
     if (amountCentavos < 100) {
+      if (consumedCouponId) {
+        await db.personalCoupon.updateMany({
+          where: { id: consumedCouponId, currentUses: { gt: 0 } },
+          data: { currentUses: { decrement: 1 }, isActive: true },
+        });
+      }
       return NextResponse.json(
-        { error: "Valor mínimo deve ser R$ 1,00" },
+        { error: "Valor minimo deve ser R$ 1,00" },
         { status: 400 },
       );
     }
@@ -169,6 +194,12 @@ export const POST = createSafeHandler(
         where: { id: payment.id },
         data: { status: "canceled" },
       });
+      if (consumedCouponId) {
+        await db.personalCoupon.updateMany({
+          where: { id: consumedCouponId, currentUses: { gt: 0 } },
+          data: { currentUses: { decrement: 1 }, isActive: true },
+        });
+      }
       return NextResponse.json(
         { error: pixResponse.error ?? "Erro ao gerar PIX" },
         { status: 503 },

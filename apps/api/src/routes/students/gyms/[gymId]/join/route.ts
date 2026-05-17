@@ -20,7 +20,7 @@ export const POST = createSafeHandler(
     const studentId = studentContext?.studentId;
     if (!studentId) {
       return NextResponse.json(
-        { error: "Estudante não autenticado" },
+        { error: "Estudante nao autenticado" },
         { status: 401 },
       );
     }
@@ -31,7 +31,7 @@ export const POST = createSafeHandler(
 
     if (existingMembership) {
       return NextResponse.json(
-        { error: "Você já está matriculado nesta academia" },
+        { error: "Voce ja esta matriculado nesta academia" },
         { status: 409 },
       );
     }
@@ -42,21 +42,21 @@ export const POST = createSafeHandler(
 
     if (!plan) {
       return NextResponse.json(
-        { error: "Plano não encontrado ou não está ativo" },
+        { error: "Plano nao encontrado ou nao esta ativo" },
         { status: 404 },
       );
     }
 
+    const now = new Date();
     let finalPrice = plan.price;
     let appliedCouponInfo: { code: string; discountString: string } | undefined;
+    let consumedCouponId: string | null = null;
 
-    // Cupons são salvos no banco (GymCoupon) — busca direto do DB
     if (couponId) {
       const coupon = await db.gymCoupon.findFirst({
         where: { id: couponId, gymId, isActive: true },
       });
       if (coupon) {
-        const now = new Date();
         const isExpired = !!coupon.expiresAt && coupon.expiresAt <= now;
         const isMaxed =
           coupon.maxUses !== -1 && coupon.currentUses >= coupon.maxUses;
@@ -79,14 +79,37 @@ export const POST = createSafeHandler(
               discountString: `R$ ${coupon.discountValue.toFixed(2)}`,
             };
           }
+
           if (finalPrice < 3.5) finalPrice = 3.5;
-          // Incrementa uso e inativa automaticamente se atingiu o limite
-          const updatedCoupon = await db.gymCoupon.update({
-            where: { id: coupon.id },
+
+          const consumeResult = await db.gymCoupon.updateMany({
+            where: {
+              id: coupon.id,
+              gymId,
+              isActive: true,
+              ...(coupon.maxUses !== -1
+                ? { currentUses: { lt: coupon.maxUses } }
+                : {}),
+              ...(coupon.expiresAt ? { expiresAt: { gt: now } } : {}),
+            },
             data: { currentUses: { increment: 1 } },
+          });
+
+          if (consumeResult.count === 0) {
+            return NextResponse.json(
+              { error: "Cupom indisponivel. Atualize e tente novamente." },
+              { status: 409 },
+            );
+          }
+
+          consumedCouponId = coupon.id;
+          const updatedCoupon = await db.gymCoupon.findUnique({
+            where: { id: coupon.id },
             select: { currentUses: true, maxUses: true },
           });
+
           if (
+            updatedCoupon &&
             updatedCoupon.maxUses !== -1 &&
             updatedCoupon.currentUses >= updatedCoupon.maxUses
           ) {
@@ -99,8 +122,6 @@ export const POST = createSafeHandler(
       }
     }
 
-    // Todo aluno paga a mensalidade da academia. Benefício Premium do app é concedido
-    // apenas quando a academia é enterprise (sync no webhook ao ativar a membership).
     const nextBillingDate = new Date();
     nextBillingDate.setDate(nextBillingDate.getDate() + plan.duration);
 
@@ -116,21 +137,41 @@ export const POST = createSafeHandler(
       },
     });
 
-    const result = await createMembershipPaymentPix(
-      gymId,
-      studentId,
-      planId,
-      finalPrice,
-      { membershipId: membership.id },
-    );
+    try {
+      const result = await createMembershipPaymentPix(
+        gymId,
+        studentId,
+        planId,
+        finalPrice,
+        { membershipId: membership.id },
+      );
 
-    return NextResponse.json({
-      ...result,
-      membershipId: membership.id,
-      planName: plan.name,
-      originalPrice: plan.price,
-      appliedCoupon: appliedCouponInfo,
-    });
+      return NextResponse.json({
+        ...result,
+        membershipId: membership.id,
+        planName: plan.name,
+        originalPrice: plan.price,
+        appliedCoupon: appliedCouponInfo,
+      });
+    } catch (error) {
+      await db.gymMembership.update({
+        where: { id: membership.id },
+        data: { status: "canceled", autoRenew: false },
+      });
+
+      if (consumedCouponId) {
+        await db.gymCoupon.updateMany({
+          where: { id: consumedCouponId, currentUses: { gt: 0 } },
+          data: { currentUses: { decrement: 1 }, isActive: true },
+        });
+      }
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Falha ao gerar cobranca PIX para esta matricula.";
+      return NextResponse.json({ error: message }, { status: 503 });
+    }
   },
   {
     auth: "student",

@@ -225,26 +225,88 @@ export class ReferralService {
     studentId: string,
     data: { amountCents: number; fake?: boolean },
   ) {
-    const student = await db.student.findUnique({
-      where: { id: studentId },
-      select: { pixKey: true, pixKeyType: true },
-    });
-    if (!student?.pixKey || !student.pixKeyType) {
-      return { ok: false, error: "Cadastre sua chave PIX para sacar." };
-    }
-    const amountReais = data.amountCents / 100;
     if (data.amountCents < 350) {
-      return { ok: false, error: "Valor mínimo para saque é R$ 3,50." };
+      return { ok: false, error: "Valor minimo para saque e R$ 3,50." };
     }
 
-    const { balanceCents } =
-      await ReferralService.getBalanceAndWithdraws(studentId);
-    if (data.amountCents > balanceCents) {
-      return { ok: false, error: "Saldo insuficiente." };
+    const amountReais = data.amountCents / 100;
+    const reservation = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM students WHERE id = ${studentId} FOR UPDATE`;
+
+      const student = await tx.student.findUnique({
+        where: { id: studentId },
+        select: { pixKey: true, pixKeyType: true },
+      });
+      if (!student?.pixKey || !student.pixKeyType) {
+        return { ok: false as const, error: "Cadastre sua chave PIX para sacar." };
+      }
+      const studentPixKey = student.pixKey;
+      const studentPixKeyType = student.pixKeyType;
+
+      const [referralsAgg, withdraws] = await Promise.all([
+        tx.referral.aggregate({
+          where: { referrerStudentId: studentId, status: "CONVERTED" },
+          _sum: { commissionAmountCents: true },
+        }),
+        tx.studentWithdraw.findMany({
+          where: { studentId },
+        }),
+      ]);
+
+      const ABACATEPAY_FEE_CENTS = 80;
+      const grossCents = referralsAgg._sum.commissionAmountCents ?? 0;
+      const activeWithdraws = withdraws.filter(
+        (withdraw) => withdraw.status !== "failed",
+      );
+      const withdrawnCents = activeWithdraws.reduce(
+        (sum, withdraw) =>
+          sum + Math.floor(withdraw.amount * 100) + ABACATEPAY_FEE_CENTS,
+        0,
+      );
+      const balanceCents = Math.max(0, grossCents - withdrawnCents);
+
+      if (data.amountCents > balanceCents) {
+        return { ok: false as const, error: "Saldo insuficiente." };
+      }
+
+      const externalId = `student-withdraw-${studentId}-${Date.now()}`;
+      const withdraw = await tx.studentWithdraw.create({
+        data: {
+          studentId,
+          amount: amountReais,
+          pixKey: studentPixKey,
+          pixKeyType: studentPixKeyType,
+          externalId,
+          status: data.fake ? "complete" : "pending",
+          completedAt: data.fake ? new Date() : null,
+        },
+      });
+
+      return {
+        ok: true as const,
+        studentPixKey,
+        studentPixKeyType,
+        withdraw,
+      };
+    });
+
+    if (!reservation.ok) {
+      return reservation;
     }
 
-    const externalId = `student-withdraw-${studentId}-${Date.now()}`;
-    const pixType = student.pixKeyType.toUpperCase() as
+    if (data.fake) {
+      return {
+        ok: true,
+        withdraw: {
+          id: reservation.withdraw.id,
+          amount: reservation.withdraw.amount,
+          status: reservation.withdraw.status,
+          createdAt: reservation.withdraw.createdAt,
+        },
+      };
+    }
+
+    const pixType = reservation.studentPixKeyType.toUpperCase() as
       | "CPF"
       | "CNPJ"
       | "PHONE"
@@ -252,50 +314,25 @@ export class ReferralService {
       | "RANDOM"
       | "BR_CODE";
 
-    // Test mode: apenas persists DB e conclui
-    if (data.fake) {
-      const w = await db.studentWithdraw.create({
-        data: {
-          studentId,
-          amount: amountReais,
-          pixKey: student.pixKey,
-          pixKeyType: student.pixKeyType,
-          externalId,
-          status: "complete",
-          completedAt: new Date(),
-        },
-      });
-
-      return {
-        ok: true,
-        withdraw: {
-          id: w.id,
-          amount: w.amount,
-          status: w.status,
-          createdAt: w.createdAt,
-        },
-      };
-    }
-
     const { abacatePay } = await import("@gymrats/api/abacatepay");
     const res = await abacatePay.createWithdraw({
-      externalId,
+      externalId: reservation.withdraw.externalId,
       amount: data.amountCents,
-      pix: { type: pixType, key: student.pixKey },
-      description: `Saque comissão referências - Aluno ${studentId}`,
+      pix: { type: pixType, key: reservation.studentPixKey },
+      description: `Saque comissao referencias - Aluno ${studentId}`,
     });
 
     if (res.error || !res.data) {
+      await db.studentWithdraw.update({
+        where: { id: reservation.withdraw.id },
+        data: { status: "failed", completedAt: null },
+      });
       return { ok: false, error: res.error ?? "Falha ao criar saque." };
     }
 
-    const w = await db.studentWithdraw.create({
+    const finalized = await db.studentWithdraw.update({
+      where: { id: reservation.withdraw.id },
       data: {
-        studentId,
-        amount: amountReais,
-        pixKey: student.pixKey,
-        pixKeyType: student.pixKeyType,
-        externalId,
         abacateId: res.data.id,
         status: res.data.status === "COMPLETE" ? "complete" : "pending",
         completedAt: res.data.status === "COMPLETE" ? new Date() : null,
@@ -305,10 +342,10 @@ export class ReferralService {
     return {
       ok: true,
       withdraw: {
-        id: w.id,
-        amount: w.amount,
-        status: w.status,
-        createdAt: w.createdAt,
+        id: finalized.id,
+        amount: finalized.amount,
+        status: finalized.status,
+        createdAt: finalized.createdAt,
       },
     };
   }

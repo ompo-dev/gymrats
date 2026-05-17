@@ -9,6 +9,7 @@ import type { NextRequest } from "@/runtime/next-server";
 
 type JobPayload = {
   studentId?: string;
+  ownerUserId?: string;
   libraryPlanId?: string;
 };
 
@@ -28,12 +29,15 @@ export async function GET(
   }
 
   const payload = (job.data ?? {}) as JobPayload;
-  if (
-    auth.user.role === "STUDENT" &&
-    payload.studentId &&
-    payload.studentId !== auth.user.student?.id
-  ) {
-    return unauthorizedResponse("Sem permissao para consultar este job");
+  const isAdmin = auth.user.role === "ADMIN";
+  if (!isAdmin) {
+    const matchesOwner = payload.ownerUserId === auth.user.id;
+    const matchesStudent =
+      !!payload.studentId && payload.studentId === auth.user.student?.id;
+
+    if (!matchesOwner && !matchesStudent) {
+      return unauthorizedResponse("Sem permissao para consultar este job");
+    }
   }
 
   const status = await job.getState();

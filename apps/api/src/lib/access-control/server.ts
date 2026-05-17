@@ -9,18 +9,85 @@ import type {
 } from "./types";
 
 /**
- * 🚨 AuthorizationError
- * Erro lançado quando o usuário não tem poder para acessar o recurso.
+ * AuthorizationError
+ * Erro lancado quando o usuario nao tem poder para acessar o recurso.
  */
 export class AuthorizationError extends Error {
-  constructor(message = "Acesso Negado. Você não possui o plano necessário.") {
+  constructor(message = "Acesso Negado. Voce nao possui o plano necessario.") {
     super(message);
     this.name = "AuthorizationError";
   }
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Raw session object from db
+function resolveActiveGymFromSession(sessionUser: any) {
+  const gyms = Array.isArray(sessionUser?.gyms) ? sessionUser.gyms : [];
+  if (sessionUser?.activeGymId) {
+    // biome-ignore lint/suspicious/noExplicitAny: Array items are unknown here
+    return gyms.find((gym: any) => gym?.id === sessionUser.activeGymId);
+  }
+
+  if (gyms.length === 1) {
+    return gyms[0];
+  }
+
+  return undefined;
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: Raw session object from db
+function resolveGymPlanFromSession(sessionUser: any, gymId: string) {
+  const gyms = Array.isArray(sessionUser?.gyms) ? sessionUser.gyms : [];
+  // biome-ignore lint/suspicious/noExplicitAny: Array items are unknown here
+  const gym = gyms.find((candidate: any) => candidate?.id === gymId);
+  const subscriptionPlan =
+    typeof gym?.subscription?.plan === "string" ? gym.subscription.plan : null;
+  const legacyPlan = typeof gym?.plan === "string" ? gym.plan : null;
+  const resolvedPlan = subscriptionPlan ?? legacyPlan;
+
+  return resolvedPlan ? resolvedPlan.toUpperCase() : null;
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: Raw session object from db
+function buildEnvironmentContext(
+  request: Request,
+  sessionUser: any,
+): EnvironmentContext | undefined {
+  const gymContextId = request.headers.get("x-gym-context-id")?.trim();
+  if (gymContextId) {
+    const gymContextPlanHeader = request.headers
+      .get("x-gym-context-plan")
+      ?.trim();
+    const gymContextPlan =
+      gymContextPlanHeader?.toUpperCase() ??
+      resolveGymPlanFromSession(sessionUser, gymContextId);
+
+    if (gymContextPlan) {
+      return {
+        type: "GYM",
+        id: gymContextId,
+        plan: gymContextPlan,
+      };
+    }
+  }
+
+  const personalContextId = request.headers.get("x-personal-context-id")?.trim();
+  const personalContextPlan = request.headers
+    .get("x-personal-context-plan")
+    ?.trim();
+
+  if (personalContextId && personalContextPlan) {
+    return {
+      type: "PERSONAL",
+      id: personalContextId,
+      plan: personalContextPlan.toUpperCase(),
+    };
+  }
+
+  return undefined;
+}
+
 /**
- * Constrói o UserContext a partir da Sessão crua atual do banco
+ * Constroi o UserContext a partir da sessao crua atual do banco.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Raw session object from db
 export function buildUserContextFromSession(sessionUser: any): UserContext {
@@ -33,25 +100,20 @@ export function buildUserContextFromSession(sessionUser: any): UserContext {
       activePlan = sub.plan.toUpperCase() as UserPlan;
       isSubscriptionActive = sub.status === "active";
     } else {
-      activePlan = "FREE"; // Fallback pra student
+      activePlan = "FREE";
       isSubscriptionActive = true;
     }
   } else if (sessionUser?.role === "GYM" || sessionUser?.role === "ADMIN") {
-    // Pega a gym atual ativa.
-    const activeGym =
-      // biome-ignore lint/suspicious/noExplicitAny: Array items are unknown here
-      sessionUser.gyms?.find((g: any) => g.id === sessionUser.activeGymId) ||
-      sessionUser.gyms?.[0];
+    const activeGym = resolveActiveGymFromSession(sessionUser);
 
     if (activeGym?.subscription) {
       activePlan = activeGym.subscription.plan.toUpperCase() as UserPlan;
       isSubscriptionActive = activeGym.subscription.status === "active";
     } else if (activeGym?.plan) {
-      activePlan = activeGym.plan.toUpperCase() as UserPlan; // legacy ou default básico
+      activePlan = activeGym.plan.toUpperCase() as UserPlan;
       isSubscriptionActive = true;
     }
   } else if (sessionUser?.role === "PERSONAL") {
-    // Lógica pro personal assim que o schema for atualizado com as assinaturas dele
     activePlan = null;
     isSubscriptionActive = false;
   }
@@ -65,12 +127,12 @@ export function buildUserContextFromSession(sessionUser: any): UserContext {
 }
 
 /**
- * Validar o acesso backend (Para uso dentro de Server Actions e Rotas Elysia).
- * Lança um erro caso o usuário não tenha o FeatureKey ou se não estiver logado.
+ * Validar o acesso backend (uso em Server Actions e rotas).
+ * Lanca erro caso usuario nao tenha a FeatureKey ou nao esteja logado.
  */
 export async function requireAbility(
   feature: FeatureKey,
-  requestObjForContext?: Request, // Opcional: Se for passado, extraímos infos do Environment (Ex: Gym atual visitada via Header)
+  requestObjForContext?: Request,
 ) {
   const requestParam = requestObjForContext || new Request("http://localhost");
 
@@ -78,19 +140,15 @@ export async function requireAbility(
   const session = await getAuthSession(requestParam as any);
 
   if (!session || !session.user) {
-    throw new AuthorizationError("Não autenticado.");
+    throw new AuthorizationError("Nao autenticado.");
   }
 
   const userContext = buildUserContextFromSession(session.user);
-
-  // ⚠️ Aqui poderíamos extrair o environmentContext se passássemos um header customizado
-  // da UI pro fetch informando em que 'página' estamo (Ex: "x-gym-context-id": "123").
-  // Mas na primeira iteração avaliamos o direto.
-  let envContext: EnvironmentContext | undefined;
+  const envContext = buildEnvironmentContext(requestParam, session.user);
 
   if (!checkAbility(userContext, feature, envContext)) {
     throw new AuthorizationError(
-      `Acesso Negado (Requer feature: ${feature}). Assinatura inválida para este nível.`,
+      `Acesso Negado (Requer feature: ${feature}). Assinatura invalida para este nivel.`,
     );
   }
 

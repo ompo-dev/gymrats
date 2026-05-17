@@ -14,8 +14,6 @@ import FinancialPage from "./page-content";
 
 type FinancialPageProps = ComponentProps<typeof FinancialPage>;
 
-/** Em dev (AbacatePay dev mode) saque só persiste no DB. Remover para produção. */
-const FAKE_WITHDRAW = process.env.NEXT_PUBLIC_FAKE_WITHDRAW !== "false";
 
 export default async function FinancialPageWrapper() {
   const [
@@ -48,7 +46,6 @@ export default async function FinancialPageWrapper() {
       balanceReais={balanceWithdraws.balanceReais}
       balanceCents={balanceWithdraws.balanceCents}
       withdraws={balanceWithdraws.withdraws as FinancialPageProps["withdraws"]}
-      fakeWithdraw={FAKE_WITHDRAW}
       expenses={expenses}
       subscription={subscription as FinancialPageProps["subscription"]}
       startTrial={startGymTrial}

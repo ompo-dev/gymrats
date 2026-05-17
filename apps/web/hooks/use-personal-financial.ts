@@ -1,8 +1,21 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { invalidateBootstrapDomain } from "@/hooks/use-bootstrap-refresh";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
+
+const PERSONAL_FINANCIAL_REFRESH_SECTIONS = [
+  "subscription",
+  "financialSummary",
+  "expenses",
+  "payments",
+  "coupons",
+  "campaigns",
+  "membershipPlans",
+  "students",
+  "affiliations",
+] as const;
 
 export function usePersonalFinancial() {
   const { subscription, students, affiliations } = usePersonal(
@@ -23,6 +36,11 @@ export function usePersonalFinancial() {
     expiresAt?: string;
   } | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
+  const refreshFinancialData = useCallback(async () => {
+    invalidateBootstrapDomain("personal");
+    await loaders.loadAllPrioritized([...PERSONAL_FINANCIAL_REFRESH_SECTIONS]);
+  }, [loaders]);
 
   const stats = useMemo(() => {
     const studentsViaGym = students.filter((item) => item.gym?.id).length;
@@ -84,6 +102,7 @@ export function usePersonalFinancial() {
     setIsCanceling(true);
     try {
       await actions.cancelPersonalSubscription();
+      await refreshFinancialData();
       toast({
         title: "Assinatura cancelada",
         description: "Sua assinatura foi cancelada com sucesso.",
@@ -105,16 +124,16 @@ export function usePersonalFinancial() {
     } finally {
       setIsCanceling(false);
     }
-  }, [actions, toast]);
+  }, [actions, refreshFinancialData, toast]);
 
   const handlePixConfirmed = useCallback(async () => {
     setPixModal(null);
-    await loaders.loadSection("subscription", true);
-  }, [loaders]);
+    await refreshFinancialData();
+  }, [refreshFinancialData]);
 
   const refreshSubscription = useCallback(async () => {
-    await loaders.loadSection("subscription", true);
-  }, [loaders]);
+    await refreshFinancialData();
+  }, [refreshFinancialData]);
 
   return {
     subscription,

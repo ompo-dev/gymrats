@@ -50,6 +50,59 @@ const emptyDeps: AuthContextDeps = {
 };
 
 describe("auth-context", () => {
+  it("uses single gym as fallback when activeGymId is missing", async () => {
+    const auth = createAuthSession({
+      role: "GYM",
+      gyms: [{ id: "gym-single" }],
+    });
+
+    const result = await resolveGymContext(auth, apiPolicy, emptyDeps);
+
+    expect(result).toEqual({
+      ok: true,
+      ctx: {
+        gymId: "gym-single",
+        session: auth.session,
+        user: auth.user,
+      },
+    });
+  });
+
+  it("fails closed when user has multiple gyms and no activeGymId", async () => {
+    const auth = createAuthSession({
+      role: "GYM",
+      gyms: [{ id: "gym-1" }, { id: "gym-2" }],
+    });
+
+    const result = await resolveGymContext(auth, apiPolicy, emptyDeps);
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        message: "Selecione uma academia ativa para continuar",
+        status: 409,
+      },
+    });
+  });
+
+  it("fails when activeGymId is not part of the user gyms", async () => {
+    const auth = createAuthSession({
+      role: "GYM",
+      activeGymId: "gym-x",
+      gyms: [{ id: "gym-1" }],
+    });
+
+    const result = await resolveGymContext(auth, apiPolicy, emptyDeps);
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        message: "Academia ativa invalida",
+        status: 403,
+      },
+    });
+  });
+
   it("allows web gym fallback for non-admin users", async () => {
     const auth = createAuthSession({ role: "GYM" });
 

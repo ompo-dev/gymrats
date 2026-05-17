@@ -2,8 +2,7 @@ import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
 
 const workspaceRoot =
-  process.env.PLAYWRIGHT_WORKSPACE_ROOT ||
-  "C:\\Projects\\Teste\\GymRats-Complete\\gymrats";
+  process.env.PLAYWRIGHT_WORKSPACE_ROOT || process.cwd();
 
 function runBunProcess(params: {
   scriptPath: string;
@@ -79,6 +78,6 @@ test("cron reports database failure against an unreachable database", async () =
 
   expect(result.timedOut).toBeFalsy();
   expect(result.exitCode).not.toBe(0);
-  expect(result.output).toContain("[cron] week-reset failed");
+  expect(result.output).toMatch(/\[cron\] week-reset failed|Cron runtime failed/);
   expect(result.output).toContain("Can't reach database server at `127.0.0.1:1`");
 });

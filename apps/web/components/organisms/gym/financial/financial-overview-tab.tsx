@@ -50,16 +50,12 @@ interface FinancialOverviewTabProps {
   balanceReais?: number;
   balanceCents?: number;
   withdraws?: WithdrawItem[];
-  fakeWithdraw?: boolean;
   showWithdraw?: boolean;
   disableWithdraw?: boolean;
 }
 
 interface FinancialOverviewActions {
-  createWithdraw: (payload: {
-    amountCents: number;
-    fake?: boolean;
-  }) => Promise<unknown>;
+  createWithdraw: (payload: { amountCents: number }) => Promise<unknown>;
 }
 
 interface FinancialOverviewTabContentProps extends FinancialOverviewTabProps {
@@ -73,7 +69,6 @@ function FinancialOverviewTabContent({
   balanceReais = 0,
   balanceCents = 0,
   withdraws = [],
-  fakeWithdraw = true,
   showWithdraw = true,
   disableWithdraw = false,
   actions,
@@ -97,15 +92,11 @@ function FinancialOverviewTabContent({
 
     setIsWithdrawing(true);
     try {
-      await actions?.createWithdraw({
-        amountCents,
-        fake: fakeWithdraw,
-      });
+      await actions?.createWithdraw({ amountCents });
       toast({
-        title: fakeWithdraw ? "Saque simulado" : "Saque solicitado",
-        description: fakeWithdraw
-          ? "Em modo dev o valor foi registrado localmente. Em produção o PIX será processado."
-          : `R$ ${reais.toFixed(2)} enviado para sua chave PIX.`,
+        title: "Saque solicitado",
+        description:
+          "Solicitacao registrada com sucesso. Em ambiente de testes, o processamento pode ser simulado no servidor.",
       });
       setWithdrawModalOpen(false);
       setWithdrawAmount("");
@@ -174,9 +165,9 @@ function FinancialOverviewTabContent({
             Mínimo para saque: R$ 3,50
           </p>
         )}
-        {showWithdraw && !disableWithdraw && fakeWithdraw && (
+        {showWithdraw && !disableWithdraw && (
           <p className="mt-2 text-xs text-duo-orange">
-            Modo dev: saques são simulados (sem transferência real).
+            Durante a fase de testes, saques podem ser simulados no servidor.
           </p>
         )}
       </DuoCard.Root>
@@ -346,3 +337,4 @@ export function FinancialOverviewTab(props: FinancialOverviewTabProps) {
 
   return <GymFinancialOverviewTab {...props} />;
 }
+

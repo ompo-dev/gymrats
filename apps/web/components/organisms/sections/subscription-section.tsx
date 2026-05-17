@@ -18,8 +18,8 @@ export interface SubscriptionPlan {
   monthlyPrice: number;
   annualPrice: number;
   features: string[];
-  perStudentPrice?: number; // Preço por aluno/mês (apenas para gym, plano mensal)
-  perPersonalPrice?: number; // Preço por personal filiado/mês (apenas para gym)
+  perStudentPrice?: number; // Preco por aluno/mes (apenas para gym, plano mensal)
+  perPersonalPrice?: number; // Preco por personal filiado/mes (apenas para gym)
 }
 
 export interface SubscriptionSectionProps {
@@ -53,13 +53,13 @@ export interface SubscriptionSectionProps {
   onCancel: () => Promise<void>;
   /** Primeira assinatura (para mostrar campo @) */
   isFirstPayment?: boolean;
-  /** Chamado após confirmar pagamento (ex.: refetch da assinatura). Para gym, passar refetch do useGymSubscription. */
+  /** Chamado apos confirmar pagamento (ex.: refetch da assinatura). Para gym, passar refetch do useGymSubscription. */
   onPaymentSuccess?: () => Promise<void>;
 
-  // Configurações de planos
+  // Configuracoes de planos
   plans: SubscriptionPlan[];
 
-  // Textos customizáveis
+  // Textos customizaveis
   texts?: {
     trialTitle?: string;
     trialDescription?: string;
@@ -80,7 +80,7 @@ export interface SubscriptionSectionProps {
     perYear?: string;
   };
 
-  // Configurações de exibição
+  // Configuracoes de exibicao
   showPlansWhen?:
     | "always"
     | "no-subscription"
@@ -119,12 +119,37 @@ function SubscriptionSectionSimple({
   const searchParams = useSearchParams();
   const isSuccess = searchParams.get("success") === "true";
   const { loadSubscription } = useStudent("loaders");
+  const latestSubscriptionStatusRef = useRef<string | undefined>(
+    subscription?.status,
+  );
+  const hasHandledSuccessParamRef = useRef(false);
+
+  useEffect(() => {
+    latestSubscriptionStatusRef.current = subscription?.status;
+  }, [subscription?.status]);
 
   // Efeito para confirmar pagamento e ativar assinatura quando volta do Abacate Pay com sucesso
   useEffect(() => {
-    if (!isSuccess) return;
+    if (!isSuccess) {
+      hasHandledSuccessParamRef.current = false;
+      return;
+    }
 
+    if (hasHandledSuccessParamRef.current) {
+      return;
+    }
+
+    hasHandledSuccessParamRef.current = true;
     let cancelled = false;
+
+    const clearSuccessParam = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("success");
+      window.history.replaceState({}, "", url.toString());
+    };
+
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
 
     const confirmPayment = async () => {
       toast({
@@ -132,22 +157,62 @@ function SubscriptionSectionSimple({
         description: "Verificando e ativando sua assinatura...",
       });
 
-      // Para gym: webhook ativa a assinatura. Refetch com polling até obter dados atualizados.
+      // Para gym/personal: webhook ativa a assinatura. So confirmar sucesso se status ficar active.
       if (userType !== "student") {
-        if (!onPaymentSuccess) return;
+        if (latestSubscriptionStatusRef.current === "active") {
+          toast({
+            title: "Assinatura Ativada! 🎉",
+            description: "Seu plano esta ativo. Aproveite!",
+          });
+          clearSuccessParam();
+          return;
+        }
+
+        if (!onPaymentSuccess) {
+          toast({
+            variant: "destructive",
+            title: "Nao foi possivel confirmar o pagamento",
+            description:
+              "A assinatura ainda esta pendente. Atualize em alguns instantes.",
+          });
+          clearSuccessParam();
+          return;
+        }
 
         for (let i = 0; i < 10; i++) {
           if (cancelled) return;
           await onPaymentSuccess();
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          if (latestSubscriptionStatusRef.current === "active") {
+            toast({
+              title: "Assinatura Ativada! 🎉",
+              description: "Seu plano esta ativo. Aproveite!",
+            });
+            clearSuccessParam();
+            return;
+          }
+
+          await sleep(2000);
         }
-        toast({
-          title: "Assinatura Ativada! 🎉",
-          description: "Seu plano está ativo. Aproveite!",
-        });
-        const url = new URL(window.location.href);
-        url.searchParams.delete("success");
-        window.history.replaceState({}, "", url.toString());
+
+        await onPaymentSuccess();
+
+        if (cancelled) return;
+
+        if (latestSubscriptionStatusRef.current === "active") {
+          toast({
+            title: "Assinatura Ativada! 🎉",
+            description: "Seu plano esta ativo. Aproveite!",
+          });
+        } else {
+          toast({
+            title: "Pagamento em processamento",
+            description:
+              "Ainda nao identificamos a ativacao. Atualize novamente em alguns instantes.",
+          });
+        }
+
+        clearSuccessParam();
         return;
       }
 
@@ -161,24 +226,30 @@ function SubscriptionSectionSimple({
             await loadSubscription();
             toast({
               title: "Assinatura Ativada! 🎉",
-              description: `Seu plano ${result.subscription?.plan || "Premium"} está ativo. Aproveite!`,
+              description: `Seu plano ${result.subscription?.plan || "Premium"} esta ativo. Aproveite!`,
             });
-            const url = new URL(window.location.href);
-            url.searchParams.delete("success");
-            window.history.replaceState({}, "", url.toString());
+            clearSuccessParam();
             return;
           }
         } catch (error) {
           void error;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await sleep(3000);
       }
 
       await loadSubscription();
+      if (!cancelled) {
+        toast({
+          title: "Pagamento em processamento",
+          description:
+            "Ainda nao identificamos a ativacao. Tente atualizar em alguns instantes.",
+        });
+        clearSuccessParam();
+      }
     };
 
-    confirmPayment();
+    void confirmPayment();
 
     return () => {
       cancelled = true;
@@ -219,24 +290,24 @@ function SubscriptionSectionSimple({
     initializeFromSubscription,
   ]);
 
-  // Textos padrão
+  // Textos padrao
   const defaultTexts = {
-    trialTitle: "Experimente 14 dias grátis!",
+    trialTitle: "Experimente 14 dias gratis!",
     trialDescription: "Teste todas as funcionalidades Premium sem compromisso",
-    trialButton: "Iniciar Trial Grátis",
+    trialButton: "Iniciar Trial Gratis",
     trialDaysRemaining: "dias restantes",
-    trialValidUntil: "Válido até",
+    trialValidUntil: "Valido ate",
     subscriptionStatusTitle: "Status da Assinatura",
     upgradeTitle: "Fazer Upgrade para Premium",
     choosePlanTitle: "Escolha seu Plano",
     subscribeButton: "Assinar Agora",
     cancelTrialButton: "Cancelar Trial",
     cancelSubscriptionButton: "Cancelar Assinatura",
-    nextRenewal: "Próxima renovação",
+    nextRenewal: "Proxima renovacao",
     monthlyLabel: "Mensal",
     annualLabel: "Anual",
     saveLabel: "Economize",
-    perMonth: "por mês",
+    perMonth: "por mes",
     perYear: "por ano",
   };
 
@@ -258,8 +329,8 @@ function SubscriptionSectionSimple({
     (!isLoading && !isStartingTrial && !subscription) ||
     isCanceledAndTrialExpired;
 
-  // Trial só uma vez: ocultar oferta se já usou trial ou já assinou (canStartTrial === false)
-  // Personal não tem trial
+  // Trial so uma vez: ocultar oferta se ja usou trial ou ja assinou (canStartTrial === false)
+  // Personal nao tem trial
   const canStartTrial =
     userType === "personal"
       ? false
@@ -272,24 +343,24 @@ function SubscriptionSectionSimple({
     isTrialActive && daysRemaining !== null && daysRemaining <= trialEndingDays;
 
   // Determinar quando mostrar os planos
-  // Para gym: sempre mostrar planos quando há subscription (para permitir upgrade/downgrade)
-  // Para student: não mostrar upgrade quando Premium via academia; só "mudar para anual" se OWN mensal
+  // Para gym: sempre mostrar planos quando ha subscription (para permitir upgrade/downgrade)
+  // Para student: nao mostrar upgrade quando Premium via academia; so "mudar para anual" se OWN mensal
   const shouldShowPlans = (() => {
     // Student com Premium via academia: nunca mostrar planos/upgrade
     if (userType === "student" && subscription?.source === "GYM_ENTERPRISE") {
       return false;
     }
 
-    // Se há subscription ativa
+    // Se ha subscription ativa
     if (subscription && isPremiumActive) {
-      // Gym com Enterprise ativo: não mostrar planos (já está no melhor plano)
+      // Gym com Enterprise ativo: nao mostrar planos (ja esta no melhor plano)
       if (
         userType === "gym" &&
         String(subscription.plan).toLowerCase().includes("enterprise")
       ) {
         return false;
       }
-      // Personal com Pro AI ativo: não mostrar planos (já está no melhor plano)
+      // Personal com Pro AI ativo: nao mostrar planos (ja esta no melhor plano)
       if (
         userType === "personal" &&
         String(subscription.plan).toLowerCase().includes("pro_ai")
@@ -302,7 +373,7 @@ function SubscriptionSectionSimple({
         const planName = String(subscription.plan).toLowerCase();
         const currentBillingPeriod = subscription.billingPeriod || "monthly";
 
-        // Se for PRO anual, não há upgrade
+        // Se for PRO anual, nao ha upgrade
         if (planName.includes("pro") && currentBillingPeriod === "annual") {
           return false;
         }
@@ -312,17 +383,17 @@ function SubscriptionSectionSimple({
       return true;
     }
 
-    // Se há subscription em trial ou cancelada, mostrar planos normalmente
+    // Se ha subscription em trial ou cancelada, mostrar planos normalmente
     if (subscription && (isTrialActive || isCanceled)) {
       // Novamente: se for cancelada mas era Enterprise, talvez ocultar?
-      // Por enquanto deixaremos visível para permitir re-assinar se cancelado.
+      // Por enquanto deixaremos visivel para permitir re-assinar se cancelado.
       return true;
     }
 
-    // Se não há subscription, mostrar baseado na configuração
+    // Se nao ha subscription, mostrar baseado na configuracao
     switch (showPlansWhen) {
       case "always":
-        // Para student com subscription ativa anual, não mostrar mesmo com "always"
+        // Para student com subscription ativa anual, nao mostrar mesmo com "always"
         if (userType === "student" && subscription && isPremiumActive) {
           const currentBillingPeriod = subscription.billingPeriod || "monthly";
           return currentBillingPeriod === "monthly";
@@ -391,7 +462,7 @@ function SubscriptionSectionSimple({
         </DuoCard.Root>
       )}
 
-      {/* Trial Offer - Apenas se não há subscription (ou expirou) e ainda pode ativar trial (uma vez por conta) */}
+      {/* Trial Offer - Apenas se nao ha subscription (ou expirou) e ainda pode ativar trial (uma vez por conta) */}
       {!isLoading && !isStartingTrial && hasNoSubscription && canStartTrial && (
         <TrialOffer.Simple
           title={finalTexts.trialTitle}
@@ -402,7 +473,7 @@ function SubscriptionSectionSimple({
         />
       )}
 
-      {/* Aluno com Premium gratuito via academia Enterprise — não mostrar planos para assinar */}
+      {/* Aluno com Premium gratuito via academia Enterprise - nao mostrar planos para assinar */}
       {userType === "student" && subscription?.source === "GYM_ENTERPRISE" && (
         <DuoCard.Root
           variant="default"
@@ -410,14 +481,14 @@ function SubscriptionSectionSimple({
         >
           <div className="p-4">
             <p className="font-bold text-duo-text">
-              Você tem plano Premium gratuito
+              Voce tem plano Premium gratuito
             </p>
             <p className="text-sm text-duo-gray-dark mt-1">
-              Incluído por estar cadastrado em{" "}
+              Incluido por estar cadastrado em{" "}
               <strong>
                 {subscription.enterpriseGymName || "sua academia parceira"}
               </strong>
-              . Não é necessário assinar um plano próprio.
+              . Nao e necessario assinar um plano proprio.
             </p>
           </div>
         </DuoCard.Root>
@@ -469,7 +540,7 @@ function SubscriptionSectionSimple({
             subscription?.billingPeriod
               ? (subscription.billingPeriod as "monthly" | "annual")
               : subscription?.plan
-                ? ("monthly" as "monthly" | "annual") // Default para monthly se não tiver billingPeriod
+                ? ("monthly" as "monthly" | "annual") // Default para monthly se nao tiver billingPeriod
                 : undefined
           }
           texts={{
