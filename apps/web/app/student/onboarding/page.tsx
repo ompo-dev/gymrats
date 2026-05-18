@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
+import { useToast } from "@/hooks/use-toast";
 import { validateConsolidatedStep1 } from "./schemas";
 import { ConsolidatedStep1 } from "./steps/consolidated-step1";
 import { ConsolidatedStep2 } from "./steps/consolidated-step2";
@@ -54,6 +55,7 @@ function Confetti() {
 
 export default function StudentOnboardingPage() {
   const _router = useRouter();
+  const { toast } = useToast();
   const profile = useStudent("profile");
   const loaders = useStudent("loaders");
   const [step, setStep] = useState(1);
@@ -65,6 +67,7 @@ export default function StudentOnboardingPage() {
   const [submitMode, setSubmitMode] = useState<"skip" | "complete" | null>(
     null,
   );
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -117,6 +120,7 @@ export default function StudentOnboardingPage() {
   // Reseta forceValidation quando o step muda
   useEffect(() => {
     setForceValidation(false);
+    setSubmitError(null);
   }, [step]);
 
   const [formData, setFormData] = useState<OnboardingData>({
@@ -177,17 +181,27 @@ export default function StudentOnboardingPage() {
           }
         : formData;
 
-    if (
-      !payload.age ||
-      !payload.gender ||
-      !payload.height ||
-      !payload.weight ||
-      !payload.fitnessLevel ||
-      !payload.targetCalories
-    ) {
+    const missingRequiredFields: string[] = [];
+    if (!payload.age) missingRequiredFields.push("idade");
+    if (!payload.gender) missingRequiredFields.push("genero");
+    if (!payload.height) missingRequiredFields.push("altura");
+    if (!payload.weight) missingRequiredFields.push("peso");
+    if (!payload.fitnessLevel) missingRequiredFields.push("nivel de treino");
+    if (!payload.targetCalories) missingRequiredFields.push("metas caloricas");
+
+    if (missingRequiredFields.length > 0) {
+      const message = `Preencha os campos obrigatorios antes de concluir: ${missingRequiredFields.join(", ")}.`;
+      setForceValidation(true);
+      setSubmitError(message);
+      toast({
+        variant: "destructive",
+        title: "Dados incompletos",
+        description: message,
+      });
       return;
     }
 
+    setSubmitError(null);
     setIsLoading(true);
     setIsSubmitting(true);
     setSubmitMode(mode);
@@ -219,7 +233,12 @@ export default function StudentOnboardingPage() {
         error instanceof Error
           ? error.message
           : "Erro ao salvar perfil. Tente novamente.";
-      alert(msg);
+      setSubmitError(msg);
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar perfil",
+        description: msg,
+      });
       setIsLoading(false);
       setIsSubmitting(false);
       setSubmitMode(null);
@@ -344,72 +363,79 @@ export default function StudentOnboardingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="flex gap-3"
+            className="flex flex-col gap-3"
           >
-            {step > 1 && (
-              <div className="flex-1">
-                <DuoButton
-                  onClick={handleBack}
-                  variant="white"
-                  className="w-full"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  VOLTAR
-                </DuoButton>
-              </div>
-            )}
-            {step < TOTAL_STEPS ? (
-              <div className="flex-1">
-                <DuoButton
-                  onClick={handleNext}
-                  disabled={!canProceed()}
-                  variant={canProceed() ? "primary" : "locked"}
-                  className="w-full"
-                >
-                  CONTINUAR
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </DuoButton>
-              </div>
-            ) : (
-              <>
+            {submitError ? (
+              <p className="rounded-lg border border-duo-danger/30 bg-duo-danger/10 px-3 py-2 text-sm font-medium text-duo-danger">
+                {submitError}
+              </p>
+            ) : null}
+            <div className="flex gap-3">
+              {step > 1 && (
                 <div className="flex-1">
                   <DuoButton
-                    onClick={() => void handleSubmit("skip")}
-                    disabled={isLoading}
+                    onClick={handleBack}
                     variant="white"
                     className="w-full"
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {submitMode === "skip" ? "PULANDO..." : "SALVANDO..."}
-                      </>
-                    ) : (
-                      "PULAR"
-                    )}
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    VOLTAR
                   </DuoButton>
                 </div>
+              )}
+              {step < TOTAL_STEPS ? (
                 <div className="flex-1">
                   <DuoButton
-                    onClick={() => void handleSubmit("complete")}
-                    disabled={isLoading}
-                    variant={!isLoading ? "primary" : "locked"}
+                    onClick={handleNext}
+                    disabled={!canProceed()}
+                    variant={canProceed() ? "primary" : "locked"}
                     className="w-full"
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {submitMode === "complete"
-                          ? "COMPLETANDO..."
-                          : "SALVANDO..."}
-                      </>
-                    ) : (
-                      <>COMPLETAR</>
-                    )}
+                    CONTINUAR
+                    <ChevronRight className="ml-2 h-4 w-4" />
                   </DuoButton>
                 </div>
-              </>
-            )}
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <DuoButton
+                      onClick={() => void handleSubmit("skip")}
+                      disabled={isLoading}
+                      variant="white"
+                      className="w-full"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {submitMode === "skip" ? "PULANDO..." : "SALVANDO..."}
+                        </>
+                      ) : (
+                        "PULAR"
+                      )}
+                    </DuoButton>
+                  </div>
+                  <div className="flex-1">
+                    <DuoButton
+                      onClick={() => void handleSubmit("complete")}
+                      disabled={isLoading}
+                      variant={!isLoading ? "primary" : "locked"}
+                      className="w-full"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {submitMode === "complete"
+                            ? "COMPLETANDO..."
+                            : "SALVANDO..."}
+                        </>
+                      ) : (
+                        <>COMPLETAR</>
+                      )}
+                    </DuoButton>
+                  </div>
+                </>
+              )}
+            </div>
           </motion.div>
         </div>
       </div>

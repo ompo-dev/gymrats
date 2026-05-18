@@ -61,17 +61,6 @@ export function Step5({ formData, setFormData }: StepProps) {
       const calc = calculateMetabolicData(metabolicData, "harris-benedict");
       setCalculation(calc);
 
-      // Sempre atualiza os valores calculados (permite recalcular quando activityLevel muda)
-      const updatedData = {
-        ...formData,
-        bmr: calc.bmr,
-        tdee: calc.tdee,
-        targetCalories: calc.targetCalories,
-        targetProtein: calc.macros.protein,
-        targetCarbs: calc.macros.carbs,
-        targetFats: calc.macros.fats,
-      };
-
       // Valida os dados antes de salvar
       const validation = validateStep6({
         targetCalories: calc.targetCalories,
@@ -82,8 +71,30 @@ export function Step5({ formData, setFormData }: StepProps) {
         tdee: calc.tdee,
       });
       if (validation.success) {
-        setFormData(updatedData);
         setValidationError(null);
+        setFormData((previousData) => {
+          const hasSameCalculatedValues =
+            previousData.bmr === calc.bmr &&
+            previousData.tdee === calc.tdee &&
+            previousData.targetCalories === calc.targetCalories &&
+            previousData.targetProtein === calc.macros.protein &&
+            previousData.targetCarbs === calc.macros.carbs &&
+            previousData.targetFats === calc.macros.fats;
+
+          if (hasSameCalculatedValues) {
+            return previousData;
+          }
+
+          return {
+            ...previousData,
+            bmr: calc.bmr,
+            tdee: calc.tdee,
+            targetCalories: calc.targetCalories,
+            targetProtein: calc.macros.protein,
+            targetCarbs: calc.macros.carbs,
+            targetFats: calc.macros.fats,
+          };
+        });
       } else {
         setValidationError(
           validation.error.errors[0]?.message || "Erro na validação",
@@ -104,7 +115,6 @@ export function Step5({ formData, setFormData }: StepProps) {
     formData.hormoneType,
     formData.isTrans,
     formData.usesHormones,
-    formData,
     setFormData,
   ]);
 

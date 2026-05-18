@@ -72,7 +72,9 @@ type StudentSubscriptionSnapshot = NonNullable<StudentData["subscription"]>;
 
 interface SubscriptionMeta {
   isLoading: boolean;
-  isMutating: boolean;
+  isStartingTrial: boolean;
+  isCreatingSubscription: boolean;
+  isCancelingSubscription: boolean;
   error: string | null;
   lastFetchedAt: Date | null;
   isFirstPayment: boolean;
@@ -118,7 +120,9 @@ interface SubscriptionState {
 
 const createMeta = (): SubscriptionMeta => ({
   isLoading: false,
-  isMutating: false,
+  isStartingTrial: false,
+  isCreatingSubscription: false,
+  isCancelingSubscription: false,
   error: null,
   lastFetchedAt: null,
   isFirstPayment: true,
@@ -419,7 +423,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       [subscriptionKey]: optimisticSubscription,
       [metaKey]: {
         ...state[metaKey],
-        isMutating: true,
+        isStartingTrial: true,
         error: null,
       },
     }));
@@ -460,7 +464,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         [subscriptionKey]: previousSubscription,
         [metaKey]: {
           ...state[metaKey],
-          isMutating: false,
+          isStartingTrial: false,
           error: String(message),
         },
       }));
@@ -471,7 +475,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       set((state) => ({
         [metaKey]: {
           ...state[metaKey],
-          isMutating: false,
+          isStartingTrial: false,
         },
       }));
     }
@@ -483,7 +487,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     set((state) => ({
       [metaKey]: {
         ...state[metaKey],
-        isMutating: true,
+        isCreatingSubscription: true,
         error: null,
       },
     }));
@@ -531,7 +535,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       set((state) => ({
         [metaKey]: {
           ...state[metaKey],
-          isMutating: false,
+          isCreatingSubscription: false,
         },
       }));
     }
@@ -553,7 +557,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         : null,
       [metaKey]: {
         ...state[metaKey],
-        isMutating: true,
+        isCancelingSubscription: true,
         error: null,
       },
     }));
@@ -603,7 +607,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       set((state) => ({
         [metaKey]: {
           ...state[metaKey],
-          isMutating: false,
+          isCancelingSubscription: false,
         },
       }));
     }

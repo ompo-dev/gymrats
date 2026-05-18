@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoButton } from "@/components/duo";
+import { useToast } from "@/hooks/use-toast";
 import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
 import { Step3 } from "./steps/step3";
@@ -70,6 +71,7 @@ function Confetti() {
 
 export default function GymOnboardingPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const mode = searchParams?.get("mode"); // "new" para criar nova academia
   const isNewGymMode = mode === "new";
@@ -78,10 +80,15 @@ export default function GymOnboardingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    setSubmitError(null);
+  }, [step]);
 
   const [formData, setFormData] = useState<GymOnboardingData>({
     name: "",
@@ -111,18 +118,27 @@ export default function GymOnboardingPage() {
   };
 
   const handleSubmit = async () => {
-    if (
-      !formData.name ||
-      !formData.address ||
-      !formData.city ||
-      !formData.state ||
-      !formData.zipCode ||
-      !formData.phone ||
-      !formData.email
-    ) {
+    const missingRequiredFields: string[] = [];
+    if (!formData.name) missingRequiredFields.push("nome da academia");
+    if (!formData.address) missingRequiredFields.push("endereco");
+    if (!formData.city) missingRequiredFields.push("cidade");
+    if (!formData.state) missingRequiredFields.push("estado");
+    if (!formData.zipCode) missingRequiredFields.push("CEP");
+    if (!formData.phone) missingRequiredFields.push("telefone");
+    if (!formData.email) missingRequiredFields.push("email");
+
+    if (missingRequiredFields.length > 0) {
+      const message = `Preencha os campos obrigatorios: ${missingRequiredFields.join(", ")}.`;
+      setSubmitError(message);
+      toast({
+        variant: "destructive",
+        title: "Dados incompletos",
+        description: message,
+      });
       return;
     }
 
+    setSubmitError(null);
     setIsLoading(true);
     setShowConfetti(true);
 
@@ -173,7 +189,12 @@ export default function GymOnboardingPage() {
         error instanceof Error
           ? error.message
           : "Erro ao salvar. Tente novamente.";
-      alert(msg);
+      setSubmitError(msg);
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar onboarding",
+        description: msg,
+      });
       setIsLoading(false);
       setShowConfetti(false);
     }
@@ -192,7 +213,7 @@ export default function GymOnboardingPage() {
       return true;
     }
     if (step === 4) {
-      return formData.equipment.length > 0;
+      return true;
     }
     return false;
   };
@@ -286,55 +307,62 @@ export default function GymOnboardingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="flex gap-3"
+            className="flex flex-col gap-3"
           >
-            {step > 1 && (
-              <div className="flex-1">
-                <DuoButton
-                  onClick={handleBack}
-                  variant="white"
-                  className="w-full"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  VOLTAR
-                </DuoButton>
-              </div>
-            )}
-            {step < 4 ? (
-              <div className="flex-1">
-                <DuoButton
-                  onClick={handleNext}
-                  disabled={!canProceed()}
-                  variant={canProceed() ? "primary" : "locked"}
-                  className="w-full"
-                >
-                  CONTINUAR
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </DuoButton>
-              </div>
-            ) : (
-              <div className="flex-1">
-                <DuoButton
-                  onClick={handleSubmit}
-                  disabled={isLoading || !canProceed()}
-                  variant={canProceed() && !isLoading ? "primary" : "locked"}
-                  className="w-full"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      SALVANDO...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      FINALIZAR
-                      <Check className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </DuoButton>
-              </div>
-            )}
+            {submitError ? (
+              <p className="rounded-lg border border-duo-danger/30 bg-duo-danger/10 px-3 py-2 text-sm font-medium text-duo-danger">
+                {submitError}
+              </p>
+            ) : null}
+            <div className="flex gap-3">
+              {step > 1 && (
+                <div className="flex-1">
+                  <DuoButton
+                    onClick={handleBack}
+                    variant="white"
+                    className="w-full"
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    VOLTAR
+                  </DuoButton>
+                </div>
+              )}
+              {step < 4 ? (
+                <div className="flex-1">
+                  <DuoButton
+                    onClick={handleNext}
+                    disabled={!canProceed()}
+                    variant={canProceed() ? "primary" : "locked"}
+                    className="w-full"
+                  >
+                    CONTINUAR
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </DuoButton>
+                </div>
+              ) : (
+                <div className="flex-1">
+                  <DuoButton
+                    onClick={handleSubmit}
+                    disabled={isLoading || !canProceed()}
+                    variant={canProceed() && !isLoading ? "primary" : "locked"}
+                    className="w-full"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        SALVANDO...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        FINALIZAR
+                        <Check className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </DuoButton>
+                </div>
+              )}
+            </div>
           </motion.div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { DomainError, isDomainError } from "@gymrats/domain";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { persistBusinessEvent } from "@/lib/observability";
@@ -44,8 +45,39 @@ export const POST = createSafeHandler(
         expiresAt: result.expiresAt,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro ao gerar PIX";
-      return NextResponse.json({ error: msg }, { status: 400 });
+      const status = isDomainError(err) ? err.status : 500;
+      const reasonMessage =
+        err instanceof Error ? err.message : "Erro ao gerar PIX";
+
+      await persistBusinessEvent({
+        eventType: "pix.generated",
+        domain: "payments",
+        actorId: studentId,
+        status: "failure",
+        payload: {
+          paymentId,
+          reasonCode: isDomainError(err)
+            ? err.code
+            : "PAYMENT_PIX_GENERATION_FAILED",
+          reasonMessage,
+          errorType: status >= 500 ? "infra_or_provider" : "domain",
+          status,
+        },
+      });
+
+      if (isDomainError(err)) {
+        throw err;
+      }
+
+      throw new DomainError({
+        status: 500,
+        code: "PAYMENT_PIX_GENERATION_FAILED",
+        message: "Falha inesperada ao gerar PIX",
+        details: {
+          paymentId,
+          studentId,
+        },
+      });
     }
   },
   {

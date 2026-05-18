@@ -26,6 +26,7 @@ export function useStudentReferral() {
   const {
     referral: referralData,
     isLoading,
+    error,
     refetch,
   } = useStudentReferralBootstrap();
   const { updateReferralPixKey, requestReferralWithdraw } =
@@ -149,6 +150,7 @@ export function useStudentReferral() {
   return {
     data: referralData,
     isLoading,
+    error,
     referralCode,
     copyCode,
     copied,

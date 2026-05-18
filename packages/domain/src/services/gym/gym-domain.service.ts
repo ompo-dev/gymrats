@@ -1,5 +1,6 @@
 import { db } from "@gymrats/db";
 import type { Prisma } from "@prisma/client";
+import { DomainError } from "../../domain-error";
 import { GymAccessEligibilityService } from "./gym-access-eligibility.service";
 
 /**
@@ -221,7 +222,10 @@ export class BaseGymDomainService {
       }
     }
 
-    await GymAccessEligibilityService.refreshStudentEligibility(gymId, studentId);
+    await GymAccessEligibilityService.refreshStudentEligibility(
+      gymId,
+      studentId,
+    );
 
     return membership;
   }
@@ -356,11 +360,147 @@ export class BaseGymDomainService {
       periodEnd?: string | null;
     },
   ) {
+    const [student, plan, membership] = await Promise.all([
+      db.student.findUnique({
+        where: { id: data.studentId },
+        select: { id: true, user: { select: { name: true } } },
+      }),
+      data.planId
+        ? db.membershipPlan.findUnique({
+            where: { id: data.planId },
+            select: { id: true, gymId: true },
+          })
+        : Promise.resolve(null),
+      data.membershipId
+        ? db.gymMembership.findUnique({
+            where: { id: data.membershipId },
+            select: {
+              id: true,
+              gymId: true,
+              studentId: true,
+              planId: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    if (!student) {
+      throw new DomainError({
+        status: 404,
+        code: "PAYMENT_STUDENT_NOT_FOUND",
+        message: "Aluno não encontrado",
+        details: {
+          gymId,
+          studentId: data.studentId,
+        },
+      });
+    }
+
+    if (data.planId && !plan) {
+      throw new DomainError({
+        status: 404,
+        code: "PAYMENT_PLAN_NOT_FOUND",
+        message: "Plano não encontrado",
+        details: {
+          gymId,
+          planId: data.planId,
+        },
+      });
+    }
+
+    if (plan && plan.gymId !== gymId) {
+      throw new DomainError({
+        status: 409,
+        code: "PAYMENT_PLAN_GYM_MISMATCH",
+        message: "Plano não pertence à academia informada",
+        details: {
+          gymId,
+          planId: plan.id,
+          planGymId: plan.gymId,
+        },
+      });
+    }
+
+    if (data.membershipId && !membership) {
+      throw new DomainError({
+        status: 404,
+        code: "PAYMENT_MEMBERSHIP_NOT_FOUND",
+        message: "Matrícula não encontrada",
+        details: {
+          gymId,
+          membershipId: data.membershipId,
+        },
+      });
+    }
+
+    if (membership && membership.gymId !== gymId) {
+      throw new DomainError({
+        status: 409,
+        code: "PAYMENT_MEMBERSHIP_GYM_MISMATCH",
+        message: "Matrícula não pertence à academia informada",
+        details: {
+          gymId,
+          membershipId: membership.id,
+          membershipGymId: membership.gymId,
+        },
+      });
+    }
+
+    if (membership && membership.studentId !== data.studentId) {
+      throw new DomainError({
+        status: 409,
+        code: "PAYMENT_MEMBERSHIP_STUDENT_MISMATCH",
+        message: "Matrícula não pertence ao aluno informado",
+        details: {
+          gymId,
+          membershipId: membership.id,
+          expectedStudentId: membership.studentId,
+          receivedStudentId: data.studentId,
+        },
+      });
+    }
+
+    if (membership && data.planId && membership.planId !== data.planId) {
+      throw new DomainError({
+        status: 409,
+        code: "PAYMENT_MEMBERSHIP_PLAN_MISMATCH",
+        message: "Plano não corresponde à matrícula informada",
+        details: {
+          gymId,
+          membershipId: membership.id,
+          expectedPlanId: membership.planId,
+          receivedPlanId: data.planId,
+        },
+      });
+    }
+
+    if (!membership) {
+      const studentGymMembership = await db.gymMembership.findFirst({
+        where: {
+          gymId,
+          studentId: data.studentId,
+        },
+        select: { id: true },
+      });
+
+      if (!studentGymMembership) {
+        throw new DomainError({
+          status: 409,
+          code: "PAYMENT_STUDENT_GYM_MISMATCH",
+          message: "Aluno não está vinculado à academia informada",
+          details: {
+            gymId,
+            studentId: data.studentId,
+          },
+        });
+      }
+    }
+
     const payment = await db.payment.create({
       data: {
         gymId,
         studentId: data.studentId,
-        studentName: data.studentName ?? "Aluno",
+        studentName: data.studentName ?? student.user?.name ?? "Aluno",
         planId: data.planId ?? null,
         membershipId: data.membershipId ?? null,
         amount: data.amount,

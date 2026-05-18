@@ -21,7 +21,9 @@ Ele:
 - descobre automaticamente os arquivos `apply-*.js`
 - lista scripts disponiveis
 - permite dry-run
-- executa tudo em ordem alfabetica quando usado com `--all`
+- roda preflight de dependencias conhecidas
+- auto-inclui dependencias faltantes quando necessario
+- executa na ordem topologica das dependencias (com desempate alfabetico)
 
 ## Comandos uteis
 
@@ -35,6 +37,20 @@ Revisar o lote sem aplicar:
 
 ```bash
 npm run migration:dry-run
+```
+
+Rodar preflight e selecionar track explicita de safety Prisma:
+
+```bash
+npm run migration:safety:prisma -- --track=A
+npm run migration:safety:prisma -- --track=B
+```
+
+Via variavel de ambiente (pipeline/deploy):
+
+```bash
+PRISMA_MIGRATION_TRACK=A npm run migration:safety:prisma
+PRISMA_MIGRATION_TRACK=B npm run migration:safety:prisma
 ```
 
 Aplicar todos os scripts `apply-*.js`:
@@ -115,10 +131,16 @@ Ou seja:
 
 - Trilha A: ambiente onde migrations legadas ja foram aplicadas. Nao reescrever historico aplicado; tratar com resolve/baseline por ambiente.
 - Trilha B: ambiente sem aplicacao completa da cadeia legada. Corrigir cadeia/estrategia antes de `prisma migrate deploy`.
-- O `apply-prisma-migrations.mjs` roda `prisma-migration-safety.mjs` e bloqueia deploy se detectar inconsistencia critica.
+- Com `--track=auto`, o safety-check tenta inferir A/B por `_prisma_migrations`.
+- Se a inferencia automatica nao for possivel:
+  - modo padrao (`fail-on-indeterminate=false`): advisory, sem bloqueio indiscriminado;
+  - modo estrito (`fail-on-indeterminate=true`): bloqueante.
+- O `apply-prisma-migrations.mjs` roda `prisma-migration-safety.mjs` com modo estrito antes de `prisma migrate deploy`.
 
 ## Guard-rail em CI
 
-- O workflow `.github/workflows/security.yml` executa `npm run migration:safety:prisma`.
-- Pull request com cadeia Prisma inconsistente deve falhar antes de merge/deploy.
-- O objetivo e evitar rollout parcial quando houver risco de drift entre `packages/db/prisma/migrations` e estado esperado de aplicacao.
+- O workflow `.github/workflows/security.yml` executa:
+  - `npm ci` (lock `package-lock.json`) para install reproduzivel no modelo hibrido atual;
+  - `npm run migration:safety:prisma -- --track=auto --fail-on-indeterminate=false`.
+- CI continua sinalizando inconsistencias estaticas, mas nao bloqueia indiscriminadamente quando o estado real da `_prisma_migrations` nao pode ser inferido nesse contexto.
+- O bloqueio estrito permanece no fluxo de deploy Prisma (`apply-prisma-migrations.mjs`) para evitar rollout em ambiente sem decisao explicita de track.

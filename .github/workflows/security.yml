@@ -21,36 +21,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Generate Prisma client
-        run: pnpm exec prisma generate --schema packages/db/prisma/schema.prisma
+        run: npm exec -- prisma generate --schema packages/db/prisma/schema.prisma
 
       - name: Prisma migration chain safety
-        run: pnpm run migration:safety:prisma
+        run: npm run migration:safety:prisma -- --track=auto --fail-on-indeterminate=false
 
       - name: Route auth compliance
-        run: pnpm run audit:routes:auth
+        run: npm run audit:routes:auth
 
       - name: Server console compliance
-        run: pnpm run audit:console:server
+        run: npm run audit:console:server
 
       - name: API typecheck
-        run: pnpm run typecheck:api
+        run: npm run typecheck:api
 
       - name: Web typecheck
-        run: pnpm run typecheck:web
+        run: npm run typecheck:web
 
       - name: Unit tests
-        run: pnpm run test:unit
+        run: npm run test:unit
 
       - name: Security audit
-        run: pnpm audit --audit-level=high
+        run: npm audit --audit-level=high

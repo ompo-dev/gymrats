@@ -25,13 +25,16 @@ async function applyMigration() {
         SELECT 1 FROM "gyms" WHERE "gyms"."userId" = "users"."id"
       )`,
 
-      // 4. Remover constraint UNIQUE de userId em gyms (se existir)
+      // 4. Remover indice UNIQUE de userId em gyms (se existir)
       `DO $$
       BEGIN
         IF EXISTS (
-          SELECT 1 FROM pg_constraint WHERE conname = 'gyms_userId_key'
+          SELECT 1
+          FROM pg_indexes
+          WHERE schemaname = 'public'
+          AND indexname = 'gyms_userId_key'
         ) THEN
-          ALTER TABLE "gyms" DROP CONSTRAINT "gyms_userId_key";
+          DROP INDEX IF EXISTS "gyms_userId_key";
         END IF;
       END $$`,
 

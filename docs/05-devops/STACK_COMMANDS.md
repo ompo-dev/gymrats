@@ -50,7 +50,8 @@ Executa o runner canonico `apps/web/scripts/migration/run-stack-migrations.mjs -
 Esse runner:
 
 - procura scripts `apply-*.js`
-- executa em ordem alfabetica
+- roda preflight de dependencias conhecidas
+- ordena por dependencias (desempate alfabetico)
 - usa o mesmo `.env.docker` do stack
 
 ### 5. Subir o stack

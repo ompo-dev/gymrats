@@ -16,6 +16,8 @@ if (envFile) {
 
 const safetyResult = await runPrismaMigrationSafetyCheck({
   requireDbState: false,
+  track: process.env.PRISMA_MIGRATION_TRACK ?? "auto",
+  failOnIndeterminate: true,
 });
 if (!safetyResult.ok) {
   throw new Error(

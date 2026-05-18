@@ -11,6 +11,8 @@ import type {
   FinancialSummary,
   Payment,
 } from "@/lib/types";
+import type { PersonalMetadata } from "@/lib/types/personal-unified";
+import { resolvePersonalFinancialLoadErrors } from "@/lib/utils/personal-financial-errors";
 
 type BoostCampaignPlanOption = {
   id: string;
@@ -33,6 +35,7 @@ interface PersonalFinancialPageContentProps {
   plans?: BoostCampaignPlanOption[];
   expenses?: Expense[];
   financialSummary?: FinancialSummary | null;
+  metadata?: PersonalMetadata | null;
   onRefresh?: () => Promise<void>;
 }
 
@@ -44,6 +47,7 @@ export function PersonalFinancialPageContent({
   plans = [],
   expenses = [],
   financialSummary = null,
+  metadata = null,
   onRefresh,
 }: PersonalFinancialPageContentProps) {
   const [subTab, setSubTab] = useQueryState(
@@ -69,6 +73,11 @@ export function PersonalFinancialPageContent({
     }
   }, [subTab]);
 
+  const loadErrors = useMemo(
+    () => resolvePersonalFinancialLoadErrors(metadata),
+    [metadata],
+  );
+
   return (
     <PersonalFinancialScreen
       subscription={subscription}
@@ -78,6 +87,7 @@ export function PersonalFinancialPageContent({
       plans={plans}
       expenses={expenses}
       financialSummary={financialSummary}
+      loadErrors={loadErrors}
       viewMode={viewMode}
       onViewModeChange={(nextViewMode) => void setSubTab(nextViewMode)}
       onRefresh={onRefresh}

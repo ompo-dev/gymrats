@@ -6,6 +6,7 @@ import {
   evaluatePersonalAccessEligibility,
   evaluateStudentAccessEligibility,
 } from "../../access-authorization";
+import { DomainError } from "../../domain-error";
 
 type PaymentStatus = "paid" | "pending" | "overdue" | "canceled" | "withdrawn";
 
@@ -22,7 +23,9 @@ function getPaymentMembershipId(payment: {
   membershipId?: string | null;
   reference?: string | null;
 }) {
-  return payment.membershipId ?? parseMembershipIdFromReference(payment.reference);
+  return (
+    payment.membershipId ?? parseMembershipIdFromReference(payment.reference)
+  );
 }
 
 function toOperationalFields(input: {
@@ -73,10 +76,16 @@ export class GymAccessEligibilityService {
     }
 
     if (subjectType === "STUDENT") {
-      return this.refreshStudentEligibility(gymId, subjectId);
+      return GymAccessEligibilityService.refreshStudentEligibility(
+        gymId,
+        subjectId,
+      );
     }
 
-    return this.refreshPersonalEligibility(gymId, subjectId);
+    return GymAccessEligibilityService.refreshPersonalEligibility(
+      gymId,
+      subjectId,
+    );
   }
 
   static async refreshStudentEligibility(gymId: string, studentId: string) {
@@ -97,7 +106,9 @@ export class GymAccessEligibilityService {
     const membership =
       memberships.find((entry) =>
         ["active", "pending", "suspended", "canceled"].includes(entry.status),
-      ) ?? memberships[0] ?? null;
+      ) ??
+      memberships[0] ??
+      null;
 
     const student =
       membership?.student ??
@@ -186,9 +197,7 @@ export class GymAccessEligibilityService {
         lastEvaluatedAt: true,
         createdAt: true,
         updatedAt: true,
-        ...(student
-          ? {}
-          : {}),
+        ...(student ? {} : {}),
       },
     });
   }
@@ -253,10 +262,16 @@ export class GymAccessEligibilityService {
 
     await Promise.all([
       ...memberships.map((entry) =>
-        this.refreshStudentEligibility(gymId, entry.studentId),
+        GymAccessEligibilityService.refreshStudentEligibility(
+          gymId,
+          entry.studentId,
+        ),
       ),
       ...affiliations.map((entry) =>
-        this.refreshPersonalEligibility(gymId, entry.personalId),
+        GymAccessEligibilityService.refreshPersonalEligibility(
+          gymId,
+          entry.personalId,
+        ),
       ),
     ]);
 
@@ -277,7 +292,9 @@ export class GymAccessEligibilityService {
       return [];
     }
 
-    const studentIds = [...new Set(payments.map((payment) => payment.studentId))];
+    const studentIds = [
+      ...new Set(payments.map((payment) => payment.studentId)),
+    ];
     const snapshots = await db.accessEligibilitySnapshot.findMany({
       where: {
         gymId,
@@ -319,7 +336,15 @@ export class GymAccessEligibilityService {
     });
 
     if (!payment || payment.gymId !== gymId) {
-      throw new Error("Pagamento não encontrado");
+      throw new DomainError({
+        status: 404,
+        code: "PAYMENT_NOT_FOUND",
+        message: "Pagamento não encontrado",
+        details: {
+          gymId,
+          paymentId,
+        },
+      });
     }
 
     const updated = await db.payment.update({
@@ -330,7 +355,10 @@ export class GymAccessEligibilityService {
       },
     });
 
-    await this.refreshStudentEligibility(gymId, payment.studentId);
+    await GymAccessEligibilityService.refreshStudentEligibility(
+      gymId,
+      payment.studentId,
+    );
     return updated;
   }
 
@@ -343,7 +371,15 @@ export class GymAccessEligibilityService {
     });
 
     if (!payment || payment.gymId !== gymId) {
-      throw new Error("Pagamento não encontrado");
+      throw new DomainError({
+        status: 404,
+        code: "PAYMENT_NOT_FOUND",
+        message: "Pagamento não encontrado",
+        details: {
+          gymId,
+          paymentId,
+        },
+      });
     }
 
     const membershipId = getPaymentMembershipId(payment);
@@ -397,7 +433,10 @@ export class GymAccessEligibilityService {
       });
     }
 
-    await this.refreshStudentEligibility(gymId, payment.studentId);
+    await GymAccessEligibilityService.refreshStudentEligibility(
+      gymId,
+      payment.studentId,
+    );
 
     const snapshot = await db.accessEligibilitySnapshot.findUnique({
       where: {
@@ -512,7 +551,10 @@ export class GymAccessEligibilityService {
         overdue += 1;
       }
 
-      await this.refreshStudentEligibility(membership.gymId, membership.studentId);
+      await GymAccessEligibilityService.refreshStudentEligibility(
+        membership.gymId,
+        membership.studentId,
+      );
       refreshed += 1;
     }
 

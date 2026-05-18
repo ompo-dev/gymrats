@@ -115,6 +115,7 @@ export function createStudentPaymentsFixture(
     onTrocarPlano: () => undefined,
     onSelectChangePlan: () => undefined,
     onPixConfirmed: async () => undefined,
+    pendingPayNowById: {},
     onPayNow: () => undefined,
     onCancelPayment: () => undefined,
     onStartTrial: async () => undefined,

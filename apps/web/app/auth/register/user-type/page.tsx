@@ -11,7 +11,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type KeyboardEvent, useEffect, useState } from "react";
 import { DuoCard } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
 import { useAuthStore } from "@/stores";
@@ -71,6 +71,18 @@ export default function UserTypePage() {
     }
 
     router.push("/personal/onboarding");
+  };
+
+  const handleCardKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    type: "student" | "gym" | "personal",
+  ) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    handleSelectType(type);
   };
 
   if (isChecking) {
@@ -162,6 +174,11 @@ export default function UserTypePage() {
                 variant="outlined"
                 padding="lg"
                 onClick={() => handleSelectType("student")}
+                onKeyDown={(event) => handleCardKeyDown(event, "student")}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedType === "student"}
+                aria-label="Selecionar tipo de conta aluno"
                 className={`cursor-pointer border-2 transition-all ${
                   selectedType === "student"
                     ? "border-duo-green bg-duo-green/10 shadow-xl"
@@ -244,6 +261,11 @@ export default function UserTypePage() {
                 variant="outlined"
                 padding="lg"
                 onClick={() => handleSelectType("gym")}
+                onKeyDown={(event) => handleCardKeyDown(event, "gym")}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedType === "gym"}
+                aria-label="Selecionar tipo de conta academia"
                 className={`cursor-pointer border-2 transition-all ${
                   selectedType === "gym"
                     ? "border-duo-orange bg-duo-orange/10 shadow-xl"
@@ -326,6 +348,11 @@ export default function UserTypePage() {
                 variant="outlined"
                 padding="lg"
                 onClick={() => handleSelectType("personal")}
+                onKeyDown={(event) => handleCardKeyDown(event, "personal")}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedType === "personal"}
+                aria-label="Selecionar tipo de conta personal"
                 className={`cursor-pointer border-2 transition-all ${
                   selectedType === "personal"
                     ? "border-duo-blue bg-duo-blue/10 shadow-xl"

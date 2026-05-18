@@ -1,3 +1,4 @@
+import { isDomainError } from "@gymrats/domain";
 import type { ZodType } from "zod";
 import { log, recordApiRequest } from "@/lib/observability";
 import {
@@ -391,14 +392,10 @@ export function createSafeHandler<
       });
 
       const replay = await getReplayRecord(idemKey);
-      if (
-        replay &&
-        replay.request_fingerprint !== idempotencyFingerprint
-      ) {
+      if (replay && replay.request_fingerprint !== idempotencyFingerprint) {
         const mismatchResponse = NextResponse.json(
           {
-            error:
-              "Idempotency key ja utilizada em uma requisicao diferente",
+            error: "Idempotency key ja utilizada em uma requisicao diferente",
           },
           { status: 409 },
         );
@@ -496,8 +493,7 @@ export function createSafeHandler<
         ) {
           const mismatchResponse = NextResponse.json(
             {
-              error:
-                "Idempotency key ja utilizada em uma requisicao diferente",
+              error: "Idempotency key ja utilizada em uma requisicao diferente",
             },
             { status: 409 },
           );
@@ -595,10 +591,15 @@ export function createSafeHandler<
         name?: string;
         message?: string;
         status?: number;
+        code?: string;
+        details?: unknown;
         errors?: Array<{ path?: string[]; message?: string }>;
       };
-      const status =
-        typeof err?.status === "number"
+
+      const isTypedDomainError = isDomainError(error);
+      const status = isTypedDomainError
+        ? error.status
+        : typeof err?.status === "number"
           ? err.status
           : err?.name === "ZodError"
             ? 400
@@ -606,6 +607,8 @@ export function createSafeHandler<
 
       log.error("[SafeHandler] Error", {
         error: err?.message,
+        code: isTypedDomainError ? error.code : err?.code,
+        details: isTypedDomainError ? error.details : err?.details,
         ...logMetaBase,
       });
 
@@ -615,15 +618,25 @@ export function createSafeHandler<
               { error: "Erro de validacao", details: err.errors },
               { status: 400 },
             )
-          : NextResponse.json(
-              {
-                error:
-                  status >= 500
-                    ? "Erro interno do servidor"
-                    : err?.message || "Erro na requisicao",
-              },
-              { status },
-            );
+          : isTypedDomainError
+            ? NextResponse.json(
+                {
+                  error: error.message,
+                  message: error.message,
+                  code: error.code,
+                  details: error.details ?? null,
+                },
+                { status: error.status },
+              )
+            : NextResponse.json(
+                {
+                  error:
+                    status >= 500
+                      ? "Erro interno do servidor"
+                      : err?.message || "Erro na requisicao",
+                },
+                { status },
+              );
 
       const handled = attachStandardHeaders(errorResponse, startedAt);
       recordApiRequest(

@@ -48,11 +48,7 @@ export const accessFeedQuerySchema = z.object({
     .enum(["pending_match", "applied", "duplicate", "ignored", "anomalous"])
     .optional(),
   subjectType: z.enum(["STUDENT", "PERSONAL"]).optional(),
-  limit: z
-    .string()
-    .regex(/^\d+$/)
-    .transform(Number)
-    .optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
 export const accessManualEventSchema = z.object({
@@ -95,6 +91,8 @@ export const accessAuthorizationRequestSchema = z.object({
   identifierValue: z.string().trim().min(1, "identifierValue é obrigatório"),
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
 });
+
+export const accessEventIngestionSchema = z.object({}).passthrough();
 
 export const accessHeartbeatSchema = z.object({
   occurredAt: z.string().datetime().optional().nullable(),

@@ -101,7 +101,8 @@ export function Step4({ formData, setFormData }: StepProps) {
               Equipamentos
             </h2>
             <p className="text-sm text-duo-fg-muted">
-              Quais equipamentos sua academia possui?
+              Opcional: adicione os equipamentos da sua academia agora ou
+              depois.
             </p>
           </div>
           <div className="space-y-5">
@@ -201,8 +202,8 @@ export function Step4({ formData, setFormData }: StepProps) {
                 className="rounded-xl border-2 border-dashed border-duo-border bg-duo-bg-elevated p-8 text-center"
               >
                 <p className="text-sm text-duo-fg-muted">
-                  Nenhum equipamento adicionado ainda. Clique no botão acima
-                  para adicionar.
+                  Nenhum equipamento adicionado ainda. Voce pode finalizar sem
+                  esta etapa e cadastrar depois.
                 </p>
               </motion.div>
             )}

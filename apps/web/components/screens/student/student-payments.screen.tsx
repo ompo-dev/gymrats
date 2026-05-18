@@ -9,24 +9,24 @@ import {
   Plus,
 } from "lucide-react";
 import {
+  MembershipCard,
+  PaymentCard,
+  PaymentsTabSelector,
+  StudentReferralTab,
+} from "@/app/student/_payments/components";
+import {
   DuoButton,
   DuoCard,
   DuoStatCard,
   DuoStatsGrid,
 } from "@/components/duo";
 import type { ScreenProps, ViewContract } from "@/components/foundations";
-import { ScreenShell, createTestSelector } from "@/components/foundations";
+import { createTestSelector, ScreenShell } from "@/components/foundations";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
-import {
-  MembershipCard,
-  PaymentCard,
-  PaymentsTabSelector,
-  StudentReferralTab,
-} from "@/app/student/_payments/components";
 
 export type StudentPaymentsTab =
   | "memberships"
@@ -134,11 +134,10 @@ export interface StudentPaymentsScreenProps
     onNavigateToGyms: () => void | Promise<void>;
     onTabChange: (tab: StudentPaymentsTab) => void;
     onCancelMembership: (membershipId: string) => void | Promise<void>;
-    onTrocarPlano: (
-      membership: StudentGymMembership,
-    ) => void | Promise<void>;
+    onTrocarPlano: (membership: StudentGymMembership) => void | Promise<void>;
     onSelectChangePlan: (planId: string) => void | Promise<void>;
     onPixConfirmed: () => Promise<void>;
+    pendingPayNowById: Record<string, boolean>;
     onPayNow: (payment: StudentPayment) => void | Promise<void>;
     onCancelPayment: (paymentId: string) => void | Promise<void>;
     onStartTrial: () => Promise<void>;
@@ -147,9 +146,7 @@ export interface StudentPaymentsScreenProps
       billingPeriod: "monthly" | "annual",
       referralCode?: string | null,
     ) => Promise<void>;
-    onApplyReferralStudent: (
-      referralCode: string,
-    ) => Promise<
+    onApplyReferralStudent: (referralCode: string) => Promise<
       | {
           pixId: string;
           brCode: string;
@@ -210,6 +207,7 @@ export function StudentPaymentsScreen({
   onTrocarPlano,
   onSelectChangePlan,
   onPixConfirmed,
+  pendingPayNowById,
   onPayNow,
   onCancelPayment,
   onStartTrial,
@@ -260,10 +258,7 @@ export function StudentPaymentsScreen({
           />
         </DuoStatsGrid.Root>
 
-        <PaymentsTabSelector
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-        />
+        <PaymentsTabSelector activeTab={activeTab} onTabChange={onTabChange} />
 
         {activeTab === "memberships" ? (
           <div
@@ -277,7 +272,11 @@ export function StudentPaymentsScreen({
               const isExpanded = expandedGymIdMemberships === group.gymId;
 
               return (
-                <DuoCard.Root key={group.gymId} variant="default" size="default">
+                <DuoCard.Root
+                  key={group.gymId}
+                  variant="default"
+                  size="default"
+                >
                   <DuoButton
                     type="button"
                     variant="ghost"
@@ -421,6 +420,7 @@ export function StudentPaymentsScreen({
                           <PaymentCard
                             key={payment.id}
                             payment={payment}
+                            isPayingNow={Boolean(pendingPayNowById[payment.id])}
                             onPayNow={onPayNow}
                           />
                         ))}

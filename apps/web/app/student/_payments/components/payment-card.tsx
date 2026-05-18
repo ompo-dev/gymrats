@@ -7,10 +7,15 @@ import { cn } from "@/lib/utils";
 
 export interface PaymentCardProps {
   payment: StudentPayment;
+  isPayingNow?: boolean;
   onPayNow: (payment: StudentPayment) => void;
 }
 
-export function PaymentCard({ payment, onPayNow }: PaymentCardProps) {
+export function PaymentCard({
+  payment,
+  isPayingNow = false,
+  onPayNow,
+}: PaymentCardProps) {
   const isPending =
     payment.status === "pending" || payment.status === "overdue";
 
@@ -85,12 +90,13 @@ export function PaymentCard({ payment, onPayNow }: PaymentCardProps) {
             <DuoButton
               className="w-full mt-3"
               size="sm"
+              disabled={isPayingNow}
               onClick={(e) => {
                 e.stopPropagation();
                 onPayNow(payment);
               }}
             >
-              Pagar agora
+              {isPayingNow ? "Gerando PIX..." : "Pagar agora"}
             </DuoButton>
           )}
         </div>

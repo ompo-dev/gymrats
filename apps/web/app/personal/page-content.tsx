@@ -1,8 +1,8 @@
 "use client";
 
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
-import { parseAsString, useQueryState } from "nuqs";
 import { useRouter } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useMemo } from "react";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
 import { invalidateBootstrapDomain } from "@/hooks/use-bootstrap-refresh";
@@ -154,6 +154,7 @@ function PersonalFinancialTab({
     coupons,
     campaigns,
     membershipPlans,
+    metadata,
   } = usePersonal(
     "subscription",
     "financialSummary",
@@ -162,6 +163,7 @@ function PersonalFinancialTab({
     "coupons",
     "campaigns",
     "membershipPlans",
+    "metadata",
   );
 
   return (
@@ -173,6 +175,7 @@ function PersonalFinancialTab({
       coupons={coupons}
       campaigns={campaigns}
       plans={membershipPlans as unknown as MembershipPlan[]}
+      metadata={metadata}
       onRefresh={onRefresh}
     />
   );
@@ -294,7 +297,9 @@ export default function PersonalHome(
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center p-8">Carregando...</div>
+        <div className="flex items-center justify-center p-8">
+          Carregando...
+        </div>
       }
     >
       <PersonalHomeContent />

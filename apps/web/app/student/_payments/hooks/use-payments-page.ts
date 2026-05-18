@@ -292,6 +292,10 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   const handlePayNowClick = async (payment: StudentPayment) => {
+    if (paymentFlow.isPayNowPending(payment.id)) {
+      return;
+    }
+
     try {
       const result = await paymentFlow.payNow.mutateAsync(payment.id);
       setPixModal({
@@ -563,6 +567,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     cancelDialogModal,
     setTab,
     setTabChange,
+    pendingPayNowById: paymentFlow.pendingPayNowById,
     handleCancelMembership,
     handleTrocarPlanoClick,
     handleSelectChangePlan,

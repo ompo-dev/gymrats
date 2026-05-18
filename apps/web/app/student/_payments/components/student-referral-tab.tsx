@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertCircle,
   CheckCircle,
   Copy,
   DollarSign,
@@ -276,6 +277,7 @@ export function StudentReferralTab() {
   const {
     data,
     isLoading,
+    error,
     referralCode,
     copyCode,
     copied,
@@ -289,13 +291,74 @@ export function StudentReferralTab() {
     setWithdrawAmount,
     isWithdrawing,
     handleWithdraw,
+    loadData,
   } = useStudentReferral();
 
   if (isLoading && !data) {
     return (
-      <div className="flex justify-center p-8 text-duo-gray-dark">
+      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-duo-border bg-duo-bg-card p-8 text-duo-gray-dark">
         <RefreshCw className="h-6 w-6 animate-spin" />
+        <p className="text-sm">Carregando seus dados de indicacoes...</p>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <DuoCard.Root
+        variant="default"
+        padding="md"
+        className="border border-duo-danger/30 bg-duo-danger/10"
+      >
+        <div className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 h-5 w-5 text-duo-danger" />
+          <div className="flex-1 space-y-3">
+            <div>
+              <p className="text-sm font-bold text-duo-danger">
+                Erro ao carregar indicacoes
+              </p>
+              <p className="text-sm text-duo-fg-muted">
+                {error.message || "Nao foi possivel carregar seus dados agora."}
+              </p>
+            </div>
+            <DuoButton
+              variant="white"
+              size="sm"
+              onClick={() => void loadData()}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Tentar novamente
+            </DuoButton>
+          </div>
+        </div>
+      </DuoCard.Root>
+    );
+  }
+
+  if (!data || !referralCode) {
+    return (
+      <DuoCard.Root variant="default" padding="md">
+        <div className="space-y-3 text-center">
+          <p className="text-sm font-semibold text-duo-fg">
+            Nenhum dado de indicacao disponivel ainda.
+          </p>
+          <p className="text-sm text-duo-gray-dark">
+            Atualize a pagina em alguns instantes para tentar novamente.
+          </p>
+          <div className="flex justify-center">
+            <DuoButton
+              variant="white"
+              size="sm"
+              onClick={() => void loadData()}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Atualizar
+            </DuoButton>
+          </div>
+        </div>
+      </DuoCard.Root>
     );
   }
 

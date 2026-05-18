@@ -1,9 +1,10 @@
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { db } from "@gymrats/db";
 import { computeNextBillingDate } from "../../access-authorization";
-import { GymAccessEligibilityService } from "./gym-access-eligibility.service";
+import { DomainError } from "../../domain-error";
 import { log } from "../../log";
 import { PIX_EXPIRES_IN_SECONDS } from "../../subscription";
+import { GymAccessEligibilityService } from "./gym-access-eligibility.service";
 
 export interface MembershipPaymentPixResult {
   brCode: string;
@@ -316,13 +317,43 @@ export async function createPixForPendingPayment(
     }),
   ]);
 
-  if (!payment) throw new Error("Pagamento não encontrado");
-  if (payment.status !== "pending" && payment.status !== "overdue") {
-    throw new Error(
-      "Apenas pagamentos pendentes ou atrasados podem gerar novo PIX",
-    );
+  if (!payment) {
+    throw new DomainError({
+      status: 404,
+      code: "PAYMENT_NOT_FOUND",
+      message: "Pagamento nao encontrado",
+      details: {
+        paymentId,
+        studentId,
+      },
+    });
   }
-  if (!payment.plan) throw new Error("Plano não encontrado");
+
+  if (payment.status !== "pending" && payment.status !== "overdue") {
+    throw new DomainError({
+      status: 409,
+      code: "PAYMENT_PIX_STATUS_INVALID",
+      message: "Apenas pagamentos pendentes ou atrasados podem gerar novo PIX",
+      details: {
+        paymentId,
+        studentId,
+        status: payment.status,
+      },
+    });
+  }
+
+  if (!payment.plan) {
+    throw new DomainError({
+      status: 409,
+      code: "PAYMENT_PLAN_MISSING",
+      message: "Plano associado ao pagamento nao encontrado",
+      details: {
+        paymentId,
+        studentId,
+        planId: payment.planId,
+      },
+    });
+  }
 
   // Reutilizar PIX em cache se ainda válido (countdown correto)
   const cached = payment as typeof payment & {
@@ -378,7 +409,17 @@ export async function createPixForPendingPayment(
   });
 
   if (pixResponse.error || !pixResponse.data) {
-    throw new Error(pixResponse.error || "Erro ao criar PIX na AbacatePay");
+    throw new DomainError({
+      status: 502,
+      code: "PAYMENT_PROVIDER_ERROR",
+      message: "Falha ao gerar PIX no provedor de pagamento",
+      details: {
+        paymentId,
+        studentId,
+        provider: "abacatepay",
+        providerError: pixResponse.error ?? null,
+      },
+    });
   }
 
   const pix = pixResponse.data;

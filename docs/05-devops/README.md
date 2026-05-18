@@ -18,4 +18,5 @@
 - O caminho canonico de migrations do projeto permanece em `apps/web/scripts/migration`.
 - O cron semanal deve rodar apenas no Railway; os `crons` do Vercel foram desativados.
 - Readiness operacional da API: `GET /readyz` (db + redis), com `503` quando dependencia critica nao estiver pronta.
-- O workflow `.github/workflows/security.yml` inclui guard-rail para cadeia Prisma inconsistente via `npm run migration:safety:prisma`.
+- O workflow `.github/workflows/security.yml` usa `npm ci` (lock `package-lock.json`) para checks reproduziveis no modelo hibrido atual.
+- O guard-rail Prisma em CI roda com `--track=auto --fail-on-indeterminate=false` (advisory quando estado real nao pode ser inferido); o bloqueio estrito fica no fluxo de deploy Prisma.

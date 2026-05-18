@@ -57,6 +57,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     handleTrocarPlanoClick,
     handleSelectChangePlan,
     handlePixConfirmed,
+    pendingPayNowById,
     handlePayNowClick,
     handleCancelPayment,
     handleStartTrial,
@@ -108,12 +109,16 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     result.sort((a, b) => {
       const aMax = Math.max(
         ...a.memberships.map((membership: StudentGymMembership) =>
-          new Date(membership.nextBillingDate ?? membership.startDate).getTime(),
+          new Date(
+            membership.nextBillingDate ?? membership.startDate,
+          ).getTime(),
         ),
       );
       const bMax = Math.max(
         ...b.memberships.map((membership: StudentGymMembership) =>
-          new Date(membership.nextBillingDate ?? membership.startDate).getTime(),
+          new Date(
+            membership.nextBillingDate ?? membership.startDate,
+          ).getTime(),
         ),
       );
       return bMax - aMax;
@@ -151,8 +156,12 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     }));
 
     result.sort((a, b) => {
-      const aMax = Math.max(...a.payments.map((payment) => new Date(payment.date).getTime()));
-      const bMax = Math.max(...b.payments.map((payment) => new Date(payment.date).getTime()));
+      const aMax = Math.max(
+        ...a.payments.map((payment) => new Date(payment.date).getTime()),
+      );
+      const bMax = Math.max(
+        ...b.payments.map((payment) => new Date(payment.date).getTime()),
+      );
       return bMax - aMax;
     });
 
@@ -204,6 +213,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
       onTrocarPlano={handleTrocarPlanoClick}
       onSelectChangePlan={handleSelectChangePlan}
       onPixConfirmed={handlePixConfirmed}
+      pendingPayNowById={pendingPayNowById}
       onPayNow={handlePayNowClick}
       onCancelPayment={handleCancelPayment}
       onStartTrial={handleStartTrial}

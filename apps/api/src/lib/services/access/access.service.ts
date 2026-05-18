@@ -1,20 +1,21 @@
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { accessEventQueue } from "@gymrats/cache";
 import {
   buildAccessDedupeKey,
   createUnknownEligibilityDecision,
+  DomainError,
   isAuthorizationAllowed,
   normalizeTemplatePayload,
   projectSessionToLegacyCheckIn,
   resolveAccessDirection,
 } from "@gymrats/domain";
-import type { Prisma } from "@prisma/client";
+import { GymAccessEligibilityService } from "@gymrats/domain/services/gym/gym-access-eligibility.service";
 import type {
   AccessAuthorizationResponse,
   AccessCredentialBinding as AccessCredentialBindingSnapshot,
   AccessDeviceSnapshot,
   AccessDirection,
   AccessEventFeedItem,
-  AccessEventSource,
   AccessEventStatus,
   AccessFinancialStatus,
   AccessOverview,
@@ -24,7 +25,7 @@ import type {
   LegacyCheckInProjection,
   PresenceSessionRecord,
 } from "@gymrats/types";
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 import {
   deleteCacheKeysByPrefix,
   getCachedJson,
@@ -32,7 +33,6 @@ import {
 } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
-import { GymAccessEligibilityService } from "@gymrats/domain/services/gym/gym-access-eligibility.service";
 
 const ACCESS_CACHE_TTL_SECONDS = 15;
 const LEGACY_RECENT_CHECKINS_TTL_SECONDS = 10;
@@ -96,29 +96,27 @@ function verifyAccessSecret(input: {
   return timingSafeEqual(left, right);
 }
 
-function toAccessDeviceSnapshot(
-  device: {
-    id: string;
-    gymId: string;
-    name: string;
-    vendorKey: string;
-    adapterKey: string;
-    hardwareType: string;
-    authModes: unknown;
-    transport: "webhook" | "bridge" | "manual";
-    status: "active" | "paused" | "offline" | "error";
-    externalDeviceId: string | null;
-    externalSerial: string | null;
-    directionMode: string;
-    dedupeWindowSeconds: number;
-    lastHeartbeatAt: Date | null;
-    lastEventAt: Date | null;
-    payloadTemplate: unknown;
-    settings: unknown;
-    createdAt: Date;
-    updatedAt: Date;
-  },
-): AccessDeviceSnapshot {
+function toAccessDeviceSnapshot(device: {
+  id: string;
+  gymId: string;
+  name: string;
+  vendorKey: string;
+  adapterKey: string;
+  hardwareType: string;
+  authModes: unknown;
+  transport: "webhook" | "bridge" | "manual";
+  status: "active" | "paused" | "offline" | "error";
+  externalDeviceId: string | null;
+  externalSerial: string | null;
+  directionMode: string;
+  dedupeWindowSeconds: number;
+  lastHeartbeatAt: Date | null;
+  lastEventAt: Date | null;
+  payloadTemplate: unknown;
+  settings: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+}): AccessDeviceSnapshot {
   return {
     id: device.id,
     gymId: device.gymId,
@@ -157,16 +155,14 @@ function toAccessDeviceSnapshot(
   };
 }
 
-function toSubjectFromBinding(
-  binding: {
-    subjectType: "STUDENT" | "PERSONAL";
-    subjectId: string;
-    studentId: string | null;
-    personalId: string | null;
-    student?: { user?: { name?: string | null } | null } | null;
-    personal?: { name?: string | null } | null;
-  },
-): MatchedSubject {
+function toSubjectFromBinding(binding: {
+  subjectType: "STUDENT" | "PERSONAL";
+  subjectId: string;
+  studentId: string | null;
+  personalId: string | null;
+  student?: { user?: { name?: string | null } | null } | null;
+  personal?: { name?: string | null } | null;
+}): MatchedSubject {
   return {
     subjectType: binding.subjectType,
     subjectId: binding.subjectId,
@@ -174,31 +170,29 @@ function toSubjectFromBinding(
     personalId: binding.personalId,
     subjectName:
       binding.subjectType === "STUDENT"
-        ? binding.student?.user?.name ?? "Aluno"
-        : binding.personal?.name ?? "Personal",
+        ? (binding.student?.user?.name ?? "Aluno")
+        : (binding.personal?.name ?? "Personal"),
   };
 }
 
-function toBindingSnapshot(
-  binding: {
-    id: string;
-    gymId: string;
-    subjectType: "STUDENT" | "PERSONAL";
-    subjectId: string;
-    studentId: string | null;
-    personalId: string | null;
-    providerKey: string | null;
-    deviceId: string | null;
-    identifierType: string;
-    identifierValue: string;
-    isActive: boolean;
-    metadata: unknown;
-    createdAt: Date;
-    updatedAt: Date;
-    student?: { user?: { name?: string | null } | null } | null;
-    personal?: { name?: string | null } | null;
-  },
-): AccessCredentialBindingSnapshot {
+function toBindingSnapshot(binding: {
+  id: string;
+  gymId: string;
+  subjectType: "STUDENT" | "PERSONAL";
+  subjectId: string;
+  studentId: string | null;
+  personalId: string | null;
+  providerKey: string | null;
+  deviceId: string | null;
+  identifierType: string;
+  identifierValue: string;
+  isActive: boolean;
+  metadata: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+  student?: { user?: { name?: string | null } | null } | null;
+  personal?: { name?: string | null } | null;
+}): AccessCredentialBindingSnapshot {
   return {
     id: binding.id,
     gymId: binding.gymId,
@@ -208,8 +202,8 @@ function toBindingSnapshot(
     personalId: binding.personalId,
     subjectName:
       binding.subjectType === "STUDENT"
-        ? binding.student?.user?.name ?? "Aluno"
-        : binding.personal?.name ?? "Personal",
+        ? (binding.student?.user?.name ?? "Aluno")
+        : (binding.personal?.name ?? "Personal"),
     deviceId: binding.deviceId,
     providerKey: binding.providerKey,
     identifierType: binding.identifierType,
@@ -221,37 +215,35 @@ function toBindingSnapshot(
   };
 }
 
-function toPresenceSessionRecord(
-  session: {
-    id: string;
-    gymId: string;
-    subjectType: "STUDENT" | "PERSONAL";
-    subjectId: string;
-    studentId: string | null;
-    personalId: string | null;
-    subjectName: string | null;
-    status: "open" | "closed" | "manually_closed" | "anomalous";
-    entryAt: Date;
-    exitAt: Date | null;
-    openedBySource:
-      | "device"
-      | "manual_gym"
-      | "manual_personal"
-      | "legacy_import"
-      | "app_mobile";
-    closedBySource:
-      | "device"
-      | "manual_gym"
-      | "manual_personal"
-      | "legacy_import"
-      | "app_mobile"
-      | null;
-    entryDeviceId: string | null;
-    exitDeviceId: string | null;
-    inferenceFlags: unknown;
-    legacyCheckInId: string | null;
-  },
-): PresenceSessionRecord {
+function toPresenceSessionRecord(session: {
+  id: string;
+  gymId: string;
+  subjectType: "STUDENT" | "PERSONAL";
+  subjectId: string;
+  studentId: string | null;
+  personalId: string | null;
+  subjectName: string | null;
+  status: "open" | "closed" | "manually_closed" | "anomalous";
+  entryAt: Date;
+  exitAt: Date | null;
+  openedBySource:
+    | "device"
+    | "manual_gym"
+    | "manual_personal"
+    | "legacy_import"
+    | "app_mobile";
+  closedBySource:
+    | "device"
+    | "manual_gym"
+    | "manual_personal"
+    | "legacy_import"
+    | "app_mobile"
+    | null;
+  entryDeviceId: string | null;
+  exitDeviceId: string | null;
+  inferenceFlags: unknown;
+  legacyCheckInId: string | null;
+}): PresenceSessionRecord {
   return {
     id: session.id,
     gymId: session.gymId,
@@ -277,43 +269,36 @@ function toPresenceSessionRecord(
   };
 }
 
-function toAccessFeedItem(
-  event: {
-    id: string;
-    gymId: string;
-    deviceId: string | null;
-    subjectType: "STUDENT" | "PERSONAL" | null;
-    subjectId: string | null;
-    studentId: string | null;
-    personalId: string | null;
-    subjectName: string | null;
-    source:
-      | "device"
-      | "manual_gym"
-      | "manual_personal"
-      | "legacy_import"
-      | "app_mobile";
-    status:
-      | "pending_match"
-      | "applied"
-      | "duplicate"
-      | "ignored"
-      | "anomalous";
-    confidence: string;
-    providerKey: string | null;
-    providerEventId: string | null;
-    identifierType: string | null;
-    identifierValue: string | null;
-    directionReceived: "entry" | "exit" | "unknown";
-    directionResolved: "entry" | "exit" | "unknown";
-    occurredAt: Date;
-    metadata: unknown;
-    actorRole: string | null;
-    actorUserId: string | null;
-    manualReason: string | null;
-    device?: { name: string | null } | null;
-  },
-): AccessEventFeedItem {
+function toAccessFeedItem(event: {
+  id: string;
+  gymId: string;
+  deviceId: string | null;
+  subjectType: "STUDENT" | "PERSONAL" | null;
+  subjectId: string | null;
+  studentId: string | null;
+  personalId: string | null;
+  subjectName: string | null;
+  source:
+    | "device"
+    | "manual_gym"
+    | "manual_personal"
+    | "legacy_import"
+    | "app_mobile";
+  status: "pending_match" | "applied" | "duplicate" | "ignored" | "anomalous";
+  confidence: string;
+  providerKey: string | null;
+  providerEventId: string | null;
+  identifierType: string | null;
+  identifierValue: string | null;
+  directionReceived: "entry" | "exit" | "unknown";
+  directionResolved: "entry" | "exit" | "unknown";
+  occurredAt: Date;
+  metadata: unknown;
+  actorRole: string | null;
+  actorUserId: string | null;
+  manualReason: string | null;
+  device?: { name: string | null } | null;
+}): AccessEventFeedItem {
   return {
     id: event.id,
     gymId: event.gymId,
@@ -341,29 +326,27 @@ function toAccessFeedItem(
   };
 }
 
-function toAuthorizationAttemptFeedItem(
-  attempt: {
-    id: string;
-    gymId: string;
-    deviceId: string | null;
-    subjectType: "STUDENT" | "PERSONAL" | null;
-    subjectId: string | null;
-    studentId: string | null;
-    personalId: string | null;
-    source: string;
-    providerKey: string | null;
-    identifierType: string | null;
-    identifierValue: string | null;
-    authorizationStatus: string;
-    financialStatus: string;
-    reasonCode: string;
-    outcome: string;
-    allowed: boolean;
-    occurredAt: Date;
-    metadata: unknown;
-    device?: { name: string | null } | null;
-  },
-): AccessEventFeedItem {
+function toAuthorizationAttemptFeedItem(attempt: {
+  id: string;
+  gymId: string;
+  deviceId: string | null;
+  subjectType: "STUDENT" | "PERSONAL" | null;
+  subjectId: string | null;
+  studentId: string | null;
+  personalId: string | null;
+  source: string;
+  providerKey: string | null;
+  identifierType: string | null;
+  identifierValue: string | null;
+  authorizationStatus: string;
+  financialStatus: string;
+  reasonCode: string;
+  outcome: string;
+  allowed: boolean;
+  occurredAt: Date;
+  metadata: unknown;
+  device?: { name: string | null } | null;
+}): AccessEventFeedItem {
   const metadata = toJsonRecord(attempt.metadata);
   return {
     id: attempt.id,
@@ -581,7 +564,7 @@ export class AccessService {
       metadata?: Record<string, unknown> | null;
     },
   ) {
-    const subject = await this.resolveManualSubject(
+    const subject = await AccessService.resolveManualSubject(
       gymId,
       input.subjectType,
       input.subjectId,
@@ -648,45 +631,47 @@ export class AccessService {
       }));
     }
 
-      const [events, attempts] = await Promise.all([
-        db.accessEvent.findMany({
-          where: {
-            gymId,
-            status: options?.status,
-            subjectType: options?.subjectType,
-          },
-          include: {
-            device: { select: { name: true } },
-          },
-          orderBy: { occurredAt: "desc" },
-          take: limit,
-        }),
-        options?.status
-          ? Promise.resolve([])
-          : db.accessAuthorizationAttempt.findMany({
-              where: {
-                gymId,
-                ...(options?.subjectType
-                  ? { subjectType: options.subjectType }
-                  : {}),
-              },
-              orderBy: { occurredAt: "desc" },
-              take: limit,
-            }),
-      ]);
+    const [events, attempts] = await Promise.all([
+      db.accessEvent.findMany({
+        where: {
+          gymId,
+          status: options?.status,
+          subjectType: options?.subjectType,
+        },
+        include: {
+          device: { select: { name: true } },
+        },
+        orderBy: { occurredAt: "desc" },
+        take: limit,
+      }),
+      options?.status
+        ? Promise.resolve([])
+        : db.accessAuthorizationAttempt.findMany({
+            where: {
+              gymId,
+              ...(options?.subjectType
+                ? { subjectType: options.subjectType }
+                : {}),
+            },
+            orderBy: { occurredAt: "desc" },
+            take: limit,
+          }),
+    ]);
 
-      const payload = [
-        ...events.map((event) => toAccessFeedItem(event)),
-        ...attempts.map((attempt) => toAuthorizationAttemptFeedItem(attempt)),
-      ]
-        .sort((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime())
-        .slice(0, limit);
-      await setCachedJson(cacheKey, payload, ACCESS_CACHE_TTL_SECONDS);
-      return payload;
-    }
+    const payload = [
+      ...events.map((event) => toAccessFeedItem(event)),
+      ...attempts.map((attempt) => toAuthorizationAttemptFeedItem(attempt)),
+    ]
+      .sort(
+        (left, right) => right.occurredAt.getTime() - left.occurredAt.getTime(),
+      )
+      .slice(0, limit);
+    await setCachedJson(cacheKey, payload, ACCESS_CACHE_TTL_SECONDS);
+    return payload;
+  }
 
   static async getPendingEvents(gymId: string) {
-    return this.getFeed(gymId, {
+    return AccessService.getFeed(gymId, {
       limit: 100,
       status: "pending_match",
     });
@@ -718,9 +703,13 @@ export class AccessService {
       orderBy: { entryAt: "desc" },
     });
 
-    const normalized = sessions.map((session) => toPresenceSessionRecord(session));
+    const normalized = sessions.map((session) =>
+      toPresenceSessionRecord(session),
+    );
     const payload = {
-      students: normalized.filter((session) => session.subjectType === "STUDENT"),
+      students: normalized.filter(
+        (session) => session.subjectType === "STUDENT",
+      ),
       personals: normalized.filter(
         (session) => session.subjectType === "PERSONAL",
       ),
@@ -746,97 +735,97 @@ export class AccessService {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-      const [
-        presence,
-        recentFeed,
-        unresolvedEvents,
-        anomalousEvents,
-        devices,
-        allowedToday,
-        deniedToday,
-        graceStudents,
-        blockedStudents,
-        entriesToday,
-        exitsToday,
-      ] = await Promise.all([
-        this.getPresence(gymId),
-        this.getFeed(gymId, { limit: 12 }),
-        db.accessEvent.count({
-          where: { gymId, status: "pending_match" },
-        }),
-        db.accessEvent.count({
-          where: { gymId, status: "anomalous" },
-        }),
-        db.accessDevice.findMany({
-          where: { gymId },
-          select: { id: true, status: true },
-        }),
-        db.accessAuthorizationAttempt.count({
-          where: {
-            gymId,
-            occurredAt: { gte: startOfToday },
-            allowed: true,
-          },
-        }),
-        db.accessAuthorizationAttempt.count({
-          where: {
-            gymId,
-            occurredAt: { gte: startOfToday },
-            outcome: "denied",
-          },
-        }),
-        db.accessEligibilitySnapshot.count({
-          where: {
-            gymId,
-            subjectType: "STUDENT",
-            authorizationStatus: "grace",
-          },
-        }),
-        db.accessEligibilitySnapshot.count({
-          where: {
-            gymId,
-            subjectType: "STUDENT",
-            authorizationStatus: "blocked",
-          },
-        }),
-        db.accessEvent.count({
-          where: {
-            gymId,
-            occurredAt: { gte: startOfToday },
-            status: "applied",
-            directionResolved: "entry",
-          },
-        }),
-        db.accessEvent.count({
-          where: {
-            gymId,
-            occurredAt: { gte: startOfToday },
-            status: "applied",
-            directionResolved: "exit",
-          },
-        }),
-      ]);
+    const [
+      presence,
+      recentFeed,
+      unresolvedEvents,
+      anomalousEvents,
+      devices,
+      allowedToday,
+      deniedToday,
+      graceStudents,
+      blockedStudents,
+      entriesToday,
+      exitsToday,
+    ] = await Promise.all([
+      AccessService.getPresence(gymId),
+      AccessService.getFeed(gymId, { limit: 12 }),
+      db.accessEvent.count({
+        where: { gymId, status: "pending_match" },
+      }),
+      db.accessEvent.count({
+        where: { gymId, status: "anomalous" },
+      }),
+      db.accessDevice.findMany({
+        where: { gymId },
+        select: { id: true, status: true },
+      }),
+      db.accessAuthorizationAttempt.count({
+        where: {
+          gymId,
+          occurredAt: { gte: startOfToday },
+          allowed: true,
+        },
+      }),
+      db.accessAuthorizationAttempt.count({
+        where: {
+          gymId,
+          occurredAt: { gte: startOfToday },
+          outcome: "denied",
+        },
+      }),
+      db.accessEligibilitySnapshot.count({
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          authorizationStatus: "grace",
+        },
+      }),
+      db.accessEligibilitySnapshot.count({
+        where: {
+          gymId,
+          subjectType: "STUDENT",
+          authorizationStatus: "blocked",
+        },
+      }),
+      db.accessEvent.count({
+        where: {
+          gymId,
+          occurredAt: { gte: startOfToday },
+          status: "applied",
+          directionResolved: "entry",
+        },
+      }),
+      db.accessEvent.count({
+        where: {
+          gymId,
+          occurredAt: { gte: startOfToday },
+          status: "applied",
+          directionResolved: "exit",
+        },
+      }),
+    ]);
 
-      const payload = {
-        gymId,
-        occupancyNow: presence.students.length + presence.personals.length,
-        activeStudents: presence.students.length,
-        activePersonals: presence.personals.length,
-        presentNow: presence.students.length + presence.personals.length,
-        entriesToday,
-        exitsToday,
-        allowedToday,
-        deniedToday,
-        graceStudents,
-        blockedStudents,
-        unresolvedEvents,
-        anomalousEvents,
-        offlineDevices: devices.filter((device) => device.status === "offline")
-          .length,
-        totalDevices: devices.length,
-        personPresentNow: presence.personals.length,
-        recentFeed,
-      };
+    const payload = {
+      gymId,
+      occupancyNow: presence.students.length + presence.personals.length,
+      activeStudents: presence.students.length,
+      activePersonals: presence.personals.length,
+      presentNow: presence.students.length + presence.personals.length,
+      entriesToday,
+      exitsToday,
+      allowedToday,
+      deniedToday,
+      graceStudents,
+      blockedStudents,
+      unresolvedEvents,
+      anomalousEvents,
+      offlineDevices: devices.filter((device) => device.status === "offline")
+        .length,
+      totalDevices: devices.length,
+      personPresentNow: presence.personals.length,
+      recentFeed,
+    };
 
     await setCachedJson(cacheKey, payload, ACCESS_CACHE_TTL_SECONDS);
     return payload;
@@ -862,7 +851,9 @@ export class AccessService {
     });
 
     const payload = sessions
-      .map((session) => projectSessionToLegacyCheckIn(toPresenceSessionRecord(session)))
+      .map((session) =>
+        projectSessionToLegacyCheckIn(toPresenceSessionRecord(session)),
+      )
       .filter((session): session is LegacyCheckInProjection => session != null);
 
     await setCachedJson(cacheKey, payload, LEGACY_RECENT_CHECKINS_TTL_SECONDS);
@@ -909,21 +900,36 @@ export class AccessService {
     });
 
     if (!device) {
-      throw new Error("Integração não encontrada");
+      throw new DomainError({
+        status: 404,
+        code: "ACCESS_INTEGRATION_NOT_FOUND",
+        message: "Integracao nao encontrada",
+        details: { ingestionKey },
+      });
     }
 
     if (device.status === "paused") {
-      throw new Error("Integração pausada");
+      throw new DomainError({
+        status: 409,
+        code: "ACCESS_INTEGRATION_PAUSED",
+        message: "Integracao pausada",
+        details: { deviceId: device.id },
+      });
     }
 
-    const secretHeader = headers["x-access-secret"] ?? headers["x-device-secret"];
+    const secretHeader =
+      headers["x-access-secret"] ?? headers["x-device-secret"];
     if (
       !verifyAccessSecret({
         candidate: secretHeader,
         secretHash: device.secretHash,
       })
     ) {
-      throw new Error("Segredo inválido");
+      throw new DomainError({
+        status: 401,
+        code: "ACCESS_INTEGRATION_SECRET_INVALID",
+        message: "Segredo invalido",
+      });
     }
 
     const rawEvent = await db.accessRawEvent.create({
@@ -969,25 +975,42 @@ export class AccessService {
     });
 
     if (!device) {
-      throw new Error("Integração não encontrada");
+      throw new DomainError({
+        status: 404,
+        code: "ACCESS_INTEGRATION_NOT_FOUND",
+        message: "Integracao nao encontrada",
+        details: { ingestionKey },
+      });
     }
 
     if (device.status === "paused") {
-      throw new Error("Integração pausada");
+      throw new DomainError({
+        status: 409,
+        code: "ACCESS_INTEGRATION_PAUSED",
+        message: "Integracao pausada",
+        details: { deviceId: device.id },
+      });
     }
 
-    const secretHeader = headers["x-access-secret"] ?? headers["x-device-secret"];
+    const secretHeader =
+      headers["x-access-secret"] ?? headers["x-device-secret"];
     if (
       !verifyAccessSecret({
         candidate: secretHeader,
         secretHash: device.secretHash,
       })
     ) {
-      throw new Error("Segredo inválido");
+      throw new DomainError({
+        status: 401,
+        code: "ACCESS_INTEGRATION_SECRET_INVALID",
+        message: "Segredo invalido",
+      });
     }
 
-    const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
-    const matchedSubject = await this.matchSubject(device.gymId, {
+    const occurredAt = input.occurredAt
+      ? new Date(input.occurredAt)
+      : new Date();
+    const matchedSubject = await AccessService.matchSubject(device.gymId, {
       identifierType: input.identifierType,
       identifierValue: input.identifierValue,
     });
@@ -1002,7 +1025,7 @@ export class AccessService {
     const authorizationStatus = snapshot?.authorizationStatus ?? "unknown";
     const financialStatus = snapshot?.financialStatus ?? "not_applicable";
     const reasonCode = matchedSubject
-      ? snapshot?.reasonCode ?? decision.reasonCode
+      ? (snapshot?.reasonCode ?? decision.reasonCode)
       : "subject_not_found";
     const allowed = matchedSubject
       ? isAuthorizationAllowed(
@@ -1043,7 +1066,11 @@ export class AccessService {
       },
     });
 
-    await this.touchDeviceActivity(device.id, occurredAt, device.status);
+    await AccessService.touchDeviceActivity(
+      device.id,
+      occurredAt,
+      device.status,
+    );
     await invalidateAccessCaches(device.gymId);
 
     return {
@@ -1089,30 +1116,48 @@ export class AccessService {
     });
 
     if (!device) {
-      throw new Error("Integração não encontrada");
+      throw new DomainError({
+        status: 404,
+        code: "ACCESS_INTEGRATION_NOT_FOUND",
+        message: "Integracao nao encontrada",
+        details: { ingestionKey },
+      });
     }
 
     if (device.status === "paused" && input.status !== "paused") {
-      throw new Error("Integração pausada");
+      throw new DomainError({
+        status: 409,
+        code: "ACCESS_INTEGRATION_PAUSED",
+        message: "Integracao pausada",
+        details: { deviceId: device.id },
+      });
     }
 
-    const secretHeader = headers["x-access-secret"] ?? headers["x-device-secret"];
+    const secretHeader =
+      headers["x-access-secret"] ?? headers["x-device-secret"];
     if (
       !verifyAccessSecret({
         candidate: secretHeader,
         secretHash: device.secretHash,
       })
     ) {
-      throw new Error("Segredo inválido");
+      throw new DomainError({
+        status: 401,
+        code: "ACCESS_INTEGRATION_SECRET_INVALID",
+        message: "Segredo invalido",
+      });
     }
 
-    const heartbeatAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
+    const heartbeatAt = input.occurredAt
+      ? new Date(input.occurredAt)
+      : new Date();
 
     await db.accessDevice.update({
       where: { id: device.id },
       data: {
         lastHeartbeatAt: heartbeatAt,
-        status: input.status ?? (device.status === "paused" ? "paused" : "active"),
+        status:
+          input.status ?? (device.status === "paused" ? "paused" : "active"),
       },
     });
 
@@ -1182,7 +1227,7 @@ export class AccessService {
         },
       });
 
-      await this.touchDeviceActivity(
+      await AccessService.touchDeviceActivity(
         rawEvent.deviceId,
         normalized.occurredAt,
         rawEvent.device.status,
@@ -1191,7 +1236,7 @@ export class AccessService {
       return duplicate;
     }
 
-    const matchedSubject = await this.matchSubject(rawEvent.gymId, {
+    const matchedSubject = await AccessService.matchSubject(rawEvent.gymId, {
       identifierType: normalized.identifierType,
       identifierValue: normalized.identifierValue,
     });
@@ -1233,7 +1278,7 @@ export class AccessService {
         },
       });
 
-      await this.touchDeviceActivity(
+      await AccessService.touchDeviceActivity(
         rawEvent.deviceId,
         normalized.occurredAt,
         rawEvent.device.status,
@@ -1244,7 +1289,7 @@ export class AccessService {
     }
 
     const applied = await db.$transaction(async (tx) => {
-      const openSession = await this.findOpenSession(
+      const openSession = await AccessService.findOpenSession(
         tx,
         rawEvent.gymId,
         matchedSubject,
@@ -1365,7 +1410,7 @@ export class AccessService {
                   ...(toJsonRecord(openSession!.inferenceFlags) ?? {}),
                   direction: "inferred_auto",
                 })
-              : openSession!.inferenceFlags ?? undefined,
+              : (openSession!.inferenceFlags ?? undefined),
           },
         });
       }
@@ -1386,7 +1431,7 @@ export class AccessService {
       },
     });
 
-    await this.touchDeviceActivity(
+    await AccessService.touchDeviceActivity(
       rawEvent.deviceId,
       normalized.occurredAt,
       rawEvent.device.status,
@@ -1427,14 +1472,18 @@ export class AccessService {
       throw new Error("subjectType e subjectId são obrigatórios");
     }
 
-    const subject = await this.resolveManualSubject(
+    const subject = await AccessService.resolveManualSubject(
       gymId,
       input.subjectType,
       input.subjectId,
     );
 
     const updated = await db.$transaction(async (tx) => {
-      const openSession = await this.findOpenSession(tx, gymId, subject);
+      const openSession = await AccessService.findOpenSession(
+        tx,
+        gymId,
+        subject,
+      );
       const direction =
         event.directionResolved !== "unknown"
           ? event.directionResolved
@@ -1529,7 +1578,7 @@ export class AccessService {
     });
 
     if (input.createBinding && event.identifierType && event.identifierValue) {
-      await this.createBinding(gymId, {
+      await AccessService.createBinding(gymId, {
         subjectType: input.subjectType,
         subjectId: input.subjectId,
         identifierType: event.identifierType,
@@ -1554,13 +1603,18 @@ export class AccessService {
     },
     actor: AccessActor,
   ) {
-    const subject = await this.resolveManualSubject(
+    const subject = await AccessService.resolveManualSubject(
       gymId,
       input.subjectType,
       input.subjectId,
     );
 
-    const event = await this.applyManualEvent(gymId, input, actor, subject);
+    const event = await AccessService.applyManualEvent(
+      gymId,
+      input,
+      actor,
+      subject,
+    );
     await invalidateAccessCaches(gymId);
     return event;
   }
@@ -1598,24 +1652,19 @@ export class AccessService {
       throw new Error("Aluno não vinculado a este personal nesta academia");
     }
 
-    const event = await this.applyManualEvent(
-      gymId,
-      input,
-      actor,
-      {
-        subjectType: "STUDENT",
-        subjectId: assignment.studentId,
-        studentId: assignment.studentId,
-        subjectName: assignment.student.user.name,
-      },
-    );
+    const event = await AccessService.applyManualEvent(gymId, input, actor, {
+      subjectType: "STUDENT",
+      subjectId: assignment.studentId,
+      studentId: assignment.studentId,
+      subjectName: assignment.student.user.name,
+    });
 
     await invalidateAccessCaches(gymId);
     return event;
   }
 
   static async createLegacyGymCheckIn(gymId: string, studentId: string) {
-    const event = await this.createManualEventForGym(
+    const event = await AccessService.createManualEventForGym(
       gymId,
       {
         subjectType: "STUDENT",
@@ -1666,7 +1715,7 @@ export class AccessService {
       throw new Error("Check-in não encontrado");
     }
 
-    await this.createManualEventForGym(
+    await AccessService.createManualEventForGym(
       gymId,
       {
         subjectType: "STUDENT",
@@ -1895,7 +1944,11 @@ export class AccessService {
     });
 
     return db.$transaction(async (tx) => {
-      const openSession = await this.findOpenSession(tx, gymId, subject);
+      const openSession = await AccessService.findOpenSession(
+        tx,
+        gymId,
+        subject,
+      );
 
       if (input.direction === "entry" && openSession) {
         throw new Error("Já existe presença aberta para este usuário");

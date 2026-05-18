@@ -1,3 +1,4 @@
+import { DomainError } from "@gymrats/domain";
 import { GymAccessEligibilityService } from "@gymrats/domain/services/gym/gym-access-eligibility.service";
 import {
   gymPaymentIdParamsSchema,
@@ -11,10 +12,24 @@ export const PATCH = createSafeHandler(
     const gymId = gymContext?.gymId;
     const paymentId = params?.paymentId;
     if (!gymId || !paymentId) {
-      return NextResponse.json(
-        { error: "Contexto do pagamento invalido" },
-        { status: 400 },
-      );
+      throw new DomainError({
+        status: 400,
+        code: "PAYMENT_CONTEXT_INVALID",
+        message: "Contexto do pagamento inválido",
+      });
+    }
+
+    if (body.status === "paid") {
+      throw new DomainError({
+        status: 409,
+        code: "PAYMENT_STATUS_REQUIRES_SETTLEMENT",
+        message:
+          "Liquidação deve ser feita via /api/gyms/payments/[paymentId]/settle",
+        details: {
+          paymentId,
+          attemptedStatus: body.status,
+        },
+      });
     }
 
     const payment = await GymAccessEligibilityService.updatePaymentStatus(
