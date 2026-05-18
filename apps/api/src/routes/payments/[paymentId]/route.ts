@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
-import { persistBusinessEvent } from "@/lib/observability";
 import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
@@ -14,7 +13,7 @@ const patchBodySchema = z.object({
 
 /**
  * GET /api/payments/[paymentId]
- * Retorna o status de um pagamento específico (para poll do modal PIX).
+ * Retorna o status de um pagamento especifico (para poll do modal PIX).
  * Auth: student (deve ser dono do pagamento).
  */
 export const GET = createSafeHandler(
@@ -29,7 +28,7 @@ export const GET = createSafeHandler(
 
     if (!payment) {
       return NextResponse.json(
-        { error: "Pagamento não encontrado" },
+        { error: "Pagamento nao encontrado" },
         { status: 404 },
       );
     }
@@ -49,8 +48,8 @@ export const GET = createSafeHandler(
 
 /**
  * PATCH /api/payments/[paymentId]
- * Cancela um pagamento pendente (ex.: usuário fechou o modal PIX pelo X ou fora).
- * Auth: student (deve ser dono do pagamento). Só permite status "canceled" e apenas se o pagamento estiver pending/overdue.
+ * Nao permite cancelamento de cobranca por aluno.
+ * Auth: student (deve ser dono do pagamento). Mantido para contrato legado, mas retorna 409.
  */
 export const PATCH = createSafeHandler(
   async ({ studentContext, params, body }) => {
@@ -58,7 +57,7 @@ export const PATCH = createSafeHandler(
     patchBodySchema.parse(body);
     const studentId = studentContext?.studentId;
     if (!studentId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
     }
 
     const payment = await db.payment.findFirst({
@@ -68,34 +67,22 @@ export const PATCH = createSafeHandler(
 
     if (!payment) {
       return NextResponse.json(
-        { error: "Pagamento não encontrado" },
+        { error: "Pagamento nao encontrado" },
         { status: 404 },
       );
     }
 
-    if (payment.status !== "pending" && payment.status !== "overdue") {
-      return NextResponse.json(
-        { error: "Só é possível cancelar pagamento pendente ou em atraso" },
-        { status: 400 },
-      );
-    }
-
-    await db.payment.update({
-      where: { id: paymentId },
-      data: { status: "canceled" },
-    });
-
-    await persistBusinessEvent({
-      eventType: "payment.canceled",
-      domain: "payments",
-      actorId: studentId,
-      status: "success",
-      payload: {
-        paymentId,
+    return NextResponse.json(
+      {
+        error: "Cancelamento de cobranca nao e permitido para aluno",
+        code: "PAYMENT_CANCEL_NOT_ALLOWED",
+        details: {
+          paymentId,
+          currentStatus: payment.status,
+        },
       },
-    });
-
-    return NextResponse.json({ ok: true });
+      { status: 409 },
+    );
   },
   {
     auth: "student",

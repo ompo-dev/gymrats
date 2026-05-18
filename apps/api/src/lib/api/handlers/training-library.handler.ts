@@ -2,12 +2,18 @@ import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
 import {
+  assertActorCanAccessTrainingLibraryPlan,
+  filterVisibleTrainingLibraryPlansForActor,
+  isTrainingLibraryAccessError,
+  resolveAuthorizedTrainingLibraryStudentId,
+} from "@/lib/services/workouts/training-library-access.service";
+import {
   getTrainingLibraryPlanDetail,
   invalidateTrainingLibraryCache,
   listTrainingLibraryPlans,
 } from "@/lib/services/workouts/training-library-read.service";
 import { invalidateWeeklyPlanCache } from "@/lib/use-cases/workouts/get-weekly-plan";
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
+import { NextResponse, type NextRequest } from "@/runtime/next-server";
 import { requireAuth, requireStudent } from "../middleware/auth.middleware";
 import {
   activateLibraryPlanSchema,
@@ -22,6 +28,21 @@ import {
   unauthorizedResponse,
 } from "../utils/response.utils";
 
+function mapTrainingLibraryAccessError(error: unknown): NextResponse | null {
+  if (!isTrainingLibraryAccessError(error)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      error: error.message,
+      message: error.message,
+      code: error.code,
+    },
+    { status: error.status },
+  );
+}
+
 // ==========================================
 // LIBRARY (CRUD)
 // ==========================================
@@ -35,26 +56,35 @@ export async function getLibraryPlansHandler(
 
     const url = new URL(request.url);
     const studentIdParam = url.searchParams.get("studentId");
-
-    const studentId = studentIdParam || auth.user.student?.id || "";
-
-    if (!studentId) {
-      return badRequestResponse(
-        "studentId não identificado ou ausente para este usuário",
-      );
-    }
+    const studentId = await resolveAuthorizedTrainingLibraryStudentId(
+      auth,
+      studentIdParam,
+    );
 
     const libraryPlans = await listTrainingLibraryPlans(studentId, {
       fresh: url.searchParams.get("fresh") === "1",
     });
+    const plansWithCreatorContext = libraryPlans.map((plan) => ({
+      ...plan,
+      creatorType: plan.creatorType ?? null,
+      createdById: plan.createdById ?? null,
+    }));
+    const visiblePlans = await filterVisibleTrainingLibraryPlansForActor(
+      auth,
+      plansWithCreatorContext,
+    );
 
-    return successResponse({ data: libraryPlans });
+    return successResponse({ data: visiblePlans });
   } catch (error) {
+    const mapped = mapTrainingLibraryAccessError(error);
+    if (mapped) {
+      return mapped;
+    }
+
     log.error("Error fetching library plans", { error });
     return internalErrorResponse("Erro ao buscar treinos da biblioteca");
   }
 }
-
 export async function getLibraryPlanDetailHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -69,26 +99,31 @@ export async function getLibraryPlanDetailHandler(
       fresh: url.searchParams.get("fresh") === "1",
     });
 
-    if (!plan) {
-      return notFoundResponse("Plano nÃ£o encontrado");
+    if (!plan || !plan.isLibraryTemplate) {
+      return notFoundResponse("Plano nao encontrado");
     }
 
-    if (
-      auth.user.role === "STUDENT" &&
-      plan.studentId !== auth.user.student?.id
-    ) {
-      return unauthorizedResponse(
-        "Sem permissÃ£o para acessar treino de outro aluno",
-      );
-    }
+    await assertActorCanAccessTrainingLibraryPlan(
+      auth,
+      {
+        studentId: plan.studentId,
+        createdById: plan.createdById,
+        creatorType: plan.creatorType,
+      },
+      "detail",
+    );
 
     return successResponse({ data: plan });
   } catch (error) {
+    const mapped = mapTrainingLibraryAccessError(error);
+    if (mapped) {
+      return mapped;
+    }
+
     log.error("Error fetching library plan detail", { error });
     return internalErrorResponse("Erro ao buscar treino da biblioteca");
   }
 }
-
 export async function createLibraryPlanHandler(
   request: NextRequest,
 ): Promise<NextResponse> {
@@ -100,7 +135,7 @@ export async function createLibraryPlanHandler(
     const validation = createWeeklyPlanSchema.safeParse(body);
 
     if (!validation.success) {
-      return badRequestResponse("Dados inválidos", validation.error.flatten());
+      return badRequestResponse("Dados invalidos", validation.error.flatten());
     }
 
     const {
@@ -111,49 +146,51 @@ export async function createLibraryPlanHandler(
     } = validation.data;
     const isLibrary = isLibraryTemplate ?? true;
 
-    const targetStudentId = bodyStudentId || auth.user.student?.id;
+    const targetStudentId = await resolveAuthorizedTrainingLibraryStudentId(
+      auth,
+      bodyStudentId,
+    );
+
     let createdById: string | null = null;
-    let creatorType: string | null = "STUDENT" as string | null;
+    let creatorType: string | null = "STUDENT";
 
-    if (!targetStudentId) {
-      return badRequestResponse("Destino não identificado");
-    }
-
-    if (bodyStudentId && auth.user.role === "GYM") {
-      createdById = auth.user.gyms?.[0]?.id ?? null;
+    if (auth.user.role === "GYM") {
+      createdById =
+        (typeof auth.user.activeGymId === "string" && auth.user.activeGymId) ||
+        auth.user.gyms?.[0]?.id ||
+        null;
       creatorType = "GYM";
-      const hasPlan = await db.weeklyPlan.findFirst({
-        where: {
-          studentId: targetStudentId,
-          createdById,
-          isLibraryTemplate: true,
-        },
-      });
-      if (hasPlan)
-        return badRequestResponse(
-          "A academia só pode ter 1 treino na biblioteca deste aluno.",
-        );
-    } else if (bodyStudentId && auth.user.role === "PERSONAL") {
+    } else if (auth.user.role === "PERSONAL") {
       createdById = auth.user.personal?.id ?? null;
       creatorType = "PERSONAL";
-      const hasPlan = await db.weeklyPlan.findFirst({
-        where: {
-          studentId: targetStudentId,
-          createdById,
-          isLibraryTemplate: true,
-        },
-      });
-      if (hasPlan)
-        return badRequestResponse(
-          "O personal só pode ter 1 treino na biblioteca deste aluno.",
-        );
     } else {
       createdById = auth.user.student?.id ?? null;
       creatorType = "STUDENT";
     }
 
+    if ((auth.user.role === "GYM" || auth.user.role === "PERSONAL") && !createdById) {
+      return unauthorizedResponse("Contexto de criador nao encontrado");
+    }
+
+    if (auth.user.role === "GYM" || auth.user.role === "PERSONAL") {
+      const hasPlan = await db.weeklyPlan.findFirst({
+        where: {
+          studentId: targetStudentId,
+          createdById,
+          isLibraryTemplate: true,
+        },
+      });
+
+      if (hasPlan) {
+        return badRequestResponse(
+          auth.user.role === "GYM"
+            ? "A academia so pode ter 1 treino na biblioteca deste aluno."
+            : "O personal so pode ter 1 treino na biblioteca deste aluno.",
+        );
+      }
+    }
+
     if (sourceWeeklyPlanId) {
-      // 1. Clona o plano ao invés de criar vazio
       const masterPlan = await db.weeklyPlan.findUnique({
         where: { id: sourceWeeklyPlanId },
         include: {
@@ -162,14 +199,28 @@ export async function createLibraryPlanHandler(
       });
 
       if (!masterPlan) {
-        return notFoundResponse("Plano de origem não encontrado");
+        return notFoundResponse("Plano de origem nao encontrado");
       }
+
+      if (!masterPlan.isLibraryTemplate) {
+        return badRequestResponse("Plano de origem nao pertence a biblioteca");
+      }
+
+      await assertActorCanAccessTrainingLibraryPlan(
+        auth,
+        {
+          studentId: masterPlan.studentId,
+          createdById: masterPlan.createdById,
+          creatorType: masterPlan.creatorType,
+        },
+        "clone",
+      );
 
       const result = await db.$transaction(async (tx) => {
         const cloneWeeklyPlan = await tx.weeklyPlan.create({
           data: {
             studentId: targetStudentId,
-            title: title || masterPlan.title || "Cópia do Plano",
+            title: title || masterPlan.title || "Copia do Plano",
             description: masterPlan.description,
             isLibraryTemplate: isLibrary,
             createdById,
@@ -177,7 +228,6 @@ export async function createLibraryPlanHandler(
           },
         });
 
-        // 2.B - Clona cada slot e seus workouts
         for (const masterSlot of masterPlan.slots) {
           let newWorkoutId: string | null = null;
           if (masterSlot.workout) {
@@ -277,11 +327,15 @@ export async function createLibraryPlanHandler(
       201,
     );
   } catch (error) {
+    const mapped = mapTrainingLibraryAccessError(error);
+    if (mapped) {
+      return mapped;
+    }
+
     log.error("Error creating library plan", { error });
     return internalErrorResponse("Erro ao criar plano na biblioteca");
   }
 }
-
 // Para update
 export async function updateLibraryPlanHandler(
   request: NextRequest,
@@ -296,46 +350,23 @@ export async function updateLibraryPlanHandler(
     const validation = updateWeeklyPlanSchema.safeParse(body);
 
     if (!validation.success) {
-      return badRequestResponse("Dados inválidos", validation.error.flatten());
+      return badRequestResponse("Dados invalidos", validation.error.flatten());
     }
 
     const plan = await db.weeklyPlan.findUnique({ where: { id } });
-    if (!plan) return notFoundResponse("Plano não encontrado");
+    if (!plan) return notFoundResponse("Plano nao encontrado");
     if (!plan.isLibraryTemplate)
-      return badRequestResponse("Plano não está na biblioteca");
+      return badRequestResponse("Plano nao esta na biblioteca");
 
-    // Access control
-    if (
-      auth.user.role === "STUDENT" &&
-      plan.studentId !== auth.user.student?.id
-    ) {
-      return unauthorizedResponse(
-        "Sem permissão para editar treino de outro aluno",
-      );
-    }
-    if (
-      auth.user.role === "GYM" &&
-      plan.createdById !== auth.user.gyms?.[0]?.id
-    ) {
-      return unauthorizedResponse(
-        "Sem permissão para editar treino de outra academia",
-      );
-    }
-    if (auth.user.role === "PERSONAL") {
-      if (plan.createdById !== auth.user.personal?.id) {
-        let isAffiliated = false;
-        if (plan.creatorType === "GYM") {
-          const rel = await db.gymPersonalAffiliation.findFirst({
-            where: {
-              personalId: auth.user.personal?.id,
-              gymId: plan.createdById!,
-            },
-          });
-          if (rel) isAffiliated = true;
-        }
-        if (!isAffiliated) return unauthorizedResponse("Sem permissão.");
-      }
-    }
+    await assertActorCanAccessTrainingLibraryPlan(
+      auth,
+      {
+        studentId: plan.studentId,
+        createdById: plan.createdById,
+        creatorType: plan.creatorType,
+      },
+      "update",
+    );
 
     const updatedPlan = await db.weeklyPlan.update({
       where: { id },
@@ -362,11 +393,15 @@ export async function updateLibraryPlanHandler(
       message: "Plano editado com sucesso",
     });
   } catch (error) {
+    const mapped = mapTrainingLibraryAccessError(error);
+    if (mapped) {
+      return mapped;
+    }
+
     log.error("Error updating library plan", { error });
     return internalErrorResponse("Erro ao editar");
   }
 }
-
 export async function deleteLibraryPlanHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -378,43 +413,19 @@ export async function deleteLibraryPlanHandler(
     const { id } = await params;
     const plan = await db.weeklyPlan.findUnique({ where: { id } });
 
-    if (!plan) return notFoundResponse("Plano não encontrado");
+    if (!plan) return notFoundResponse("Plano nao encontrado");
     if (!plan.isLibraryTemplate)
-      return badRequestResponse("Plano não está na biblioteca");
+      return badRequestResponse("Plano nao esta na biblioteca");
 
-    // Access control
-    if (
-      auth.user.role === "STUDENT" &&
-      plan.studentId !== auth.user.student?.id
-    ) {
-      return unauthorizedResponse(
-        "Sem permissão para deletar treino de outro aluno",
-      );
-    }
-    if (
-      auth.user.role === "GYM" &&
-      plan.createdById !== auth.user.gyms?.[0]?.id
-    ) {
-      return unauthorizedResponse(
-        "Sem permissão para deletar treino de outra academia",
-      );
-    }
-    if (auth.user.role === "PERSONAL") {
-      if (plan.createdById !== auth.user.personal?.id) {
-        // Não é dele, ele é afiliado da gym que criou?
-        let isAffiliated = false;
-        if (plan.creatorType === "GYM") {
-          const rel = await db.gymPersonalAffiliation.findFirst({
-            where: {
-              personalId: auth.user.personal?.id,
-              gymId: plan.createdById!,
-            },
-          });
-          if (rel) isAffiliated = true;
-        }
-        if (!isAffiliated) return unauthorizedResponse("Sem permissão.");
-      }
-    }
+    await assertActorCanAccessTrainingLibraryPlan(
+      auth,
+      {
+        studentId: plan.studentId,
+        createdById: plan.createdById,
+        creatorType: plan.creatorType,
+      },
+      "delete",
+    );
 
     await db.weeklyPlan.delete({ where: { id } });
     await invalidateTrainingLibraryCache({
@@ -423,11 +434,15 @@ export async function deleteLibraryPlanHandler(
     });
     return successResponse({ message: "Plano deletado com sucesso" });
   } catch (error) {
+    const mapped = mapTrainingLibraryAccessError(error);
+    if (mapped) {
+      return mapped;
+    }
+
     log.error("Error deleting library plan", { error });
     return internalErrorResponse("Erro ao deletar");
   }
 }
-
 // ==========================================
 // ACTIVATE (CLONE LIBRARY TO ACTIVE PLAN)
 // ==========================================

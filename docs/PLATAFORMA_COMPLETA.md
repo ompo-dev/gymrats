@@ -60,7 +60,7 @@ As principais receitas hoje no codigo sao:
 #### Receita 1: assinatura do aluno
 
 - Plano `Premium`
-- Plano `Pro` no catalogo de planos e no motor de acesso
+- Plano `Pro` existe no catalogo/motor, mas nao esta ofertado no funil self-service atual do aluno
 
 #### Receita 2: assinatura da academia
 
@@ -172,7 +172,7 @@ Fonte principal: `packages/access-control/src/plans-config.ts`
 | Plano | Mensal | Anual | Observacao |
 | --- | ---: | ---: | --- |
 | Premium | R$ 6,00 | R$ 60,00 | treino IA, nutricao IA e recursos premium do app |
-| Pro | R$ 150,00 | R$ 1.500,00 | inclui Premium + network access |
+| Pro | R$ 150,00 | R$ 1.500,00 | capacidade de catalogo/motor; sem oferta ativa no funil self-service atual |
 
 Features comerciais do `Premium`:
 
@@ -182,7 +182,7 @@ Features comerciais do `Premium`:
 - historico de treinos e recordes
 - integracao com academias parceiras
 
-Features comerciais do `Pro`:
+Features comerciais do `Pro` (quando habilitado fora do funil atual):
 
 - tudo do Premium
 - acesso livre a toda rede parceira
@@ -381,8 +381,7 @@ Fluxo:
 Nuance atual:
 
 - o handler principal de student hoje cria checkout para `premium`
-- o catalogo e o motor de acesso ja conhecem `PRO`
-- o webhook tambem sabe marcar `Pro`, mas o self-service principal inspecionado ainda esta mais orientado a `Premium`
+- `PRO` permanece como capacidade de catalogo/motor/webhook, sem exposicao no checkout self-service atual do aluno
 
 ## 7.5 O que acontece quando uma academia assina o plano Enterprise
 

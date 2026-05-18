@@ -948,7 +948,7 @@ Estados possiveis:
 Accoes:
 
 - iniciar trial
-- assinar premium/pro
+- assinar premium (funil atual)
 - cancelar assinatura
 
 Detalhes importantes:

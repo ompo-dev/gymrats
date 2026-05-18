@@ -133,16 +133,55 @@ function isFresh(meta: SubscriptionMeta) {
   return Date.now() - new Date(meta.lastFetchedAt).getTime() < STALE_MS;
 }
 
+function inferBillingPeriodFromPlanName(plan: string): "monthly" | "annual" {
+  const normalizedPlan = plan.toLowerCase();
+  if (normalizedPlan.includes("anual") || normalizedPlan.includes("annual")) {
+    return "annual";
+  }
+
+  return "monthly";
+}
+
+function normalizeLegacyStudentPlan(subscription: StudentSubscriptionData): {
+  plan: string;
+  billingPeriod?: "monthly" | "annual";
+} {
+  const normalizedPlan = subscription.plan.toLowerCase();
+  const isLegacyPro =
+    normalizedPlan.includes("pro") && !normalizedPlan.includes("pro_ai");
+
+  if (!isLegacyPro) {
+    return {
+      plan: subscription.plan,
+      billingPeriod: subscription.billingPeriod,
+    };
+  }
+
+  const billingPeriod =
+    subscription.billingPeriod ??
+    inferBillingPeriodFromPlanName(subscription.plan);
+
+  return {
+    plan: billingPeriod === "annual" ? "Premium Anual" : "Premium Mensal",
+    billingPeriod,
+  };
+}
+
 function normalizeSubscription<T extends SubscriptionLike>(
   subscription: T | null,
 ): T | null {
   if (!subscription) return null;
 
+  const normalizedStudentPlan =
+    "basePrice" in subscription ? null : normalizeLegacyStudentPlan(subscription);
   const trialEnd = subscription.trialEnd
     ? new Date(subscription.trialEnd)
     : null;
   const normalized = {
     ...subscription,
+    plan: normalizedStudentPlan?.plan ?? subscription.plan,
+    billingPeriod:
+      normalizedStudentPlan?.billingPeriod ?? subscription.billingPeriod,
     currentPeriodStart: subscription.currentPeriodStart
       ? new Date(subscription.currentPeriodStart)
       : undefined,

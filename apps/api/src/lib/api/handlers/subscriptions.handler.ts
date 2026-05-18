@@ -22,6 +22,52 @@ import {
   successResponse,
 } from "../utils/response.utils";
 
+type StudentSubscriptionWithPlan = {
+  plan?: string | null;
+  billingPeriod?: string | null;
+};
+
+function inferStudentBillingPeriod(
+  subscription: StudentSubscriptionWithPlan,
+): "monthly" | "annual" {
+  if (subscription.billingPeriod === "monthly") {
+    return "monthly";
+  }
+  if (subscription.billingPeriod === "annual") {
+    return "annual";
+  }
+
+  const normalizedPlan = String(subscription.plan || "").toLowerCase();
+  if (normalizedPlan.includes("anual") || normalizedPlan.includes("annual")) {
+    return "annual";
+  }
+
+  return "monthly";
+}
+
+function normalizeLegacyStudentSubscriptionPlan<
+  T extends StudentSubscriptionWithPlan | null,
+>(subscription: T): T {
+  if (!subscription || typeof subscription.plan !== "string") {
+    return subscription;
+  }
+
+  const normalizedPlan = subscription.plan.toLowerCase();
+  const isLegacyPro =
+    normalizedPlan.includes("pro") && !normalizedPlan.includes("pro_ai");
+
+  if (!isLegacyPro) {
+    return subscription;
+  }
+
+  const billingPeriod = inferStudentBillingPeriod(subscription);
+  return {
+    ...subscription,
+    plan: billingPeriod === "annual" ? "Premium Anual" : "Premium Mensal",
+    billingPeriod,
+  } as T;
+}
+
 /**
  * GET /api/subscriptions/current
  * Busca assinatura atual do student
@@ -43,7 +89,9 @@ export async function getCurrentSubscriptionHandler(
     }
 
     const { subscription } = await getCurrentSubscriptionUseCase(studentId);
-    const sub = subscription as {
+    const normalizedSubscription =
+      normalizeLegacyStudentSubscriptionPlan(subscription);
+    const sub = normalizedSubscription as {
       id?: string;
       status?: string;
       source?: string;
@@ -71,7 +119,10 @@ export async function getCurrentSubscriptionHandler(
       isFirstPayment = true; // Trial mantém indicação disponível
     }
 
-    return successResponse({ subscription, isFirstPayment });
+    return successResponse({
+      subscription: normalizedSubscription,
+      isFirstPayment,
+    });
   } catch (error) {
     log.error("[getCurrentSubscriptionHandler] Erro", {
       error: error instanceof Error ? error.message : String(error),

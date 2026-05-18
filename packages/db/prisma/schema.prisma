@@ -1185,7 +1185,7 @@ model AccessDevice {
   externalDeviceId    String?
   externalSerial      String?
   ingestionKey        String             @unique
-  secretHash          String?
+  secretHash          String
   directionMode       String             @default("auto")
   dedupeWindowSeconds Int                @default(120)
   payloadTemplate     Json?

@@ -182,13 +182,15 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 
   const availablePlans = useMemo(
     () =>
-      Object.values(STUDENT_PLANS_CONFIG).map((config) => ({
-        id: config.id,
-        name: config.name,
-        monthlyPrice: centsToReais(config.prices.monthly),
-        annualPrice: centsToReais(config.prices.annual),
-        features: config.features,
-      })),
+      Object.values(STUDENT_PLANS_CONFIG)
+        .filter((config) => config.id === "premium")
+        .map((config) => ({
+          id: config.id,
+          name: config.name,
+          monthlyPrice: centsToReais(config.prices.monthly),
+          annualPrice: centsToReais(config.prices.annual),
+          features: config.features,
+        })),
     [],
   );
 
@@ -321,12 +323,9 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     }
   };
 
-  const handleCancelPayment = useCallback(
-    async (paymentId: string) => {
-      await paymentFlow.cancelPayment.mutateAsync(paymentId);
-    },
-    [paymentFlow.cancelPayment],
-  );
+  const handleCancelPayment = useCallback(async (_paymentId: string) => {
+    // RES-003: fechar modal PIX nao cancela cobranca.
+  }, []);
 
   const handleStartTrial = async () => {
     try {

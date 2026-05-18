@@ -168,6 +168,10 @@ model SubscriptionPayment {
 | Premium Mensal | Mensal | R$ 15,00 | - |
 | Premium Anual | Anual | R$ 150,00 | ~17% (2 meses grátis) |
 
+Nota de escopo do funil atual (student):
+- o checkout self-service exposto ao aluno está em `premium` (mensal/anual);
+- `Pro` pode existir em catálogo/motor para cenários controlados, mas não é oferta ativa neste funil.
+
 Os preços são definidos em centavos no server action:
 
 ```typescript

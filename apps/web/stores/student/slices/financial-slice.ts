@@ -308,45 +308,9 @@ export function createFinancialSlice(
       );
       return response.data;
     },
-    cancelStudentPayment: async (paymentId: string) => {
-      const previousPayments = get().data.payments;
-
-      set((state) => ({
-        data: {
-          ...state.data,
-          payments: state.data.payments.map((payment) =>
-            payment.id === paymentId
-              ? { ...payment, status: "canceled" }
-              : payment,
-          ),
-        },
-      }));
-
-      try {
-        await apiClient.patch(
-          `/api/payments/${paymentId}`,
-          {
-            status: "canceled",
-          },
-          {
-            headers: {
-              "X-Idempotency-Key": createIdempotencyKey(
-                "student-cancel-payment",
-                paymentId,
-              ),
-            },
-          },
-        );
-      } catch (error) {
-        set((state) => ({
-          data: {
-            ...state.data,
-            payments: previousPayments,
-          },
-        }));
-
-        throw error;
-      }
+    cancelStudentPayment: async (_paymentId: string) => {
+      // RES-003: cancelamento de cobranca por aluno nao e permitido.
+      // Fechar o modal PIX deve apenas encerrar a UI e manter a pendencia.
     },
     getStudentPaymentStatus: async (paymentId: string) => {
       const response = await apiClient.get<{ status: string }>(

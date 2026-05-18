@@ -342,6 +342,28 @@ function SubscriptionSectionSimple({
   const isTrialEnding =
     isTrialActive && daysRemaining !== null && daysRemaining <= trialEndingDays;
 
+  const resolveStudentBillingPeriod = (
+    currentSubscription: SubscriptionSectionProps["subscription"],
+  ): "monthly" | "annual" => {
+    if (!currentSubscription) {
+      return "monthly";
+    }
+
+    if (
+      currentSubscription.billingPeriod === "monthly" ||
+      currentSubscription.billingPeriod === "annual"
+    ) {
+      return currentSubscription.billingPeriod;
+    }
+
+    const planName = String(currentSubscription.plan || "").toLowerCase();
+    if (planName.includes("anual") || planName.includes("annual")) {
+      return "annual";
+    }
+
+    return "monthly";
+  };
+
   // Determinar quando mostrar os planos
   // Para gym: sempre mostrar planos quando ha subscription (para permitir upgrade/downgrade)
   // Para student: nao mostrar upgrade quando Premium via academia; so "mudar para anual" se OWN mensal
@@ -370,14 +392,8 @@ function SubscriptionSectionSimple({
 
       // Para student: mostrar planos para upgrade
       if (userType === "student") {
-        const planName = String(subscription.plan).toLowerCase();
-        const currentBillingPeriod = subscription.billingPeriod || "monthly";
-
-        // Se for PRO anual, nao ha upgrade
-        if (planName.includes("pro") && currentBillingPeriod === "annual") {
-          return false;
-        }
-        return true;
+        const currentBillingPeriod = resolveStudentBillingPeriod(subscription);
+        return currentBillingPeriod === "monthly";
       }
       // Para gym: sempre mostrar todos os planos (para permitir upgrade/downgrade)
       return true;
@@ -395,7 +411,8 @@ function SubscriptionSectionSimple({
       case "always":
         // Para student com subscription ativa anual, nao mostrar mesmo com "always"
         if (userType === "student" && subscription && isPremiumActive) {
-          const currentBillingPeriod = subscription.billingPeriod || "monthly";
+          const currentBillingPeriod =
+            resolveStudentBillingPeriod(subscription);
           return currentBillingPeriod === "monthly";
         }
         return true;

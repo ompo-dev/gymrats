@@ -32,7 +32,7 @@ import {
   setCachedJson,
 } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
-import { log } from "@/lib/observability";
+import { log, persistBusinessEvent } from "@/lib/observability";
 
 const ACCESS_CACHE_TTL_SECONDS = 15;
 const LEGACY_RECENT_CHECKINS_TTL_SECONDS = 10;
@@ -79,7 +79,7 @@ function verifyAccessSecret(input: {
   secretHash?: string | null;
 }) {
   if (!input.secretHash) {
-    return true;
+    return false;
   }
 
   if (!input.candidate) {
@@ -94,6 +94,49 @@ function verifyAccessSecret(input: {
   }
 
   return timingSafeEqual(left, right);
+}
+
+function hasConfiguredAccessSecret(secretHash?: string | null) {
+  return Boolean(secretHash?.trim());
+}
+
+async function assertAccessSecretConfiguredOrThrow(input: {
+  ingestionKey: string;
+  operation: "ingest" | "authorize" | "heartbeat";
+  device: {
+    id: string;
+    gymId: string;
+    secretHash?: string | null;
+  };
+}) {
+  if (hasConfiguredAccessSecret(input.device.secretHash)) {
+    return;
+  }
+
+  const details = {
+    ingestionKey: input.ingestionKey,
+    operation: input.operation,
+    deviceId: input.device.id,
+    gymId: input.device.gymId,
+  };
+
+  log.warn("[access] integration blocked: missing secretHash", details);
+  await persistBusinessEvent({
+    eventType: "access.integration.blocked",
+    domain: "access",
+    status: "failure",
+    payload: {
+      ...details,
+      reasonCode: "ACCESS_INTEGRATION_SECRET_NOT_CONFIGURED",
+    },
+  });
+
+  throw new DomainError({
+    status: 503,
+    code: "ACCESS_INTEGRATION_SECRET_NOT_CONFIGURED",
+    message: "Integracao sem segredo configurado",
+    details,
+  });
 }
 
 function toAccessDeviceSnapshot(device: {
@@ -917,6 +960,12 @@ export class AccessService {
       });
     }
 
+    await assertAccessSecretConfiguredOrThrow({
+      ingestionKey,
+      operation: "ingest",
+      device,
+    });
+
     const secretHeader =
       headers["x-access-secret"] ?? headers["x-device-secret"];
     if (
@@ -991,6 +1040,12 @@ export class AccessService {
         details: { deviceId: device.id },
       });
     }
+
+    await assertAccessSecretConfiguredOrThrow({
+      ingestionKey,
+      operation: "authorize",
+      device,
+    });
 
     const secretHeader =
       headers["x-access-secret"] ?? headers["x-device-secret"];
@@ -1132,6 +1187,12 @@ export class AccessService {
         details: { deviceId: device.id },
       });
     }
+
+    await assertAccessSecretConfiguredOrThrow({
+      ingestionKey,
+      operation: "heartbeat",
+      device,
+    });
 
     const secretHeader =
       headers["x-access-secret"] ?? headers["x-device-secret"];
