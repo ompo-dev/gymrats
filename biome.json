@@ -47,7 +47,8 @@
     {
       "includes": [
         "apps/api/src/lib/services/**/*.ts",
-        "apps/web/lib/services/**/*.ts"
+        "apps/web/lib/services/**/*.ts",
+        "packages/domain/src/services/**/*.ts"
       ],
       "linter": {
         "rules": {
