@@ -21,6 +21,8 @@ O contrato externo `/api/*` deve permanecer no host do frontend via proxy same-o
 - Cron semanal esta fail-closed com `CRON_SECRET` obrigatorio.
 - Politica de idempotencia com fingerprint por rota/metodo/ator/body canonico.
 - Modo de saque e controlado apenas no servidor por `PAYOUT_EXECUTION_MODE`.
+- Entitlement U1 segue AC-01 fail-closed para features premium em planos pagos sem assinatura ativa.
+- Residuais U1 `RR-U1-01` e `RR-U1-02` revalidados como fechados (sem regressao observada) no estado atual.
 
 ## Scripts de verificacao
 
@@ -147,6 +149,28 @@ Recomendacao de cliente:
 - `PAYOUT_EXECUTION_MODE=real`: saque real via PSP.
 - O cliente nao deve controlar simulacao; a decisao e exclusivamente server-side.
 - Logs de auditoria distinguem simulacao via `simulation=true`.
+
+### 5) Entitlement AC-01 fail-closed
+
+- `hasDirectAbility` nega acesso quando nao existe `activePlan`.
+- Para planos pagos, feature premium exige `isSubscriptionActive=true`.
+- Excecao declarada: apenas `FREE` pode manter features gratuitas previstas em policy.
+- `requireAbility` aplica o gate server-side e o erro e respondido como `403` (`forbiddenResponse`) nas rotas protegidas.
+
+Evidencias de implementacao:
+
+- `packages/access-control/src/core.ts:24`
+- `packages/access-control/src/core.ts:33`
+- `apps/api/src/lib/access-control/server.ts:149`
+- `apps/api/src/routes/gym/students/[id]/workouts/process/route.ts:232`
+- `apps/api/src/routes/gym/students/[id]/workouts/process/route.ts:803`
+- `apps/api/src/lib/api/utils/response.utils.ts:74`
+
+Status residual/regressao U1:
+
+- `RR-U1-01` fechado: `apps/web/stores/gym-unified-store.ts:1564`, `apps/api/src/routes/gyms/withdraws/route.ts:13`.
+- `RR-U1-02` fechado: `tests/e2e/runtimes/runtime-smoke.spec.ts:5`.
+- Rastreio: `docs/audits/2026-05-18-u3-hardening-report.md:15`, `docs/audits/2026-05-18-u3-hardening-report.md:16`.
 
 ## Ordem segura de rollout
 

@@ -36,6 +36,41 @@ function hasDirectAbility(user: UserContext, feature: FeatureKey): boolean {
   return planName === "FREE";
 }
 
+function hasInheritedAbility(
+  env: EnvironmentContext | undefined,
+  feature: FeatureKey,
+): boolean {
+  if (!env?.plan || !env.isSubscriptionActive) {
+    return false;
+  }
+
+  if (env.type === "GYM") {
+    const gymPlanName = env.plan.toUpperCase();
+    const allowedByGymParent =
+      GymInheritedFeatures[gymPlanName as keyof typeof GymInheritedFeatures];
+
+    return (
+      Array.isArray(allowedByGymParent) &&
+      allowedByGymParent.includes(feature)
+    );
+  }
+
+  if (env.type === "PERSONAL") {
+    const personalPlanName = env.plan.toUpperCase();
+    const allowedByPersonalParent =
+      PersonalInheritedFeatures[
+        personalPlanName as keyof typeof PersonalInheritedFeatures
+      ];
+
+    return (
+      Array.isArray(allowedByPersonalParent) &&
+      allowedByPersonalParent.includes(feature)
+    );
+  }
+
+  return false;
+}
+
 /**
  * checkAbility
  * Verifica se a feature esta destrancada, considerando o plano explicito do usuario
@@ -50,33 +85,5 @@ export function checkAbility(
     return true;
   }
 
-  if (env?.type === "GYM" && env.plan) {
-    const gymPlanName = env.plan.toUpperCase();
-    const allowedByGymParent =
-      GymInheritedFeatures[gymPlanName as keyof typeof GymInheritedFeatures];
-
-    if (
-      Array.isArray(allowedByGymParent) &&
-      allowedByGymParent.includes(feature)
-    ) {
-      return true;
-    }
-  }
-
-  if (env?.type === "PERSONAL" && env.plan) {
-    const personalPlanName = env.plan.toUpperCase();
-    const allowedByPersonalParent =
-      PersonalInheritedFeatures[
-        personalPlanName as keyof typeof PersonalInheritedFeatures
-      ];
-
-    if (
-      Array.isArray(allowedByPersonalParent) &&
-      allowedByPersonalParent.includes(feature)
-    ) {
-      return true;
-    }
-  }
-
-  return false;
+  return hasInheritedAbility(env, feature);
 }

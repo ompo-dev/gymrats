@@ -51,6 +51,8 @@ Checklist operacional para validar o pacote U1 apos deploy e executar rollback s
 4. Consulta de job por nao-owner deve negar acesso.
 5. Fluxo de join/subscribe com cupom em corrida deve retornar `409` para tentativa perdedora, sem consumo extra.
 6. Falha de criacao PIX em join/subscribe deve deixar registro financeiro coerente (cancelamento + rollback de cupom quando aplicavel).
+7. Cenario AC-01 fail-closed: usuario com plano pago sem assinatura ativa deve receber negacao (`403`) em rota protegida por `requireAbility` (exemplo: `POST /api/gym/students/{id}/workouts/process`).
+8. Controle positivo AC-01: com assinatura ativa no mesmo cenario, a chamada nao deve ser bloqueada por entitlement.
 
 ## Evidencia minima a arquivar
 
@@ -59,6 +61,7 @@ Checklist operacional para validar o pacote U1 apos deploy e executar rollback s
 - Captura de `401` do cron sem segredo.
 - Captura de replay de idempotencia e de `409` por fingerprint divergente.
 - Captura de auditoria de saque simulado com `simulation=true`.
+- Captura de `403` no cenario AC-01 fail-closed e captura do controle positivo (sem bloqueio de entitlement) para mesmo endpoint.
 
 ## Gates de aceite
 
@@ -67,6 +70,7 @@ Checklist operacional para validar o pacote U1 apos deploy e executar rollback s
 - Gate C (obrigatorio): idempotencia sem bypass reproduzivel.
 - Gate D (obrigatorio): saque fake operando somente por controle server-side.
 - Gate E (obrigatorio): sem regressao de auth-context multi-gym.
+- Gate F (obrigatorio): AC-01 fail-closed ativo (sem bypass de feature premium com assinatura inativa).
 
 Se qualquer gate obrigatorio falhar, nao promover rollout.
 
@@ -76,6 +80,7 @@ Se qualquer gate obrigatorio falhar, nao promover rollout.
 
 - `readyz` degradado persistente apos janela de estabilizacao.
 - Erro sistemico em auth-context (403/409 anormal em massa).
+- Regressao de entitlement (plano pago inativo acessando feature premium).
 - Erro financeiro em saque/cupom com risco de saldo inconsistente.
 - Falha de idempotencia com duplicidade de operacao.
 

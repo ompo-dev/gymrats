@@ -19,4 +19,5 @@ export interface EnvironmentContext {
   type: "GYM" | "PERSONAL";
   id: string; // ID da Gym ou Personal associado no momento
   plan: GymPlan | PersonalPlan | string;
+  isSubscriptionActive: boolean;
 }

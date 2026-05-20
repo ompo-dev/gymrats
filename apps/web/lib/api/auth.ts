@@ -55,6 +55,12 @@ export interface AuthSessionResponse {
     } | null;
     personal?: {
       id: string;
+      subscription?: {
+        plan: string;
+        status: string;
+        currentPeriodEnd?: string | Date | null;
+        trialEnd?: string | Date | null;
+      } | null;
     } | null;
   };
   session?: {

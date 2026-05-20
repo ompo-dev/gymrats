@@ -27,6 +27,7 @@ function EnvironmentProviderPreview() {
               type: "GYM",
               id: "gym-01",
               plan: "PREMIUM",
+              isSubscriptionActive: true,
             })
           }
         >
@@ -40,6 +41,7 @@ function EnvironmentProviderPreview() {
               type: "PERSONAL",
               id: "personal-01",
               plan: "PRO_AI",
+              isSubscriptionActive: true,
             })
           }
         >
@@ -67,7 +69,12 @@ type Story = StoryObj<typeof meta>;
 export const Interactive: Story = {
   render: () => (
     <EnvironmentProvider
-      initialEnv={{ type: "GYM", id: "gym-01", plan: "PREMIUM" }}
+      initialEnv={{
+        type: "GYM",
+        id: "gym-01",
+        plan: "PREMIUM",
+        isSubscriptionActive: true,
+      }}
     >
       <EnvironmentProviderPreview />
     </EnvironmentProvider>

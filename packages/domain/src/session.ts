@@ -47,6 +47,14 @@ export async function getSession(sessionToken: string) {
           personal: {
             select: {
               id: true,
+              subscription: {
+                select: {
+                  plan: true,
+                  status: true,
+                  currentPeriodEnd: true,
+                  trialEnd: true,
+                },
+              },
             },
           },
           gyms: {

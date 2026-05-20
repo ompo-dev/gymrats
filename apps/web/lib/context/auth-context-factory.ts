@@ -87,7 +87,19 @@ async function getAuthSession(): Promise<AuthSession | null> {
         include: {
           student: true,
           gyms: { select: { id: true } },
-          personal: { select: { id: true } },
+          personal: {
+            select: {
+              id: true,
+              subscription: {
+                select: {
+                  plan: true,
+                  status: true,
+                  currentPeriodEnd: true,
+                  trialEnd: true,
+                },
+              },
+            },
+          },
         },
       });
 

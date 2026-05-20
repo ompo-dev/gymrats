@@ -30,7 +30,19 @@ const SESSION_USER_INCLUDE = {
       },
     },
   },
-  personal: { select: { id: true } },
+  personal: {
+    select: {
+      id: true,
+      subscription: {
+        select: {
+          plan: true,
+          status: true,
+          currentPeriodEnd: true,
+          trialEnd: true,
+        },
+      },
+    },
+  },
   gyms: {
     select: {
       id: true,
